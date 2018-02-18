@@ -1,10 +1,276 @@
 //This work is licensed under a GNU General Public License, v3.0. Visit http://gnu.org/licenses/gpl-3.0-standalone.html for details.
-//Javscript Utils (version 8.05 Beta), functions by http://github.com/Pecacheu unless otherwise stated.
+//Javscript Utils (version 8.2.2), functions by http://github.com/Pecacheu unless otherwise stated.
 
-var utils = {};
+"use strict";
 
-//User-Agent-based Mobile device detection:
+const utils = {};
+
+//Wrap a function so that it always has a preset argument list when called:
+Function.prototype.wrap = function(/* ... */) {
+	const f = this, a = arguments; return function(){return f.apply(arguments,a)};
+}
+
+//UtilRect Objects & ClientRect Polyfill:
+if(!window.ClientRect) window.ClientRect = DOMRect;
+
+function UtilRect(t,b,l,r) {
+	if(!(this instanceof UtilRect)) throw "UtilRect constructor must use new keyword!";
+	const f = Number.isFinite; let tt=0,bb=0,ll=0,rr=0;
+	if(f(t) && f(b) && f(l) && f(r)) { tt = t; bb = b; ll = l; rr = r; }
+	else if(t instanceof ClientRect) { tt = t.top; bb = t.bottom; ll = t.left; rr = t.right; }
+	
+	utils.addProp(this,['top','x'],function(){return tt},function(v){if(f(v))tt=v});
+	utils.addProp(this,'bottom',function(){return bb},function(v){if(f(v))bb=v});
+	utils.addProp(this,['left','y'],function(){return ll},function(v){if(f(v))ll=v});
+	utils.addProp(this,'right',function(){return rr},function(v){if(f(v))rr=v});
+	
+	utils.addProp(this,'width',function(){return rr-ll},function(v){if(f(v)){if(v<0)v=0;rr=ll+v}});
+	utils.addProp(this,'height',function(){return bb-tt},function(v){if(f(v)){if(v<0)v=0;bb=tt+v}});
+}
+
+//Check if UtilRect contains point or other rect:
+UtilRect.prototype.contains = function(x, y) {
+	if(typeof x == 'object') return x.left >= this.left && x.right
+	<= this.right && x.top >= this.top && x.bottom <= this.bottom;
+	return x >= this.left && x <= this.right && y >= this.top && y <= this.bottom;
+};
+
+//Expand (or contract if negative) a UtilRect by amout of pixels.
+//Useful for using UtilRect objects as element hitboxes. Returns self for chaining.
+UtilRect.prototype.expand = function(by) {
+	this.top -= by; this.left -= by; this.bottom += by;
+	this.right += by; return this;
+};
+
+(function(){ //Utils Library
+
+//Cookie Parsing.
+utils.setCookie = function(name,value,exp,secure) {
+	let c = encodeURIComponent(name)+'='+(value==null?'':encodeURIComponent(value));
+	if(exp != null) {
+		if(!(exp instanceof Date)) exp = new Date(exp);
+		c += ';expires='+exp.toUTCString();
+	}
+	if(secure) c += ';secure'; document.cookie = c;
+}
+utils.remCookie = function(name) {
+	document.cookie = encodeURIComponent(name)
+	+'=;expires='+new Date(0).toUTCString();
+}
+utils.getCookie = function(name) {
+	const n1 = encodeURIComponent(name), n2 = ' '+n1, cl = document.cookie.split(';');
+	for(let i=0,l=cl.length,c,eq,sub; i<l; i++) {
+		c = cl[i]; eq = c.indexOf('='); sub = c.substr(0,eq);
+		if(sub == n1 || sub == n2) return decodeURIComponent(c.substr(eq+1));
+	}
+	return null;
+}
+
+//Like Java.
+String.prototype.startsWith = function(s) { return this.substr(0,s.length) === s; }
+String.prototype.endsWith = function(s) { return this.substr(this.length-s.length) === s; }
+
+//Convert String to Title Case.
+utils.titleCase = function(s) {
+	s = s.toLowerCase().split(/(?=[^a-zA-Z](?=[a-zA-Z]))/g);
+	for(let i=0,l=s.length,w; i<l; i++) {
+		w=s[i]; if(i==0) s[i] = w[0].toUpperCase()+w.substr(1);
+		else if(s[i].length > 1) s[i] = w[0]+w[1].toUpperCase()+w.substr(2);
+	}
+	return s.join('');
+}
+
+//Deep (recursive) Object.create cloning function.
+//If sub is set to false, will only copy 1 level deep.
+utils.copy = function(o,sub) {
+	if(!o || typeof o !== 'object') return o;
+	const o2 = {}, ok = Object.keys(o);
+	for(let i=0,l=ok.length,k; i<l; i++) {
+		k = ok[i]; o2[k] = sub===false?o[k]:utils.copy(o[k]);
+	}
+	return o2;
+}
+
+//UserAgent-based Mobile device detection.
 utils.mobile = ('orientation' in window || navigator.userAgent.match(/Mobi/i));
+
+//Generates modified input field for css skinning on unsupported browsers. This is a JavaScript
+//fallback for when css 'appearance:none' doesn't work. For Mobile Safari, this is usually
+//needed with 'datetime-local', 'select-one', and 'select-multiple' input types.
+utils.skinnedInput = function(el) {
+	const cont = utils.mkDiv(null,el.className), is = el.style, type = el.type; el.className += ' isSub';
+	if(type == 'datetime-local' || type == 'select-one' || type == 'select-multiple') { //Datetime or Select:
+		is.opacity = 0; is.top = '-100%'; const text = utils.mkEl('span',cont,'isText');
+		utils.mkEl('span',cont,'isArrow',{borderTopColor:getComputedStyle(el).color});
+		function onChange() { switch(type) {
+			case 'datetime-local': text.textContent = utils.formatDate(utils.fromDateTimeBox(this)); break;
+			case 'select-one': text.textContent = selBoxLabel(this); break;
+			case 'select-multiple': text.textContent = mulBoxLabel(this); break;
+		}}
+		el.addEventListener('change', onChange); onChange.call(el);
+		el.forceUpdate = onChange;
+	}
+	el.replaceWith(cont); cont.appendChild(el);
+	//Append StyleSheet:
+	if(!document.isStyles) { document.isStyles = true; utils.mkEl('style',document.body,null,null,'.isSub {\
+		width:100% !important; height:100% !important; border:none !important; display:inline-block !important;\
+		position:relative !important; box-shadow:none !important; margin:0 !important; padding:initial !important;\
+	}\
+	.isText {\
+		display:inline-block; height:100%; max-width:95%;\
+		overflow:hidden; text-overflow:ellipsis; white-space:nowrap;\
+	}\
+	.isArrow {\
+		width:0; height:0; display:inline-block; float:right; top:38%; position:relative;\
+		border-left:3px solid transparent; border-right:3px solid transparent;\
+		border-top:6px solid #000; vertical-align:middle;\
+	}'); }
+}
+
+function selBoxLabel(sb) {
+	const op = sb.options; if(op.selectedIndex != -1) return op[op.selectedIndex].label;
+	return "No Options Selected";
+}
+function mulBoxLabel(sb) {
+	const op = sb.options; let str = ''; for(let i=0,l=op.length; i<l; i++)
+	if(op[i].selected) str += (str?', ':'')+op[i].label; return str||"No Options Selected";
+}
+
+//Turns your boring <input> into a mobile-friendly number entry field with max/min & negative support.
+//Optional 'decMax' parameter is maximum percision of decimal allowed. (ex. 3 would give percision of 0.001)
+//On mobile, use star key for decimal point and pound key for negative.
+utils.numField = function(field, min, max, decMax) {
+	if(min == null) min = -2147483648; if(max == null) max = 2147483647;
+	field.setAttribute('pattern',"\\d*"); if(decMax) field.type = 'tel'; else field.type = 'number';
+	field.ns = field.value = (field.num = Number(field.value)||0).toString();
+	field.onkeydown = function(e) {
+		const k = e.key, kn = (k.length==1)?Number(k):null, dAdd = decMax && this.num != max && this.num != min,
+		old = this.ns; let len = this.ns.length, dec = this.ns.indexOf('.'), neg = this.ns.indexOf('-')!=-1;
+		
+		if(kn || kn == 0) { if(dec == -1 || len-dec < decMax+1) this.ns += k; } //Number.
+		else if(dAdd && (k == '.' || k == '*') && dec == -1) this.ns += '.'; //Decimal.
+		else if(k == 'Backspace' || k == 'Delete') this.ns = this.ns.substr(0,len-1); //Backspace.
+		else if(min < 0 && (k == '-' || k == '#') && len == 0) { this.ns = '-'; neg = true; } //Negative Key.
+		else if(k == 'ArrowUp') this.ns = (this.num+(this.step||1)).toString(); //Up Key.
+		else if(k == 'ArrowDown') this.ns = (this.num-(this.step||1)).toString(); //Down Key.
+		len = this.ns.length; dec = this.ns.indexOf('.');
+		if(dec != -1 && len-dec > decMax+1) len = (this.ns = this.ns.substr(0,dec+decMax+1)).length;
+		
+		let n = Number(this.ns)||0; if(!n && dec == -1 && !neg) this.ns = '';
+		if(n > max) { n = max; this.ns = n.toString(); }
+		else if(n < min) { n = min; this.ns = n.toString(); }
+		
+		const nOld = this.num; this.num = n;
+		if(this.onnuminput && this.onnuminput(n) === false) { this.ns = old; this.num = nOld; }
+		else if(len) this.value = (neg&&!n?'-':'')+n+(dec!=-1&&n%1==0?'.0':''); else this.value = n;
+		e.preventDefault();
+	}
+	field.set = function(n) {
+		n = Number(n)||0; if(!decMax) n = Math.floor(n);
+		if(n > max) n = max; if(n < min) n = min;
+		this.value = this.num = n; this.ns = n.toString();
+		if(this.onnuminput) this.onnuminput(n);
+	}
+}
+
+//Turns your boring <input> into a mobile-friendly currency entry field, optionally with custom currency symbol.
+//On mobile, use star key for decimal point.
+utils.costField = function(field, sym) {
+	field.setAttribute('pattern',"\\d*"); field.type = 'tel';
+	field.value = utils.formatCost(field.num = Number(field.value)||0,sym); field.ns = field.num.toString();
+	field.onkeydown = function(e) {
+		const k = e.key, kn = (k.length==1)?Number(k):null, len = this.ns.length, old = this.ns;
+		let dec = this.ns.indexOf('.');
+		
+		if(kn || kn == 0) { if(dec == -1 || len-dec < 3) this.ns += k; } //Number.
+		else if((k == '.' || k == '*') && dec == -1) { this.ns += '.'; dec = len; } //Decimal.
+		else if(k == 'Backspace' || k == 'Delete') this.ns = this.ns.substr(0,len-1); //Backspace.
+		else if(k == 'ArrowUp') this.ns = (this.num+1).toString(); //Up Key.
+		else if(k == 'ArrowDown' && this.num >= 1) this.ns = (this.num-1).toString(); //Down Key.
+		
+		const n = Number(this.ns)||0; if(!n && dec == -1) this.ns = '';
+		
+		const nOld = this.num; this.num = n;
+		if(this.onnuminput && this.onnuminput(n) === false) { this.ns = old; this.num = nOld; }
+		else this.value = utils.formatCost(n,sym);
+		e.preventDefault();
+	}
+	field.set = function(n) {
+		n = Math.floor((Number(n)||0)*100)/100; this.num = n;
+		this.value = utils.formatCost(n,sym); this.ns = n.toString();
+		if(this.onnuminput) this.onnuminput(n);
+	}
+}
+
+//Format Number as Currency. Uses '$' by default.
+utils.formatCost = function(n, sym) {
+	if(!sym) sym = '$'; if(!n) return sym+'0.00';
+	const p = n.toFixed(2).split('.');
+	return sym+p[0].split('').reverse().reduce(function(a, n, i)
+	{ return n=='-'?n+a:n+(i&&!(i%3)?',':'')+a; },'')+'.'+p[1];
+}
+
+//Convert value from 'datetime-local' input to Date object.
+utils.fromDateTimeBox = function(el) {
+	const v=el.value; if(!v) return new Date();
+	return new Date(v.replace(/-/g,'/').replace(/T/g,' '));
+}
+
+//Convert Date object into format to set 'datetime-local'
+//input value, optionally including seconds if 'sec' is true.
+utils.toDateTimeBox = function(d, sec) {
+	return d.getFullYear()+'-'+fixedNum2(d.getMonth()+1)+'-'+fixedNum2(d.getDate())+'T'+
+	fixedNum2(d.getHours())+':'+fixedNum2(d.getMinutes())+(sec?':'+fixedNum2(d.getSeconds()):'');
+}
+
+const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function fixedNum2(num) { if(num <= 9) return '0'+num; return num; }
+
+//Format Date object into human-readable string.
+utils.formatDate = function(d) {
+	if(d == null || !d.getDate || !d.getFullYear()) return "Invalid Date";
+	const mins=d.getMinutes(), month=d.getMonth(), day=d.getDate(), year=d.getFullYear();
+	let hour=d.getHours(), pm=false; if(hour >= 12) { pm = true; hour -= 12; } if(hour == 0) hour = 12;
+	return hour+':'+fixedNum2(mins)+' '+(pm?'PM':'AM')+' '+months[month]+' '+utils.suffix(day)+', '+year;
+}
+
+//Add appropriate suffix to number. (ex. 31st, 12th, 22nd)
+utils.suffix = function(n) {
+	let j = n % 10, k = n % 100;
+	if(j == 1 && k != 11) { return n + "st"; }
+	if(j == 2 && k != 12) { return n + "nd"; }
+	if(j == 3 && k != 13) { return n + "rd"; }
+	return n + "th";
+}
+
+//Virtual Page Navigation:
+utils.goBack = function(){history.back()};
+utils.goForward = function(){history.forward()};
+utils.go = function(id) {
+	const a = Array.from(arguments);
+	if(id != null) history.pushState(a,id,'#'+id); doNav(a);
+}
+window.addEventListener('popstate', function(e){doNav(e.state)});
+window.addEventListener('load', function(){setTimeout(function(){doNav(history.state)},1)});
+
+function doNav(s) {
+	if(!Array.isArray(s)) s = [location.hash.substr(1)];
+	if(utils.onNav) utils.onNav.apply(null,s);
+}
+
+//Create element with tag, parent, classes, style properties, and innerHTML content.
+//Supply null (or undefined) for any parameters to leave blank.
+utils.mkEl = function(tag, p, c, s, i) {
+	const e = document.createElement(tag);
+	if(c != null) e.className = c; if(i != null) e.innerHTML = i;
+	if(s != null && typeof s == 'object') {
+		const k = Object.keys(s), l = k.length;
+		for(let i=0; i<l; i++) e.style[k[i]] = s[k[i]];
+	}
+	if(p != null) p.appendChild(e); return e;
+}
+utils.mkDiv = function(p, c, s, i) { return utils.mkEl('div',p,c,s,i); }
+utils.addText = function(el, text) { el.appendChild(document.createTextNode(text)); }
 
 //It's useful for any canvas-style webpage to have the page dimensions on hand.
 //Function by: http://w3schools.com/jsref/prop_win_innerheight.asp
@@ -22,7 +288,8 @@ utils.textWidth = function(text, font) {
 //Add a getter/setter pair to an existing object:
 utils.addProp = function(obj, name, getter, setter) {
 	const t={}; if(getter) t.get=getter; if(setter) t.set=setter;
-	Object.defineProperty(obj, name, t);
+	if(Array.isArray(name)) for(let i=0,l=name.length; i<l; i++) Object.defineProperty(obj, name[i] ,t);
+	else Object.defineProperty(obj, name, t);
 }
 
 //Remove "empty" elements like 0, false, " ",
@@ -42,6 +309,23 @@ Array.prototype.remove = function(item) {
 	const ind = this.indexOf(item); if(ind == -1) return false;
 	this.splice(ind,1); return true;
 }
+
+//Get an element's index in it's parent. Returns -1 if the element has no parent.
+utils.addProp(Element.prototype,'index',function() {
+	const p = this.parentElement; if(!p) return -1;
+	return Array.prototype.indexOf.call(p.children, this);
+});
+
+//Insert child at index:
+Element.prototype.insertChildAt = function(el, i) {
+	if(i<0) i=0; if(i >= this.children.length) this.appendChild(el);
+	else this.insertBefore(el, this.children[i]);
+}
+
+//Get element bounding rect as UtilRect object:
+utils.addProp(Element.prototype,'boundingRect',function() {
+	return new UtilRect(this.getBoundingClientRect());
+});
 
 //No idea why this isn't built-in, but it's not.
 Math.cot = function(x) {return 1/Math.tan(x)}
@@ -144,9 +428,7 @@ utils.cutStr = function(inStr, remStr) {
 
 //Polyfill for String.trim()
 //Function by: http://www.w3schools.com/
-if(!String.prototype.trim) String.prototype.trim = function(str) {
-	if(str.trim) return str.trim(); return str.replace(/^\s+|\s+$/gm,'');
-}
+if(!String.prototype.trim) String.prototype.trim = function() { return this.replace(/^\s+|\s+$/gm,''); }
 
 //Given CSS property value 'prop', returns object with
 //space-seperated values from the property string.
@@ -266,7 +548,7 @@ utils.toQuery = function(obj) {
 //obj: Object to center.
 //only: 'x' for only x axis centering, 'y' for only y axis.
 //type: 'calc', 'trans', 'move', or null for different centering methods.
-utils.centerObj = function(obj, only, type) {
+utils.center = utils.centerObj = function(obj, only, type) {
 	if(!obj.style.position) obj.style.position = "absolute";
 	if(type == 'calc') { //Efficient, but Only Responsive for Changes in Page Size:
 		if(!only || only == "x") obj.style.left = "calc(50% - "+(obj.clientWidth/2)+"px)";
@@ -323,7 +605,7 @@ utils.loadJSONP = function(path, callback, timeout) {
 //Loads a file and returns it's contents using HTTP GET.
 //Callback parameters: (data, err)
 //err: non-zero on error. Standard HTTP error codes.
-//queryData: Optional, object of url querry data key/value pairs.
+//queryData: Optional, object of url query data key/value pairs.
 //contentType: Optional, sets content type header.
 //Returns: false if AJAX not supported, true otherwise.
 utils.loadAjax = function(path, callback, queryData, contentType) {
@@ -359,16 +641,18 @@ utils.deg = function(rad) { return rad * 180 / Math.PI; }
 
 //Pecacheu's ultimate unit translation formula:
 //This Version -- Bounds Checking: NO, Rounding: NO, Max/Min Switching: NO, Easing: YES
-utils.mapValues = function(input, minIn, maxIn, minOut, maxOut, easeFunc) {
+utils.map = function(input, minIn, maxIn, minOut, maxOut, easeFunc) {
 	if(!easeFunc) easeFunc = function(t) { return t; }
 	return (easeFunc((input-minIn)/(maxIn-minIn))*(maxOut-minOut))+minOut;
 }
+
+})(); //End of Utils Library
 
 //JavaScript Easing Library, CREATED BY: http://github.com/gre
 
 /*Easing Functions - inspired from http://gizma.com/easing/
 only considering the t value for the range [0,1] => [0,1]*/
-Easing = {
+const Easing = {
 	//no easing, no acceleration
 	linear:function(t) { return t },
 	//accelerating from zero velocity
