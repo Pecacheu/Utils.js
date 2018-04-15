@@ -1,5 +1,5 @@
 //This work is licensed under a GNU General Public License, v3.0. Visit http://gnu.org/licenses/gpl-3.0-standalone.html for details.
-//Javscript Utils (version 8.2.3), functions by http://github.com/Pecacheu unless otherwise stated.
+//Javscript Utils (version 8.2.5), functions by http://github.com/Pecacheu unless otherwise stated.
 
 "use strict";
 
@@ -443,48 +443,39 @@ utils.buildCSS = function(propArr) {
 	return pStr.substring(0, pStr.length-1);
 }
 
+function defaultStyle() {
+	const ss = document.styleSheets;
+	for(let s=0,j=ss.length; s<j; s++) try { ss[s].rules; return ss[s]; } catch(e) {}
+	let ns = utils.mkEl('style',document.head); ns.appendChild(document.createTextNode(''));
+	return ns.sheet;
+}
+
 //Create a CSS class and append it to the current document. Fill 'propList' object
 //with key/value pairs repersenting the properties you want to add to the class.
 utils.addClass = function(className, propList) {
-	let style, str=''; const keys = Object.keys(propList);
-	if(document.styleSheets.length > 0) style = document.styleSheets[0]; else {
-		style = document.createElement('style');
-		style.appendChild(document.createTextNode(''));
-		document.head.appendChild(style);
-	}
+	const style = defaultStyle(), keys = Object.keys(propList); let str='';
 	for(let i=0,l=keys.length; i<l; i++) str += keys[i]+":"+propList[keys[i]]+";";
-	style.insertRule("."+className+"{"+str+"}", 1);
+	style.addRule("."+className,str);
 }
 
 //Create a CSS selector and append it to the current document.
 utils.addId = function(idName, propList) {
-	let style, str=''; const keys = Object.keys(propList);
-	if(document.styleSheets.length > 0) style = document.styleSheets[0]; else {
-		style = document.createElement('style');
-		style.appendChild(document.createTextNode(''));
-		document.head.appendChild(style);
-	}
+	const style = defaultStyle(), keys = Object.keys(propList); let str='';
 	for(let i=0,l=keys.length; i<l; i++) str += keys[i]+":"+propList[keys[i]]+";";
-	style.insertRule("#"+idName+"{"+str+"}", 1);
+	style.addRule("#"+idName,str);
 }
 
 //Create a CSS keyframe and append it to the current document.
 utils.addKeyframe = function(name, content) {
-	let style; if(document.styleSheets.length > 0) style = document.styleSheets[0]; else {
-		style = document.createElement('style');
-		style.appendChild(document.createTextNode(''));
-		document.head.appendChild(style);
-	}
-	style.insertRule("@keyframes "+name+"{"+content+"}", 1);
+	defaultStyle().addRule("@keyframes "+name,content);
 }
 
 //Remove a specific css selector (including the '.' or '#') from all stylesheets in the current document.
 utils.removeSelector = function(name) {
 	for(let s=0,style,rList,j=document.styleSheets.length; s<j; s++) {
-		style = document.styleSheets[s]; rList = style.rules;
-		for(key in rList) if(rList[key].type == 1 && rList[key]
-		.selectorText == name) style.removeRule(key);
-	} //rule.type #1 = CSSStyleRule
+		style = document.styleSheets[s]; try { rList = style.rules; } catch(e) { continue; }
+		for(let key in rList) if(rList[key].type == 1 && rList[key].selectorText == name) style.removeRule(key);
+	}
 }
 
 //Converts HEX color to 24-bit RGB.
@@ -551,30 +542,27 @@ utils.center = utils.centerObj = function(obj, only, type) {
 }
 
 //Loads a file and returns it's contents using HTTP GET.
-//Callback parameters: (data, err)
-//err: non-zero on error. Standard HTTP error codes.
-//queryData: Optional, object of url query data key/value pairs.
-//contentType: Optional, sets content type header.
-//Returns false if AJAX not supported.
-utils.loadAjax = function(path, callback, queryData, contentType) {
-	//Obtain HTTP Object:
+//Callback parameters: (err, data)
+//err: non-zero on error. -1 if AJAX not supported, -2 if unknown error, otherwise standard HTTP error codes.
+//cType: Optional, sets content type header.
+//usePost: Set to true to use HTTP POST instead.
+//Error is -1 if AJAX not supported, -2 if unknown error.
+utils.loadAjax = function(path, callback, cType, usePost) {
 	let http; if(window.XMLHttpRequest) { //Chrome, Safari, Firefox, Edge:
-		try {http = new XMLHttpRequest()} catch(e) {return e}
+		try {http = new XMLHttpRequest()} catch(e) {callback(-1);return}
 	} else if(window.ActiveXObject) { //IE6 and older:
 		try {http = new ActiveXObject("Msxml2.XMLHTTP")} catch(e) {
-		try {http = new ActiveXObject("Microsoft.XMLHTTP")} catch(e) {return e}}
-	} else return false;
-	//Open & Set HTTP Headers:
-	http.open("GET", path, true);
-	if(contentType) http.setRequestHeader("Content-type", contentType);
-	http.onreadystatechange = function(event) { //Handle state change:
+		try {http = new ActiveXObject("Microsoft.XMLHTTP")} catch(e) {callback(-1);return}}
+	} else { callback(-1); return; }
+	http.open(usePost?'POST':'GET',path,true); if(cType) http.setRequestHeader("Content-type", cType);
+	if(typeof callback == 'function') http.onreadystatechange = function(event) { //Handle state change:
 		if(event.target.readyState === XMLHttpRequest.DONE) {
-			if(event.target.status == 200) callback(event.target.response, 0);
-			else callback("", event.target.status);
+			let s = event.target.status;
+			if(s == 200) s = 0; else if(s <= 0) s = -2;
+			callback(s,event.target.response);
 		}
 	}
-	http.send(queryData?utils.toQuery(queryData):null); //Send Request
-	return true;
+	http.send();
 }
 
 //Good fallback for loadAjax. Loads a file at the address via HTML object tag.

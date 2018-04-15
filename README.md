@@ -1,6 +1,4 @@
 # Utils.js
-#### Useful JavaScript Functions and Code
-
 *More detailed usage & help in utils.js!*
 
 ### Custom Classes
@@ -62,7 +60,7 @@
 - `utils.fromQuery(str) returns Object` Parses a url query string into an Object.
 - `utils.toQuery(obj) returns String` Converts an object into a url query string.
 - `utils.center(obj[,only[,type]])` Center objects with JavaScript, using a variety of methods. *See utils.js for details.*
-- `utils.loadAjax(path,callback[,queryData[,contentType]]) returns Boolean` Loads a file and returns it's contents using HTTP GET. *See utils.js for details.*
+- `utils.loadAjax(path,[callback[,contentType[,usePost]]])` Loads a file and returns it's contents using HTTP GET or POST. *See utils.js for details.*
 - `utils.loadJSONP(path,callback,timeout)` Loads a file at the address from a JSONP-enabled server. Callback is fired with either recieved data, or **false** if unsucessful.
 - `utils.loadFile(path,callback,timeout)` Good fallback for `utils.loadAjax`. Loads a file at the address via HTML object tag. Callback is fired with either recieved data, or **false** if unsucessful.
 - `utils.rad(deg)` / `utils.deg(rad)` Convert between radians and degrees.
