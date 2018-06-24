@@ -33,8 +33,8 @@
 - `utils.suffix(n) returns String` Add appropriate suffix to number. (ex. 31st, 12th, 22nd)
 - `utils.goBack()` For AJAX navigation. Presses back button.
 - `utils.goForward()` For AJAX navigation. Presses forward button.
-- `utils.go(id, ...)` Push new history state for AJAX navigation. You can provide additional arguments to access later.
-- `utils.onNav = function(id, ...)` Callback called when the browser wants to navigate to a page. Provides the page id (if any), as well as any optional additional arguments supplied to `utils.go`. This is also called when the page is first loaded, so it can work as a substitute to `window.onload`.
+- `utils.go(url, data)` Push new history state for AJAX navigation. You can provide additional data to access later.
+- `utils.onNav = function(data)` Callback called when the browser wants to navigate to a page. Provides the optional data argument supplied to `utils.go`. Also called when the page is first loaded, directly after `window.onload`.
 - `utils.mkEl(tag,parent,class,styles,innerHTML) returns Element` Quickly create element with parent, classes, style properties (as key/value pairs), and innerHTML content. All parameters (except for tag) are optional.
 - `utils.mkDiv` Same as utils.mkEl, but assumes 'div' for tag.
 - `utils.addText(el,text)` Appends a TextNode with given text to element.

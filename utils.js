@@ -1,5 +1,5 @@
 //This work is licensed under a GNU General Public License, v3.0. Visit http://gnu.org/licenses/gpl-3.0-standalone.html for details.
-//Javscript Utils (version 8.2.6), functions by http://github.com/Pecacheu unless otherwise stated.
+//Javscript Utils (version 8.2.7), functions by http://github.com/Pecacheu unless otherwise stated.
 
 "use strict";
 
@@ -236,19 +236,12 @@ utils.suffix = function(n) {
 }
 
 //Virtual Page Navigation:
-utils.goBack = function(){history.back()};
-utils.goForward = function(){history.forward()};
-utils.go = function(id) {
-	const a = Array.from(arguments);
-	if(id != null) history.pushState(a,id,'#'+id); doNav(a);
-}
+utils.goBack = function(){history.back()}
+utils.goForward = function(){history.forward()}
+utils.go = function(url, data){history.pushState(data,'',url||location.pathname);doNav(data)}
 window.addEventListener('popstate', function(e){doNav(e.state)});
 window.addEventListener('load', function(){setTimeout(function(){doNav(history.state)},1)});
-
-function doNav(s) {
-	if(!Array.isArray(s)) s = [location.hash.substr(1)];
-	if(utils.onNav) utils.onNav.apply(null,s);
-}
+function doNav(s) { if(utils.onNav) utils.onNav.call(null,s); }
 
 //Create element with parent, classes, style properties, and innerHTML content.
 //Supply null (or undefined) for any parameters to leave blank.
