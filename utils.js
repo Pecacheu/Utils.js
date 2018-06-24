@@ -1,5 +1,5 @@
 //This work is licensed under a GNU General Public License, v3.0. Visit http://gnu.org/licenses/gpl-3.0-standalone.html for details.
-//Javscript Utils (version 8.2.5), functions by http://github.com/Pecacheu unless otherwise stated.
+//Javscript Utils (version 8.2.6), functions by http://github.com/Pecacheu unless otherwise stated.
 
 "use strict";
 
@@ -491,6 +491,7 @@ utils.rand = function(min, max) { return Math.floor(Math.random() * (max-min+1) 
 //Parses a url query string into an Object.
 //Function by: Pecacheu (From Pecacheu's Apache Test Server)
 utils.fromQuery = function(str) {
+	if(str.startsWith('?')) str = str.substr(1);
 	function parse(params, pairs) {
 		const pair = pairs[0], spl = pair.indexOf('='),
 		key = decodeURIComponent(pair.substr(0,spl)),
@@ -571,12 +572,12 @@ utils.loadFile = function(path, callback, timeout) {
 	const obj = document.createElement('object'); obj.data = path;
 	obj.style.position = 'fixed'; obj.style.opacity = 0;
 	let tmr = setTimeout(function() {
-		document.body.removeChild(obj);
-		tmr = null; callback(false);
+		obj.remove(); tmr = null; callback(false);
 	}, timeout||4000);
 	obj.onload = function() {
-		if(!tmr) return; clearTimeout(tmr); document.body.removeChild(obj);
+		if(!tmr) return; clearTimeout(tmr);
 		callback(obj.contentDocument.documentElement.outerHTML);
+		obj.remove();
 	}
 	document.body.appendChild(obj);
 }
