@@ -1,5 +1,5 @@
 //This work is licensed under a GNU General Public License, v3.0. Visit http://gnu.org/licenses/gpl-3.0-standalone.html for details.
-//Javscript Utils (version 8.2.7), functions by http://github.com/Pecacheu unless otherwise stated.
+//Javscript Utils (version 8.2.8), functions by http://github.com/Pecacheu unless otherwise stated.
 
 "use strict";
 
@@ -30,7 +30,7 @@ UtilRect.prototype.contains = function(x, y) {
 	return x >= this.left && x <= this.right && y >= this.top && y <= this.bottom;
 };
 
-//Expand (or contract if negative) a UtilRect by amout of pixels.
+//Expand (or contract if negative) a UtilRect by num of pixels.
 //Useful for using UtilRect objects as element hitboxes. Returns self for chaining.
 UtilRect.prototype.expand = function(by) {
 	this.top -= by; this.left -= by; this.bottom += by;
@@ -82,7 +82,36 @@ utils.copy = function(o,sub) {
 }
 
 //UserAgent-based Mobile device detection.
-utils.mobile = ('orientation' in window || navigator.userAgent.match(/Mobi/i));
+utils.deviceInfo = function(ua) {
+	if(!ua) ua = navigator.userAgent; const d = {};
+	if(!ua.startsWith("Mozilla/5.0 ")) return d;
+	let o = ua.indexOf(')'), o2 = ua.indexOf(' ',o+2), o3 = ua.indexOf(')',o2+1);
+	o3 = o3==-1?o2+1:o3+2; let os = d.rawOS = ua.substring(13,o);
+	if(os.startsWith("Windows NT ")) {
+		d.os = "Windows"; let ar = os.substring(os.lastIndexOf(';')+2);
+		d.type = ar.startsWith('x')?ar+" PC":ar;
+		d.version = os.substring(11, os.indexOf(';',12)).replace(/.0$/,'');
+	} else if(os.startsWith("Linux; Android ")) {
+		d.os = "Android"; let ds = os.indexOf(';',16), te = os.indexOf(' Build',ds+3);
+		d.type = os.substring(ds+2, te==-1?undefined:te);
+		d.version = os.substring(15,ds).replace(/.0$/,'');
+	} else if(os.startsWith("iPhone; CPU iPhone OS ")) {
+		d.os = "iOS"; d.type = "iPhone";
+		d.version = os.substring(22, os.indexOf(' ',23)).replace(/_/g,'.');
+	} else if(os.startsWith("Macintosh; Intel Mac OS X ")) {
+		d.os = "MacOS"; d.type = "Macintosh";
+		d.version = os.substr(26).replace(/_/g,'.');
+	} else if(os.startsWith("X11; ")) {
+		let ds = os.indexOf(';',6), ts = os.indexOf(';',ds+3);
+		d.os = "Linux "+os.substring(5,ds); d.type = os.substring(ds+2,ts);
+		d.version = os.substr(ts+5);
+	}
+	d.engine = ua.substring(o+2,o2); d.browser = ua.substring(o3);
+	d.mobile = ua.match(/Mobi/i); return d;
+}
+
+utils.device = utils.deviceInfo();
+utils.mobile = ('orientation' in window || utils.device.mobile);
 
 //Generates modified input field for css skinning on unsupported browsers. This is a JavaScript
 //fallback for when css 'appearance:none' doesn't work. For Mobile Safari, this is usually
@@ -127,7 +156,7 @@ function mulBoxLabel(sb) {
 }
 
 //Turns your boring <input> into a mobile-friendly number entry field with max/min & negative support.
-//Optional 'decMax' parameter is maximum percision of decimal allowed. (ex. 3 would give percision of 0.001)
+//Optional 'decMax' parameter is maximum precision of decimal allowed. (ex. 3 would give precision of 0.001)
 //Use field.onnuminput as your oninput function, and get the number value with field.num
 //On mobile, use star key for decimal point and pound key for negative.
 utils.numField = function(field, min, max, decMax) {
@@ -401,7 +430,7 @@ utils.cutStr = function(s, rem) {
 if(!String.prototype.trim) String.prototype.trim = function() { return this.replace(/^\s+|\s+$/gm,''); }
 
 //Given CSS property value 'prop', returns object with
-//space-seperated values from the property string.
+//space-separated values from the property string.
 utils.parseCSS = function(prop) {
 	const pArr={}, pKey="", keyNum=0; prop=prop.trim();
 	function parseInner(str) {
@@ -444,7 +473,7 @@ function defaultStyle() {
 }
 
 //Create a CSS class and append it to the current document. Fill 'propList' object
-//with key/value pairs repersenting the properties you want to add to the class.
+//with key/value pairs representing the properties you want to add to the class.
 utils.addClass = function(className, propList) {
 	const style = defaultStyle(), keys = Object.keys(propList); let str='';
 	for(let i=0,l=keys.length; i<l; i++) str += keys[i]+":"+propList[keys[i]]+";";
@@ -478,7 +507,7 @@ utils.hexToRgb = function(hex) {
 	return [(c >> 16) & 255, (c >> 8) & 255, c & 255];
 }
 
-//Generates random interger from min to max.
+//Generates random integer from min to max.
 utils.rand = function(min, max) { return Math.floor(Math.random() * (max-min+1) + min); }
 
 //Parses a url query string into an Object.
@@ -560,7 +589,7 @@ utils.loadAjax = function(path, callback, cType, usePost) {
 }
 
 //Good fallback for loadAjax. Loads a file at the address via HTML object tag.
-//Callback is fired with either recieved data, or 'false' if unsucessful.
+//Callback is fired with either received data, or 'false' if unsuccessful.
 utils.loadFile = function(path, callback, timeout) {
 	const obj = document.createElement('object'); obj.data = path;
 	obj.style.position = 'fixed'; obj.style.opacity = 0;
@@ -576,7 +605,7 @@ utils.loadFile = function(path, callback, timeout) {
 }
 
 //Loads a file at the address from a JSONP-enabled server. Callback
-//is fired with either recieved data, or 'false' if unsucessful.
+//is fired with either received data, or 'false' if unsuccessful.
 utils.loadJSONP = function(path, callback, timeout) {
 	const script = document.createElement('script'), id = utils.firstEmptyChar(utils.lJSONCall);
 	script.type = 'application/javascript'; script.src = path+'&callback=utils.lJSONCall.'+id;
@@ -595,7 +624,7 @@ utils.deg = function(rad) { return rad * 180 / Math.PI; }
 //Function by: The a**hole who invented radians.
 utils.rad = function(deg) { return deg * Math.PI / 180; }
 
-//Even though this is fairly standard, I figued this formula out on my own when I was like 5, so I'm very proud of it...
+//Even though this is fairly standard, I figured this formula out on my own when I was like 5, so I'm very proud of it...
 
 //Pecacheu's ultimate unit translation formula!
 //This Version -- Bounds Checking: NO, Rounding: NO, Max/Min Switching: NO, Easing: YES
