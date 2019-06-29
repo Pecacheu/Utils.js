@@ -1,5 +1,5 @@
 //This work is licensed under a GNU General Public License, v3.0. Visit http://gnu.org/licenses/gpl-3.0-standalone.html for details.
-//Javscript Utils (version 8.2.8), functions by http://github.com/Pecacheu unless otherwise stated.
+//Javscript Utils (version 8.2.9), functions by http://github.com/Pecacheu unless otherwise stated.
 
 "use strict";
 
@@ -471,19 +471,22 @@ function defaultStyle() {
 	let ns = utils.mkEl('style',document.head); ns.appendChild(document.createTextNode(''));
 	return ns.sheet;
 }
+function toKey(k) {
+	return k.replace(/[A-Z]/g, function(s) {return '-'+s.toLowerCase()});
+}
 
 //Create a CSS class and append it to the current document. Fill 'propList' object
 //with key/value pairs representing the properties you want to add to the class.
 utils.addClass = function(className, propList) {
 	const style = defaultStyle(), keys = Object.keys(propList); let str='';
-	for(let i=0,l=keys.length; i<l; i++) str += keys[i]+":"+propList[keys[i]]+";";
+	for(let i=0,l=keys.length; i<l; i++) str += toKey(keys[i])+":"+propList[keys[i]]+";";
 	style.addRule("."+className,str);
 }
 
 //Create a CSS selector and append it to the current document.
 utils.addId = function(idName, propList) {
 	const style = defaultStyle(), keys = Object.keys(propList); let str='';
-	for(let i=0,l=keys.length; i<l; i++) str += keys[i]+":"+propList[keys[i]]+";";
+	for(let i=0,l=keys.length; i<l; i++) str += toKey(keys[i])+":"+propList[keys[i]]+";";
 	style.addRule("#"+idName,str);
 }
 
