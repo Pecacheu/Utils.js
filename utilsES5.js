@@ -1,15 +1,15 @@
 //This work is licensed under a GNU General Public License, v3.0. Visit http://gnu.org/licenses/gpl-3.0-standalone.html for details.
-//Javscript Utils (version 8.3.2), functions by http://github.com/Pecacheu unless otherwise stated.
+//Javscript Utils (version 8.3.2_ES5), functions by http://github.com/Pecacheu unless otherwise stated.
 
 'use strict';
-const utils = {};
+var utils = {};
 
 //UtilRect Objects & ClientRect Polyfill:
 if(!window.ClientRect) window.ClientRect = DOMRect;
 
 function UtilRect(t,b,l,r) {
 	if(!(this instanceof UtilRect)) throw "UtilRect constructor must use new keyword!";
-	const f = Number.isFinite; let tt=0,bb=0,ll=0,rr=0;
+	var f = Number.isFinite; var tt=0,bb=0,ll=0,rr=0;
 	if(f(t) && f(b) && f(l) && f(r)) { tt = t; bb = b; ll = l; rr = r; }
 	else if(t instanceof ClientRect) { tt = t.top; bb = t.bottom; ll = t.left; rr = t.right; }
 	
@@ -40,7 +40,7 @@ UtilRect.prototype.expand = function(by) {
 
 //Cookie Parsing.
 utils.setCookie = function(name,value,exp,secure) {
-	let c = encodeURIComponent(name)+'='+(value==null?'':encodeURIComponent(value));
+	var c = encodeURIComponent(name)+'='+(value==null?'':encodeURIComponent(value));
 	if(exp != null) {
 		if(!(exp instanceof Date)) exp = new Date(exp);
 		c += ';expires='+exp.toUTCString();
@@ -51,8 +51,8 @@ utils.remCookie = function(name) {
 	document.cookie = encodeURIComponent(name)+'=;expires='+new Date(0).toUTCString();
 }
 utils.getCookie = function(name) {
-	const n1 = encodeURIComponent(name), n2 = ' '+n1, cl = document.cookie.split(';');
-	for(let i=0,l=cl.length,c,eq,sub; i<l; i++) {
+	var n1 = encodeURIComponent(name), n2 = ' '+n1, cl = document.cookie.split(';');
+	for(var i=0,l=cl.length,c,eq,sub; i<l; i++) {
 		c = cl[i]; eq = c.indexOf('='); sub = c.substr(0,eq);
 		if(sub == n1 || sub == n2) return decodeURIComponent(c.substr(eq+1));
 	}
@@ -61,7 +61,7 @@ utils.getCookie = function(name) {
 
 //Wrap a function so that it always has a preset argument list when called:
 Function.prototype.wrap = function(/* ... */) {
-	const f = this, a = arguments; return function(){return f.apply(arguments,a)};
+	var f = this, a = arguments; return function(){return f.apply(arguments,a)};
 }
 
 //Like Java.
@@ -72,8 +72,8 @@ String.prototype.endsWith = function(s) { return this.substr(this.length-s.lengt
 //If sub is set to false, will only copy 1 level deep.
 utils.copy = function(o,sub) {
 	if(!o || typeof o !== 'object') return o;
-	const o2 = {}, ok = Object.keys(o);
-	for(let i=0,l=ok.length,k; i<l; i++) {
+	var o2 = {}, ok = Object.keys(o);
+	for(var i=0,l=ok.length,k; i<l; i++) {
 		k = ok[i]; o2[k] = sub===false?o[k]:utils.copy(o[k]);
 	}
 	return o2;
@@ -81,15 +81,15 @@ utils.copy = function(o,sub) {
 
 //UserAgent-based Mobile device detection.
 utils.deviceInfo = function(ua) {
-	if(!ua) ua = navigator.userAgent; const d = {};
+	if(!ua) ua = navigator.userAgent; var d = {};
 	if(!ua.startsWith("Mozilla/5.0 ")) return d;
-	let o = ua.indexOf(')'), o2 = ua.indexOf(' ',o+2), o3 = ua.indexOf(')',o2+1);
-	o3 = o3==-1?o2+1:o3+2; let os = d.rawOS = ua.substring(13,o);
+	var o = ua.indexOf(')'), o2 = ua.indexOf(' ',o+2), o3 = ua.indexOf(')',o2+1);
+	o3 = o3==-1?o2+1:o3+2; var os = d.rawOS = ua.substring(13,o);
 	if(os.startsWith("Windows NT ")) {
-		d.os = "Windows"; let vs = os.indexOf(';',12), ts = os.indexOf(';',vs+1)+2, te = os.indexOf(';',ts);
+		d.os = "Windows"; var vs = os.indexOf(';',12), ts = os.indexOf(';',vs+1)+2, te = os.indexOf(';',ts);
 		d.type = os.substring(ts,te==-1?undefined:te)+" PC"; d.version = os.substring(11,vs).replace(/.0$/,'');
 	} else if(os.startsWith("Linux; Android ")) {
-		d.os = "Android"; let ds = os.indexOf(';',16), te = os.indexOf(' Build',ds+3);
+		d.os = "Android"; var ds = os.indexOf(';',16), te = os.indexOf(' Build',ds+3);
 		d.type = os.substring(ds+2, te==-1?undefined:te);
 		d.version = os.substring(15,ds).replace(/.0$/,'');
 	} else if(os.startsWith("iPhone; CPU iPhone OS ")) {
@@ -99,7 +99,7 @@ utils.deviceInfo = function(ua) {
 		d.os = "MacOS"; d.type = "Macintosh";
 		d.version = os.substr(26).replace(/_/g,'.');
 	} else if(os.startsWith("X11; ")) {
-		let ds = os.indexOf(';',6), ts = os.indexOf(';',ds+3);
+		var ds = os.indexOf(';',6), ts = os.indexOf(';',ds+3);
 		d.os = "Linux "+os.substring(5,ds); d.type = os.substring(ds+2,ts);
 		d.version = os.substr(ts+5);
 	}
@@ -114,9 +114,9 @@ utils.mobile = ('orientation' in window || utils.device.mobile);
 //fallback for when css 'appearance:none' doesn't work. For Mobile Safari, this is usually
 //needed with 'datetime-local', 'select-one', and 'select-multiple' input types.
 utils.skinnedInput = function(el) {
-	const cont = utils.mkDiv(null,el.className), is = el.style, type = el.type; el.className += ' isSub';
+	var cont = utils.mkDiv(null,el.className), is = el.style, type = el.type; el.className += ' isSub';
 	if(type == 'datetime-local' || type == 'select-one' || type == 'select-multiple') { //Datetime or Select:
-		is.opacity = 0; is.top = '-100%'; const text = utils.mkEl('span',cont,'isText');
+		is.opacity = 0; is.top = '-100%'; var text = utils.mkEl('span',cont,'isText');
 		utils.mkEl('span',cont,'isArrow',{borderTopColor:getComputedStyle(el).color});
 		function onChange() { switch(type) {
 			case 'datetime-local': text.textContent = utils.formatDate(utils.fromDateTimeBox(this)); break;
@@ -144,11 +144,11 @@ utils.skinnedInput = function(el) {
 }
 
 function selBoxLabel(sb) {
-	const op = sb.options; if(op.selectedIndex != -1) return op[op.selectedIndex].label;
+	var op = sb.options; if(op.selectedIndex != -1) return op[op.selectedIndex].label;
 	return "No Options Selected";
 }
 function mulBoxLabel(sb) {
-	const op = sb.options; let str = ''; for(let i=0,l=op.length; i<l; i++)
+	var op = sb.options; var str = ''; for(var i=0,l=op.length; i<l; i++)
 	if(op[i].selected) str += (str?', ':'')+op[i].label; return str||"No Options Selected";
 }
 
@@ -161,8 +161,8 @@ utils.numField = function(field, min, max, decMax) {
 	field.setAttribute('pattern',"\\d*"); if(decMax) field.type = 'tel'; else field.type = 'number';
 	field.ns = field.value = (field.num = Number(field.value)||0).toString();
 	field.onkeydown = function(e) {
-		const k = e.key, kn = (k.length==1)?Number(k):null, dAdd = decMax && this.num != max && this.num != min,
-		old = this.ns; let len = this.ns.length, dec = this.ns.indexOf('.'), neg = this.ns.indexOf('-')!=-1;
+		var k = e.key, kn = (k.length==1)?Number(k):null, dAdd = decMax && this.num != max && this.num != min,
+		old = this.ns; var len = this.ns.length, dec = this.ns.indexOf('.'), neg = this.ns.indexOf('-')!=-1;
 		
 		if(kn || kn == 0) { if(dec == -1 || len-dec < decMax+1) this.ns += k; } //Number.
 		else if(dAdd && (k == '.' || k == '*') && dec == -1) this.ns += '.'; //Decimal.
@@ -173,11 +173,11 @@ utils.numField = function(field, min, max, decMax) {
 		len = this.ns.length; dec = this.ns.indexOf('.');
 		if(dec != -1 && len-dec > decMax+1) len = (this.ns = this.ns.substr(0,dec+decMax+1)).length;
 		
-		let n = Number(this.ns)||0; if(!n && dec == -1 && !neg) this.ns = '';
+		var n = Number(this.ns)||0; if(!n && dec == -1 && !neg) this.ns = '';
 		if(n > max) { n = max; this.ns = n.toString(); }
 		else if(n < min) { n = min; this.ns = n.toString(); }
 		
-		const nOld = this.num; this.num = n;
+		var nOld = this.num; this.num = n;
 		if(this.onnuminput && this.onnuminput(n) === false) { this.ns = old; this.num = nOld; }
 		else if(len) this.value = (neg&&!n?'-':'')+n+(dec!=-1&&n%1==0?'.0':''); else this.value = n;
 		e.preventDefault();
@@ -197,8 +197,8 @@ utils.costField = function(field, sym) {
 	field.setAttribute('pattern',"\\d*"); field.type = 'tel';
 	field.value = utils.formatCost(field.num = Number(field.value)||0,sym); field.ns = field.num.toString();
 	field.onkeydown = function(e) {
-		const k = e.key, kn = (k.length==1)?Number(k):null, len = this.ns.length, old = this.ns;
-		let dec = this.ns.indexOf('.');
+		var k = e.key, kn = (k.length==1)?Number(k):null, len = this.ns.length, old = this.ns;
+		var dec = this.ns.indexOf('.');
 		
 		if(kn || kn == 0) { if(dec == -1 || len-dec < 3) this.ns += k; } //Number.
 		else if((k == '.' || k == '*') && dec == -1) { this.ns += '.'; dec = len; } //Decimal.
@@ -206,9 +206,9 @@ utils.costField = function(field, sym) {
 		else if(k == 'ArrowUp') this.ns = (this.num+1).toString(); //Up Key.
 		else if(k == 'ArrowDown' && this.num >= 1) this.ns = (this.num-1).toString(); //Down Key.
 		
-		const n = Number(this.ns)||0; if(!n && dec == -1) this.ns = '';
+		var n = Number(this.ns)||0; if(!n && dec == -1) this.ns = '';
 		
-		const nOld = this.num; this.num = n;
+		var nOld = this.num; this.num = n;
 		if(this.onnuminput && this.onnuminput(n) === false) { this.ns = old; this.num = nOld; }
 		else this.value = utils.formatCost(n,sym);
 		e.preventDefault();
@@ -223,14 +223,14 @@ utils.costField = function(field, sym) {
 //Format Number as currency. Uses '$' by default.
 utils.formatCost = function(n, sym) {
 	if(!sym) sym = '$'; if(!n) return sym+'0.00';
-	const p = n.toFixed(2).split('.');
+	var p = n.toFixed(2).split('.');
 	return sym+p[0].split('').reverse().reduce(function(a, n, i)
 	{ return n=='-'?n+a:n+(i&&!(i%3)?',':'')+a; },'')+'.'+p[1];
 }
 
 //Convert value from 'datetime-local' input to Date object.
 utils.fromDateTimeBox = function(el) {
-	const v=el.value; if(!v) return new Date();
+	var v=el.value; if(!v) return new Date();
 	return new Date(v.replace(/-/g,'/').replace(/T/g,' '));
 }
 
@@ -241,20 +241,20 @@ utils.toDateTimeBox = function(d, sec) {
 	fixedNum2(d.getHours())+':'+fixedNum2(d.getMinutes())+(sec?':'+fixedNum2(d.getSeconds()):'');
 }
 
-const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 function fixedNum2(num) { if(num <= 9) return '0'+num; return num; }
 
 //Format Date object into human-readable string.
 utils.formatDate = function(d) {
 	if(d == null || !d.getDate || !d.getFullYear()) return "Invalid Date";
-	const mins=d.getMinutes(), month=d.getMonth(), day=d.getDate(), year=d.getFullYear();
-	let hour=d.getHours(), pm=false; if(hour >= 12) { pm = true; hour -= 12; } if(hour == 0) hour = 12;
+	var mins=d.getMinutes(), month=d.getMonth(), day=d.getDate(), year=d.getFullYear();
+	var hour=d.getHours(), pm=false; if(hour >= 12) { pm = true; hour -= 12; } if(hour == 0) hour = 12;
 	return hour+':'+fixedNum2(mins)+' '+(pm?'PM':'AM')+' '+months[month]+' '+utils.suffix(day)+', '+year;
 }
 
 //Add appropriate suffix to number. (ex. 31st, 12th, 22nd)
 utils.suffix = function(n) {
-	let j = n % 10, k = n % 100;
+	var j = n % 10, k = n % 100;
 	if(j == 1 && k != 11) { return n + "st"; }
 	if(j == 2 && k != 12) { return n + "nd"; }
 	if(j == 3 && k != 13) { return n + "rd"; }
@@ -272,11 +272,11 @@ function doNav(s) { if(utils.onNav) utils.onNav.call(null,s); }
 //Create element with parent, classes, style properties, and innerHTML content.
 //Supply null (or undefined) for any parameters to leave blank.
 utils.mkEl = function(tag, p, c, s, i) {
-	const e = document.createElement(tag);
+	var e = document.createElement(tag);
 	if(c != null) e.className = c; if(i != null) e.innerHTML = i;
 	if(s != null && typeof s == 'object') {
-		const k = Object.keys(s), l = k.length;
-		for(let i=0; i<l; i++) e.style[k[i]] = s[k[i]];
+		var k = Object.keys(s), l = k.length;
+		for(var i=0; i<l; i++) e.style[k[i]] = s[k[i]];
 	}
 	if(p != null) p.appendChild(e); return e;
 }
@@ -292,14 +292,14 @@ utils.updateSize = function() {
 
 //Get predicted width of text given CSS font style.
 utils.textWidth = function(text, font) {
-	const canvas = window.textWidthCanvas || (window.textWidthCanvas = document.createElement('canvas')),
+	var canvas = window.textWidthCanvas || (window.textWidthCanvas = document.createElement('canvas')),
 	context = canvas.getContext('2d'); context.font = font; return context.measureText(text).width;
 }
 
 //Add a getter/setter pair to an existing object:
 utils.define = function(obj, name, get, set) {
-	const t={}; if(get) t.get=get; if(set) t.set=set;
-	if(Array.isArray(name)) for(let i=0,l=name.length; i<l; i++) Object.defineProperty(obj, name[i] ,t);
+	var t={}; if(get) t.get=get; if(set) t.set=set;
+	if(Array.isArray(name)) for(var i=0,l=name.length; i<l; i++) Object.defineProperty(obj, name[i] ,t);
 	else Object.defineProperty(obj, name, t);
 }
 
@@ -307,7 +307,7 @@ utils.define = function(obj, name, get, set) {
 //Often useful in combination with Array.split. Set 'kz' to true to keep '0's.
 //Function by: Pecacheu & http://stackoverflow.com/users/5445/cms
 Array.prototype.clean = function(keepZero) {
-	for(let i=0,e,l=this.length; i<l; i++) {
+	for(var i=0,e,l=this.length; i<l; i++) {
 		e=this[i]; if(utils.isBlank(e) || e === false ||
 		!keepZero && e === 0) { this.splice(i,1); i--; l--; }
 	} return this;
@@ -316,13 +316,13 @@ Array.prototype.clean = function(keepZero) {
 //Remove first instance of item from array. Returns false if not found.
 //Use a while loop to remove all instances.
 Array.prototype.remove = function(itm) {
-	const i = this.indexOf(itm); if(i==-1) return false;
+	var i = this.indexOf(itm); if(i==-1) return false;
 	this.splice(i,1); return true;
 }
 
 //Get an element's index in it's parent. Returns -1 if the element has no parent.
 utils.define(Element.prototype,'index',function() {
-	const p = this.parentElement; if(!p) return -1;
+	var p = this.parentElement; if(!p) return -1;
 	return Array.prototype.indexOf.call(p.children, this);
 });
 
@@ -353,15 +353,15 @@ utils.isBlank = function(s) {
 
 //Finds first empty (undefined) slot in array.
 utils.firstEmpty = function(arr) {
-	const len = arr.length;
-	for(let i=0; i<len; i++) if(arr[i] == null) return i;
+	var len = arr.length;
+	for(var i=0; i<len; i++) if(arr[i] == null) return i;
 	return len;
 }
 
 //Like 'firstEmpty', but uses letters a-Z instead.
 utils.firstEmptyChar = function(obj) {
-	const keys = Object.keys(obj), len = keys.length;
-	for(let i=0; i<len; i++) if(obj[keys[i]] == null) return keys[i];
+	var keys = Object.keys(obj), len = keys.length;
+	for(var i=0; i<len; i++) if(obj[keys[i]] == null) return keys[i];
 	return utils.numToChar(len);
 }
 
@@ -369,7 +369,7 @@ utils.firstEmptyChar = function(obj) {
 utils.numToChar = function(n) {
 	if(n<=25) return String.fromCharCode(n+97);
 	else if(n>=26 && n<=51) return String.fromCharCode(n+39);
-	let mVal, fVal;
+	var mVal, fVal;
 	if(n<2756) { mVal=rstCount(Math.floor(n/52)-1,52); fVal=rstCount(n,52); }
 	else if(n<143364) { mVal=rstCount(Math.floor((n-52)/2704)-1,52); fVal=rstCount(n-52,2704)+52; }
 	else if(n<7454980) { mVal=rstCount(Math.floor((n-2756)/140608)-1,52); fVal=rstCount(n-2756,140608)+2756; }
@@ -385,13 +385,13 @@ function rstCount(val, maxVal) { while(val >= maxVal) val -= maxVal; return val;
 //Semi-recursively merges two (or more) objects, giving the last precedence.
 //If both objects contain a property at the same index, and both are Arrays/Objects, they are merged.
 utils.merge = function(o/*, src1, src2... */) {
-	for(let a=1,al=arguments.length,n,oP,nP; a<al; a++) {
-		n = arguments[a]; for(let k in n) {
+	for(var a=1,al=arguments.length,n,oP,nP; a<al; a++) {
+		n = arguments[a]; for(var k in n) {
 			oP = o[k]; nP = n[k]; if(oP && nP) { //Conflict.
 				if(oP.length >= 0 && nP.length >= 0) { //Both Array-like.
-					for(let i=0,l=nP.length,ofs=oP.length; i<l; i++) oP[i+ofs] = nP[i]; continue;
+					for(var i=0,l=nP.length,ofs=oP.length; i<l; i++) oP[i+ofs] = nP[i]; continue;
 				} else if(typeof oP == 'object' && typeof nP == 'object') { //Both Objects.
-					for(let pk in nP) oP[pk] = nP[pk]; continue;
+					for(var pk in nP) oP[pk] = nP[pk]; continue;
 				}
 			}
 			o[k] = nP;
@@ -408,14 +408,14 @@ utils.bounds = function(n, min=0, max=1) {
 //'Normalizes' a value so that it ranges from min to max, but unlike utils.bounds,
 //this function retains input's offset. This can be used to normalize angles.
 utils.norm = utils.normalize = function(n, min=0, max=1) {
-	const c = Math.abs(max-min);
+	var c = Math.abs(max-min);
 	if(n < min) while(n < min) n += c; else while(n >= max) n -= c;
 	return n;
 }
 
 //Finds and removes all instances of 'rem' contained within s.
 utils.cutStr = function(s, rem) {
-	let fnd; while((fnd=s.indexOf(rem)) != -1) {
+	var fnd; while((fnd=s.indexOf(rem)) != -1) {
 		s = s.slice(0, fnd)+s.slice(fnd+rem.length);
 	}
 	return s;
@@ -428,23 +428,23 @@ if(!String.prototype.trim) String.prototype.trim = function() { return this.repl
 //Given CSS property value 'prop', returns object with
 //space-separated values from the property string.
 utils.parseCSS = function(prop) {
-	const pArr={}, pKey="", keyNum=0; prop=prop.trim();
+	var pArr={}, pKey="", keyNum=0; prop=prop.trim();
 	function parseInner(str) {
 		if(str.indexOf(',') !== -1) {
-			const arr = utils.clean(str.split(','));
-			for(let i=0, l=arr.length; i<l; i++) arr[i]=arr[i].trim();
+			var arr = utils.clean(str.split(','));
+			for(var i=0, l=arr.length; i<l; i++) arr[i]=arr[i].trim();
 			return arr;
 		}
 		return str.trim();
 	}
 	while(prop.length > 0) {
 		if(prop[0] == '(' && prop.indexOf(')') !== -1 && pKey) {
-			let end=prop.indexOf(')'), pStr=prop.substring(1, end);
+			var end=prop.indexOf(')'), pStr=prop.substring(1, end);
 			pArr[pKey] = parseInner(pStr);
 			pKey = ""; prop = prop.substring(end+1);
 		} else if(prop.search(/[#!\w]/) == 0) {
 			if(pKey) { pArr[keyNum] = pKey; keyNum++; }
-			let end=prop.search(/[^#!\w-%]/); if(end==-1) end=prop.length;
+			var end=prop.search(/[^#!\w-%]/); if(end==-1) end=prop.length;
 			pKey = prop.substring(0, end); prop = prop.substring(end);
 		} else {
 			prop = prop.substring(1);
@@ -455,16 +455,16 @@ utils.parseCSS = function(prop) {
 
 //Rebuilds CSS string from a parseCSS object.
 utils.buildCSS = function(propArr) {
-	const keyArr=Object.keys(propArr), l=keyArr.length; let pStr='', i=0;
-	while(i<l) { const k = keyArr[i], v = propArr[keyArr[i]]; i++;
+	var keyArr=Object.keys(propArr), l=keyArr.length; var pStr='', i=0;
+	while(i<l) { var k = keyArr[i], v = propArr[keyArr[i]]; i++;
 	if(0<=Number(k)) pStr += v+" "; else pStr += k+"("+v+") "; }
 	return pStr.substring(0, pStr.length-1);
 }
 
 function defaultStyle() {
-	const ss = document.styleSheets;
-	for(let s=0,j=ss.length; s<j; s++) try { ss[s].rules; return ss[s]; } catch(e) {}
-	let ns = utils.mkEl('style',document.head); ns.appendChild(document.createTextNode(''));
+	var ss = document.styleSheets;
+	for(var s=0,j=ss.length; s<j; s++) try { ss[s].rules; return ss[s]; } catch(e) {}
+	var ns = utils.mkEl('style',document.head); ns.appendChild(document.createTextNode(''));
 	return ns.sheet;
 }
 function toKey(k) {
@@ -474,15 +474,15 @@ function toKey(k) {
 //Create a CSS class and append it to the current document. Fill 'propList' object
 //with key/value pairs representing the properties you want to add to the class.
 utils.addClass = function(className, propList) {
-	const style = defaultStyle(), keys = Object.keys(propList); let str='';
-	for(let i=0,l=keys.length; i<l; i++) str += toKey(keys[i])+":"+propList[keys[i]]+";";
+	var style = defaultStyle(), keys = Object.keys(propList); var str='';
+	for(var i=0,l=keys.length; i<l; i++) str += toKey(keys[i])+":"+propList[keys[i]]+";";
 	style.addRule("."+className,str);
 }
 
 //Create a CSS selector and append it to the current document.
 utils.addId = function(idName, propList) {
-	const style = defaultStyle(), keys = Object.keys(propList); let str='';
-	for(let i=0,l=keys.length; i<l; i++) str += toKey(keys[i])+":"+propList[keys[i]]+";";
+	var style = defaultStyle(), keys = Object.keys(propList); var str='';
+	for(var i=0,l=keys.length; i<l; i++) str += toKey(keys[i])+":"+propList[keys[i]]+";";
 	style.addRule("#"+idName,str);
 }
 
@@ -493,22 +493,22 @@ utils.addKeyframe = function(name, content) {
 
 //Remove a specific css selector (including the '.' or '#') from all stylesheets in the current document.
 utils.removeSelector = function(name) {
-	for(let s=0,style,rList,j=document.styleSheets.length; s<j; s++) {
+	for(var s=0,style,rList,j=document.styleSheets.length; s<j; s++) {
 		style = document.styleSheets[s]; try { rList = style.rules; } catch(e) { continue; }
-		for(let key in rList) if(rList[key].type == 1 && rList[key].selectorText == name) style.removeRule(key);
+		for(var key in rList) if(rList[key].type == 1 && rList[key].selectorText == name) style.removeRule(key);
 	}
 }
 
 //Converts HEX color to 24-bit RGB.
 //Function by: https://github.com/Pecacheu and others
 utils.hexToRgb = function(hex) {
-	const c = parseInt(hex.substr(1), 16);
+	var c = parseInt(hex.substr(1), 16);
 	return [(c >> 16) & 255, (c >> 8) & 255, c & 255];
 }
 
 //Generates random integer from min to max.
 utils.rand = function(min, max, res, ease) {
-	if(!res) res=1; max*=res,min*=res; let r=Math.random();
+	if(!res) res=1; max*=res,min*=res; var r=Math.random();
 	return Math.round((ease?ease(r):r)*(max-min)+min)/res;
 }
 
@@ -517,7 +517,7 @@ utils.rand = function(min, max, res, ease) {
 utils.fromQuery = function(str) {
 	if(str.startsWith('?')) str = str.substr(1);
 	function parse(params, pairs) {
-		const pair = pairs[0], spl = pair.indexOf('='),
+		var pair = pairs[0], spl = pair.indexOf('='),
 		key = decodeURIComponent(pair.substr(0,spl)),
 		value = decodeURIComponent(pair.substr(spl+1));
 		//Handle multiple parameters of the same name:
@@ -530,9 +530,9 @@ utils.fromQuery = function(str) {
 
 //Converts an object into a url query string.
 utils.toQuery = function(obj) {
-	let str = ''; if(typeof obj != 'object') return encodeURIComponent(obj);
-	for(let key in obj) {
-		let val = obj[key]; if(typeof val == 'object') val = JSON.stringify(val);
+	var str = ''; if(typeof obj != 'object') return encodeURIComponent(obj);
+	for(var key in obj) {
+		var val = obj[key]; if(typeof val == 'object') val = JSON.stringify(val);
 		str += '&'+key+'='+encodeURIComponent(val);
 	} return str.slice(1);
 }
@@ -550,13 +550,13 @@ utils.center = function(obj, only, type) {
 		if(!only || only == "x") obj.style.left = (utils.width/2)-(obj.clientWidth/2)+"px";
 		if(!only || only == "y") obj.style.top = (utils.height/2)-(obj.clientHeight/2)+"px";
 	} else if(type == 'trans') { //More Efficient:
-		let trans = utils.cutStr(obj.style.transform, "translateX(-50%)");
+		var trans = utils.cutStr(obj.style.transform, "translateX(-50%)");
 		trans = utils.cutStr(trans, "translateY(-50%)");
 		if(!only || only == "x") { obj.style.left = "50%"; trans += "translateX(-50%)"; }
 		if(!only || only == "y") { obj.style.top = "50%"; trans += "translateY(-50%)"; }
 		if(trans) obj.style.transform = trans;
 	} else { //Largest Browser Support for Responsive Centering:
-		let cont = document.createElement("div"); obj.parentNode.appendChild(cont);
+		var cont = document.createElement("div"); obj.parentNode.appendChild(cont);
 		cont.style.display = "table"; cont.style.position = "absolute"; cont.style.top = 0;
 		cont.style.left = 0; cont.style.width = "100%"; cont.style.height = "100%";
 		obj.parentNode.removeChild(obj); cont.appendChild(obj); obj.style.display = "table-cell";
@@ -573,7 +573,7 @@ utils.center = function(obj, only, type) {
 //usePost: Set to true to use HTTP POST instead.
 //Error is -1 if AJAX not supported, -2 if unknown error.
 utils.loadAjax = function(path, callback, cType, usePost) {
-	let http; if(window.XMLHttpRequest) { //Chrome, Safari, Firefox, Edge:
+	var http; if(window.XMLHttpRequest) { //Chrome, Safari, Firefox, Edge:
 		try {http = new XMLHttpRequest()} catch(e) {callback(-1);return}
 	} else if(window.ActiveXObject) { //IE6 and older:
 		try {http = new ActiveXObject("Msxml2.XMLHTTP")} catch(e) {
@@ -582,7 +582,7 @@ utils.loadAjax = function(path, callback, cType, usePost) {
 	http.open(usePost?'POST':'GET',path,true); if(cType) http.setRequestHeader("Content-type", cType);
 	if(typeof callback == 'function') http.onreadystatechange = function(event) { //Handle state change:
 		if(event.target.readyState === XMLHttpRequest.DONE) {
-			let s = event.target.status;
+			var s = event.target.status;
 			if(s == 200) s = 0; else if(s <= 0) s = -2;
 			callback(s,event.target.response);
 		}
@@ -593,9 +593,9 @@ utils.loadAjax = function(path, callback, cType, usePost) {
 //Good fallback for loadAjax. Loads a file at the address via HTML object tag.
 //Callback is fired with either received data, or 'false' if unsuccessful.
 utils.loadFile = function(path, callback, timeout) {
-	const obj = document.createElement('object'); obj.data = path;
+	var obj = document.createElement('object'); obj.data = path;
 	obj.style.position = 'fixed'; obj.style.opacity = 0;
-	let tmr = setTimeout(function() {
+	var tmr = setTimeout(function() {
 		obj.remove(); tmr = null; callback(false);
 	}, timeout||4000);
 	obj.onload = function() {
@@ -609,9 +609,9 @@ utils.loadFile = function(path, callback, timeout) {
 //Loads a file at the address from a JSONP-enabled server. Callback
 //is fired with either received data, or 'false' if unsuccessful.
 utils.loadJSONP = function(path, callback, timeout) {
-	const script = document.createElement('script'), id = utils.firstEmptyChar(utils.lJSONCall);
+	var script = document.createElement('script'), id = utils.firstEmptyChar(utils.lJSONCall);
 	script.type = 'application/javascript'; script.src = path+'&callback=utils.lJSONCall.'+id;
-	let tmr = setTimeout(function() { delete utils.lJSONCall[id]; callback(false); }, timeout||4000);
+	var tmr = setTimeout(function() { delete utils.lJSONCall[id]; callback(false); }, timeout||4000);
 	utils.lJSONCall[id] = function(data) {
 		if(tmr) clearTimeout(tmr); delete utils.lJSONCall[id]; callback(data);
 	}
@@ -631,7 +631,7 @@ utils.rad = function(deg) { return deg * Math.PI / 180; }
 //Pecacheu's ultimate unit translation formula!
 //This Version -- Bounds Checking: NO, Rounding: NO, Max/Min Switching: NO, Easing: YES
 utils.map = function(input, minIn, maxIn, minOut, maxOut, ease) {
-	let i=(input-minIn)/(maxIn-minIn); return ((ease?ease(i):i)*(maxOut-minOut))+minOut;
+	var i=(input-minIn)/(maxIn-minIn); return ((ease?ease(i):i)*(maxOut-minOut))+minOut;
 }
 
 })(); //End of Utils Library
@@ -640,7 +640,7 @@ utils.map = function(input, minIn, maxIn, minOut, maxOut, ease) {
 
 /*Easing Functions - inspired from http://gizma.com/easing/
 only considering the t value for the range [0,1] => [0,1]*/
-const Easing = {
+var Easing = {
 	//no easing, no acceleration
 	linear:function(t) { return t },
 	//accelerating from zero velocity
