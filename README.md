@@ -5,14 +5,15 @@ Note: For production code, *utils.min.js* should probably be used. It's been con
 
 *More detailed usage & help in utils.js!*
 
-The most commonly functions in this library are:
+#### The most commonly functions in this library are:
+
 *utils.mkEl(t,p,c,s,i) utils.mkDiv(p,c,s,i)* To use these quickly and efficiently, just remember PCSI: Parent, class, style, innerHTML!
 
 *utils.center(obj[,only[,type]])* Does what it says on the tin! Input an Element, choose whether you want X, Y, or by default, both, and change the centering type.
 
 *UtilRect* Getting the bounds/position of an element used to be a complete mess with incompatibilities across every browser. Not anymore! Use UtilRects to keep track of your object positions! Simply access the *boundingRect* property of any Element and you can access it's *top*, *bottom*, *left*, *right*, *width*, and *height* on the client's screen! If you need this relative to the top of the page, it's as simple as `Element.boundingRect.top + window.scrollY`
 
-*[Function].wrap* This can be quite useful in combination with functions like *setTimeout*, for example *setTimeout(console.log.wrap("Hello!"), 50)*. Also sets the *this* object inside the function to *arguments*, in case you want to access the calling arguments as well!
+*[Function].wrap* This can be quite useful in combination with functions like *setTimeout*, for example `setTimeout(console.log.wrap("Hello!"), 50)`. Also sets the *this* object inside the function to *arguments*, in case you want to access the calling arguments as well!
 
 ### Custom Classes
 - `UtilRect` Better class for working with element bounds.
