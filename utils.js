@@ -1,5 +1,5 @@
 //This work is licensed under a GNU General Public License, v3.0. Visit http://gnu.org/licenses/gpl-3.0-standalone.html for details.
-//Javscript Utils (version 8.3.2), functions by http://github.com/Pecacheu unless otherwise stated.
+//Javscript Utils (version 8.3.3), functions by http://github.com/Pecacheu unless otherwise stated.
 
 'use strict';
 const utils = {};
@@ -63,10 +63,6 @@ utils.getCookie = function(name) {
 Function.prototype.wrap = function(/* ... */) {
 	const f = this, a = arguments; return function(){return f.apply(arguments,a)};
 }
-
-//Like Java.
-String.prototype.startsWith = function(s) { return this.substr(0,s.length) === s; }
-String.prototype.endsWith = function(s) { return this.substr(this.length-s.length) === s; }
 
 //Deep (recursive) Object.create cloning function.
 //If sub is set to false, will only copy 1 level deep.
@@ -610,7 +606,8 @@ utils.loadFile = function(path, callback, timeout) {
 //is fired with either received data, or 'false' if unsuccessful.
 utils.loadJSONP = function(path, callback, timeout) {
 	const script = document.createElement('script'), id = utils.firstEmptyChar(utils.lJSONCall);
-	script.type = 'application/javascript'; script.src = path+'&callback=utils.lJSONCall.'+id;
+	script.type = 'application/javascript';
+	script.src = path+(path.indexOf('?')==-1?'?':'&')+'callback=utils.lJSONCall.'+id;
 	let tmr = setTimeout(function() { delete utils.lJSONCall[id]; callback(false); }, timeout||4000);
 	utils.lJSONCall[id] = function(data) {
 		if(tmr) clearTimeout(tmr); delete utils.lJSONCall[id]; callback(data);
