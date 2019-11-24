@@ -1,5 +1,5 @@
 //This work is licensed under a GNU General Public License, v3.0. Visit http://gnu.org/licenses/gpl-3.0-standalone.html for details.
-//Javscript Utils (version 8.3.3), functions by http://github.com/Pecacheu unless otherwise stated.
+//Javscript Utils (version 8.3.4), functions by http://github.com/Pecacheu unless otherwise stated.
 
 'use strict';
 const utils = {};
@@ -112,15 +112,9 @@ utils.mobile = ('orientation' in window || utils.device.mobile);
 utils.skinnedInput = function(el) {
 	const cont = utils.mkDiv(null,el.className), is = el.style, type = el.type; el.className += ' isSub';
 	if(type == 'datetime-local' || type == 'select-one' || type == 'select-multiple') { //Datetime or Select:
-		is.opacity = 0; is.top = '-100%'; const text = utils.mkEl('span',cont,'isText');
+		is.opacity = 0; is.top = '-100%'; el.siT = utils.mkEl('span',cont,'isText');
 		utils.mkEl('span',cont,'isArrow',{borderTopColor:getComputedStyle(el).color});
-		function onChange() { switch(type) {
-			case 'datetime-local': text.textContent = utils.formatDate(utils.fromDateTimeBox(this)); break;
-			case 'select-one': text.textContent = selBoxLabel(this); break;
-			case 'select-multiple': text.textContent = mulBoxLabel(this); break;
-		}}
-		el.addEventListener('change', onChange); onChange.call(el);
-		el.forceUpdate = onChange;
+		let si=siChange.bind(el); el.addEventListener('change',si); el.forceUpdate=si; si();
 	}
 	el.replaceWith(cont); cont.appendChild(el);
 	//Append StyleSheet:
@@ -137,6 +131,13 @@ utils.skinnedInput = function(el) {
 		border-left:3px solid transparent; border-right:3px solid transparent;\
 		border-top:6px solid #000; vertical-align:middle;\
 	}'); }
+}
+function siChange() {
+	switch(this.type) {
+		case 'datetime-local': this.siT.textContent = utils.formatDate(utils.fromDateTimeBox(this)); break;
+		case 'select-one': this.siT.textContent = selBoxLabel(this); break;
+		case 'select-multiple': this.siT.textContent = mulBoxLabel(this);
+	}
 }
 
 function selBoxLabel(sb) {
@@ -564,26 +565,25 @@ utils.center = function(obj, only, type) {
 
 //Loads a file and returns it's contents using HTTP GET.
 //Callback parameters: (err, data)
-//err: non-zero on error. -1 if AJAX not supported, -2 if unknown error, otherwise standard HTTP error codes.
-//cType: Optional, sets content type header.
-//usePost: Set to true to use HTTP POST instead.
-//Error is -1 if AJAX not supported, -2 if unknown error.
-utils.loadAjax = function(path, callback, cType, usePost) {
+//err: non-zero on error. -1 if AJAX not supported, otherwise standard HTTP error codes.
+//meth: Optional HTTP method, default is GET.
+//body: Optional body content.
+//hd: Optional header list.
+utils.loadAjax = function(path, callback, meth, body, hd) {
 	let http; if(window.XMLHttpRequest) { //Chrome, Safari, Firefox, Edge:
-		try {http = new XMLHttpRequest()} catch(e) {callback(-1);return}
+		try {http = new XMLHttpRequest()} catch(e) {return callback(-1)}
 	} else if(window.ActiveXObject) { //IE6 and older:
 		try {http = new ActiveXObject("Msxml2.XMLHTTP")} catch(e) {
-		try {http = new ActiveXObject("Microsoft.XMLHTTP")} catch(e) {callback(-1);return}}
-	} else { callback(-1); return; }
-	http.open(usePost?'POST':'GET',path,true); if(cType) http.setRequestHeader("Content-type", cType);
-	if(typeof callback == 'function') http.onreadystatechange = function(event) { //Handle state change:
-		if(event.target.readyState === XMLHttpRequest.DONE) {
-			let s = event.target.status;
-			if(s == 200) s = 0; else if(s <= 0) s = -2;
-			callback(s,event.target.response);
+		try {http = new ActiveXObject("Microsoft.XMLHTTP")} catch(e) {return callback(-1)}}
+	} else return callback(-1);
+	http.open(meth||'GET',path); if(hd) for(let k in hd) http.setRequestHeader(k,hd[k]);
+	http.onreadystatechange = function(e) {
+		if(e.target.readyState === http.DONE) {
+			let s = e.target.status; if(s == 200) s = 0; else if(s <= 0) s = -2;
+			callback(s, e.target.response);
 		}
 	}
-	http.send();
+	http.send(body||undefined);
 }
 
 //Good fallback for loadAjax. Loads a file at the address via HTML object tag.
