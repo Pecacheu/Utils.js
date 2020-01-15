@@ -1,5 +1,5 @@
 # Utils.js
-###### If you, like many developers, can't stand how slow, inefficient, and backwards JQuery is compared to native JavaScript, but can't live without those one or two essential features, then you need Utils.js!
+###### If you, like many developers, prefer native JavaScript to jQuery, but can't live without those one or two essential features, then you need Utils.js!
 
 Note: For production code, *utils.min.js* should probably be used. It's been converted to ES5, and therefore runs slower, however is more compatible with older browsers. Expect IE. Literally no one cares about IE :(
 
@@ -78,4 +78,4 @@ Note: For production code, *utils.min.js* should probably be used. It's been con
 - `utils.loadJSONP(path,callback,timeout)` Loads a file at the address from a JSONP-enabled server. Callback is fired with either received data, or **false** if unsuccessful.
 - `utils.loadFile(path,callback,timeout)` Good fallback for `utils.loadAjax`. Loads a file at the address via HTML object tag. Callback is fired with either received data, or **false** if unsuccessful.
 - `utils.rad(deg)` / `utils.deg(rad)` Convert between radians and degrees.
-- `utils.map(input,minIn,maxIn,minOut,maxOut,ease) returns Number` Pecacheu's ultimate unit translation formula. Bounds Checking: NO, Rounding: NO, Max/Min Switching: NO, Easing: YES
+- `utils.map(input,minIn,maxIn,minOut,maxOut,ease) returns Number` For unit translation and JS animation! See ease functions in *untils.js*.
