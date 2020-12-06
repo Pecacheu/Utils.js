@@ -1,9 +1,9 @@
 # Utils.js
 ###### If you, like many developers, prefer native JavaScript to jQuery, but can't live without those one or two essential features, then you need Utils.js!
 
-Note: For production code, *utils.min.js* should probably be used. It's been converted to ES5, and therefore runs slower, however is more compatible with older browsers. Expect IE. Literally no one cares about IE :(
+Note: For production code, the minified version *utils.min.js* should be used. There's also *utilsES5.js*. It's been converted to the older ES5 standard, so should be more compatible with older browsers. Expect IE. Literally no one cares about IE :(
 
-*More detailed usage & help in utils.js!*
+*More detailed usage & help available in utils.js!*
 
 #### The most commonly functions in this library are:
 
@@ -79,7 +79,7 @@ Note: For production code, *utils.min.js* should probably be used. It's been con
 - `utils.loadAjax(path,[callback[, meth[, body[, hdList]]]])` Loads a file and returns it's contents, using GET by default. *See utils.js for details.*
 - `utils.loadJSONP(path,callback,timeout)` Loads a file at the address from a JSONP-enabled server. Callback is fired with either received data, or **false** if unsuccessful.
 - `utils.loadFile(path,callback,timeout)` Good fallback for `utils.loadAjax`. Loads a file at the address via HTML object tag. Callback is fired with either received data, or **false** if unsuccessful.
-- `utils.dlFile(filename,uri[,callback])` Downloads a file from a link.
+- `utils.dlFile(filename,uri) returns Promise` Downloads a file from a link.
 - `utils.dlData(filename,data)` Downloads a file generated from a Blob or ArrayBuffer.
 - `utils.rad(deg)` / `utils.deg(rad)` Convert between radians and degrees.
 - `utils.map(input,minIn,maxIn,minOut,maxOut,ease) returns Number` For unit translation and JS animation! See ease functions in *untils.js*.

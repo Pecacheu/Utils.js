@@ -1,4 +1,4 @@
-//Utils.js v8.3.5 https://github.com/Pecacheu/Utils.js Licensed under GNU GPL v3.0
+//Utils.js v8.3.6 https://github.com/Pecacheu/Utils.js Licensed under GNU GPL v3.0
 
 'use strict';
 const utils = {};
@@ -621,9 +621,9 @@ utils.loadJSONP = function(path, cb, timeout) {
 }; utils.lJSONCall = [];
 
 //Downloads a file from a link.
-//cb: Optional callback with possible error.
-utils.dlFile = function(fn,uri,cb) {
-	fetch(uri).then(r => r.blob()).then(b => { utils.dlData(fn,b); if(cb) cb(); }).catch((e) => { if(cb) cb(e); });
+utils.dlFile = function(fn,uri) {
+	return fetch(uri).then(r => { if(r.status != 200) throw "Code "+r.status; return r.blob(); })
+		.then(b => { utils.dlData(fn,b); });
 }
 //Downloads a file generated from a Blob or ArrayBuffer.
 utils.dlData = function(fn,d) {

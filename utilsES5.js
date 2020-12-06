@@ -1,4 +1,4 @@
-//Utils.js v8.3.5_ES5 https://github.com/Pecacheu/Utils.js Licensed under GNU GPL v3.0
+//Utils.js v8.3.6_ES5 https://github.com/Pecacheu/Utils.js Licensed under GNU GPL v3.0
 
 'use strict';
 var utils = {};
@@ -630,17 +630,7 @@ utils.loadJSONP = function(path, cb, timeout) {
 	document.head.appendChild(script); document.head.removeChild(script);
 }; utils.lJSONCall = [];
 
-//Downloads a file from a link.
-//cb: Optional callback with possible error.
-utils.dlFile = function(fn,uri,cb) {
-	fetch(uri).then(function(r) {r.blob()}).then(function(b) { utils.dlData(fn,b); if(cb) cb(); }).catch(function(e) { if(cb) cb(e); });
-}
-//Downloads a file generated from a Blob or ArrayBuffer.
-utils.dlData = function(fn,d) {
-	if(!(d instanceof Blob)) d=Blob(d);
-	var o=URL.createObjectURL(d), e=utils.mkEl('a',document.body,null,{display:'none'});
-	e.href=o; e.download=fn; e.click(); e.remove(); URL.revokeObjectURL(o);
-}
+//NOTE: utils.dlFile, utils.dlData are ES6 only.
 
 //Converts from radians to degrees, so you can work in degrees.
 //Function by: The a**hole who invented radians.
