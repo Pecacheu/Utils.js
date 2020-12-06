@@ -1,5 +1,4 @@
-//This work is licensed under a GNU General Public License, v3.0. Visit http://gnu.org/licenses/gpl-3.0-standalone.html for details.
-//Javscript Utils (version 8.3.4), functions by http://github.com/Pecacheu unless otherwise stated.
+//Utils.js v8.3.5 https://github.com/Pecacheu/Utils.js Licensed under GNU GPL v3.0
 
 'use strict';
 const utils = {};
@@ -13,9 +12,9 @@ function UtilRect(t,b,l,r) {
 	if(f(t) && f(b) && f(l) && f(r)) { tt = t; bb = b; ll = l; rr = r; }
 	else if(t instanceof ClientRect) { tt = t.top; bb = t.bottom; ll = t.left; rr = t.right; }
 	
-	utils.define(this,['top','x'],function(){return tt},function(v){if(f(v))tt=v});
+	utils.define(this,['top','y'],function(){return tt},function(v){if(f(v))tt=v});
 	utils.define(this,'bottom',function(){return bb},function(v){if(f(v))bb=v});
-	utils.define(this,['left','y'],function(){return ll},function(v){if(f(v))ll=v});
+	utils.define(this,['left','x'],function(){return ll},function(v){if(f(v))ll=v});
 	utils.define(this,'right',function(){return rr},function(v){if(f(v))rr=v});
 	
 	utils.define(this,'width',function(){return rr-ll},function(v){if(f(v)){if(v<0)v=0;rr=ll+v}});
@@ -24,8 +23,8 @@ function UtilRect(t,b,l,r) {
 
 //Check if UtilRect contains point or other rect:
 UtilRect.prototype.contains = function(x, y) {
-	if(typeof x == 'object') return x.left >= this.left && x.right
-	<= this.right && x.top >= this.top && x.bottom <= this.bottom;
+	if(x instanceof UtilRect || x instanceof ClientRect) return x.left >= this.left
+	&& x.right <= this.right && x.top >= this.top && x.bottom <= this.bottom;
 	return x >= this.left && x <= this.right && y >= this.top && y <= this.bottom;
 };
 
@@ -61,7 +60,7 @@ utils.getCookie = function(name) {
 
 //Wrap a function so that it always has a preset argument list when called:
 Function.prototype.wrap = function(/* ... */) {
-	const f = this, a = arguments; return function(){return f.apply(arguments,a)};
+	const f = this, a = arguments; return ()=>{return f.apply(arguments,a)};
 }
 
 //Deep (recursive) Object.create cloning function.
@@ -221,7 +220,7 @@ utils.costField = function(field, sym) {
 utils.formatCost = function(n, sym) {
 	if(!sym) sym = '$'; if(!n) return sym+'0.00';
 	const p = n.toFixed(2).split('.');
-	return sym+p[0].split('').reverse().reduce(function(a, n, i)
+	return sym+p[0].split('').reverse().reduce((a, n, i) =>
 	{ return n=='-'?n+a:n+(i&&!(i%3)?',':'')+a; },'')+'.'+p[1];
 }
 
@@ -262,8 +261,8 @@ utils.suffix = function(n) {
 utils.goBack = function(){history.back()}
 utils.goForward = function(){history.forward()}
 utils.go = function(url, data){history.pushState(data,'',url||location.pathname);doNav(data)}
-window.addEventListener('popstate', function(e){doNav(e.state)});
-window.addEventListener('load', function(){setTimeout(function(){doNav(history.state)},1)});
+window.addEventListener('popstate', (e) => doNav(e.state));
+window.addEventListener('load', () => setTimeout(doNav.wrap(history.state),1));
 function doNav(s) { if(utils.onNav) utils.onNav.call(null,s); }
 
 //Create element with parent, classes, style properties, and innerHTML content.
@@ -418,6 +417,17 @@ utils.cutStr = function(s, rem) {
 	return s;
 }
 
+//Cuts text out of 'data' from first instance of 'startString' to next instance of 'endString'.
+//index: Optional object. index.s and index.t will be set to start and end indexes.
+utils.dCut = function(d, ss, es, sd, st) {
+	let is = d.indexOf(ss,st?st:undefined)+ss.length, it = d.indexOf(es,is);
+	if(sd) sd.s=is,sd.t=it; return (is < ss.length || it <= is)?'':d.substring(is,it);
+}
+utils.dCutLast = function(d, ss, es, sd, st) {
+	let is = d.lastIndexOf(ss,st?st:undefined)+ss.length, it = d.indexOf(es,is);
+	if(sd) sd.s=is,sd.t=it; return (is < ss.length || it <= is)?'':d.substring(is,it);
+}
+
 //Polyfill for String.trim()
 //Function by: http://www.w3schools.com/
 if(!String.prototype.trim) String.prototype.trim = function() { return this.replace(/^\s+|\s+$/gm,''); }
@@ -465,7 +475,7 @@ function defaultStyle() {
 	return ns.sheet;
 }
 function toKey(k) {
-	return k.replace(/[A-Z]/g, function(s) {return '-'+s.toLowerCase()});
+	return k.replace(/[A-Z]/g, (s) => {return '-'+s.toLowerCase()});
 }
 
 //Create a CSS class and append it to the current document. Fill 'propList' object
@@ -577,7 +587,7 @@ utils.loadAjax = function(path, callback, meth, body, hd) {
 		try {http = new ActiveXObject("Microsoft.XMLHTTP")} catch(e) {return callback(-1)}}
 	} else return callback(-1);
 	http.open(meth||'GET',path); if(hd) for(let k in hd) http.setRequestHeader(k,hd[k]);
-	http.onreadystatechange = function(e) {
+	http.onreadystatechange = (e) => {
 		if(e.target.readyState === http.DONE) {
 			let s = e.target.status; if(s == 200) s = 0; else if(s <= 0) s = -2;
 			callback(s, e.target.response);
@@ -591,10 +601,10 @@ utils.loadAjax = function(path, callback, meth, body, hd) {
 utils.loadFile = function(path, callback, timeout) {
 	const obj = document.createElement('object'); obj.data = path;
 	obj.style.position = 'fixed'; obj.style.opacity = 0;
-	let tmr = setTimeout(function() {
+	let tmr = setTimeout(() => {
 		obj.remove(); tmr = null; callback(false);
 	}, timeout||4000);
-	obj.onload = function() {
+	obj.onload = () => {
 		if(!tmr) return; clearTimeout(tmr);
 		callback(obj.contentDocument.documentElement.outerHTML);
 		obj.remove();
@@ -608,12 +618,24 @@ utils.loadJSONP = function(path, callback, timeout) {
 	const script = document.createElement('script'), id = utils.firstEmptyChar(utils.lJSONCall);
 	script.type = 'application/javascript';
 	script.src = path+(path.indexOf('?')==-1?'?':'&')+'callback=utils.lJSONCall.'+id;
-	let tmr = setTimeout(function() { delete utils.lJSONCall[id]; callback(false); }, timeout||4000);
-	utils.lJSONCall[id] = function(data) {
+	let tmr = setTimeout(() => { delete utils.lJSONCall[id]; callback(false); }, timeout||4000);
+	utils.lJSONCall[id] = (data) => {
 		if(tmr) clearTimeout(tmr); delete utils.lJSONCall[id]; callback(data);
 	}
 	document.head.appendChild(script); document.head.removeChild(script);
 }; utils.lJSONCall = [];
+
+//Downloads a file from a link.
+//cb: Optional callback with possible error.
+utils.dlFile = function(fn,uri,cb) {
+	fetch(uri).then(r => r.blob()).then(b => { utils.dlData(fn,b); if(cb) cb(); }).catch((e) => { if(cb) cb(e); });
+}
+//Downloads a file generated from a Blob or ArrayBuffer.
+utils.dlData = function(fn,d) {
+	if(!(d instanceof Blob)) d=Blob(d);
+	let o=URL.createObjectURL(d), e=utils.mkEl('a',document.body,null,{display:'none'});
+	e.href=o; e.download=fn; e.click(); e.remove(); URL.revokeObjectURL(o);
+}
 
 //Converts from radians to degrees, so you can work in degrees.
 //Function by: The a**hole who invented radians.
@@ -633,35 +655,33 @@ utils.map = function(input, minIn, maxIn, minOut, maxOut, ease) {
 
 })(); //End of Utils Library
 
-//JavaScript Easing Library, CREATED BY: http://github.com/gre
-
-/*Easing Functions - inspired from http://gizma.com/easing/
-only considering the t value for the range [0,1] => [0,1]*/
+//JavaScript Easing Library. By: http://github.com/gre & http://gizma.com/easing
+//'t' should be between 0 and 1
 const Easing = {
 	//no easing, no acceleration
-	linear:function(t) { return t },
+	linear:(t) => {return t},
 	//accelerating from zero velocity
-	easeInQuad:function(t) { return t*t },
+	easeInQuad:(t) => {return t*t},
 	//decelerating to zero velocity
-	easeOutQuad:function(t) { return t*(2-t) },
+	easeOutQuad:(t) => {return t*(2-t)},
 	//acceleration until halfway, then deceleration
-	easeInOutQuad:function(t) { return t<.5 ? 2*t*t : -1+(4-2*t)*t },
+	easeInOutQuad:(t) => {return t<.5 ? 2*t*t : -1+(4-2*t)*t},
 	//accelerating from zero velocity
-	easeInCubic:function(t) { return t*t*t },
+	easeInCubic:(t) => {return t*t*t},
 	//decelerating to zero velocity
-	easeOutCubic:function(t) { return (--t)*t*t+1 },
+	easeOutCubic:(t) => {return (--t)*t*t+1},
 	//acceleration until halfway, then deceleration
-	easeInOutCubic:function(t) { return t<.5 ? 4*t*t*t : (t-1)*(2*t-2)*(2*t-2)+1 },
+	easeInOutCubic:(t) => {return t<.5 ? 4*t*t*t : (t-1)*(2*t-2)*(2*t-2)+1},
 	//accelerating from zero velocity
-	easeInQuart:function(t) { return t*t*t*t },
+	easeInQuart:(t) => {return t*t*t*t},
 	//decelerating to zero velocity
-	easeOutQuart:function(t) { return 1-(--t)*t*t*t },
+	easeOutQuart:(t) => {return 1-(--t)*t*t*t},
 	//acceleration until halfway, then deceleration
-	easeInOutQuart:function(t) { return t<.5 ? 8*t*t*t*t : 1-8*(--t)*t*t*t },
+	easeInOutQuart:(t) => {return t<.5 ? 8*t*t*t*t : 1-8*(--t)*t*t*t},
 	//accelerating from zero velocity
-	easeInQuint:function(t) { return t*t*t*t*t },
+	easeInQuint:(t) => {return t*t*t*t*t},
 	//decelerating to zero velocity
-	easeOutQuint:function(t) { return 1+(--t)*t*t*t*t },
+	easeOutQuint:(t) => {return 1+(--t)*t*t*t*t},
 	//acceleration until halfway, then deceleration
-	easeInOutQuint:function(t) { return t<.5 ? 16*t*t*t*t*t : 1+16*(--t)*t*t*t*t }
+	easeInOutQuint:(t) => {return t<.5 ? 16*t*t*t*t*t : 1+16*(--t)*t*t*t*t}
 };

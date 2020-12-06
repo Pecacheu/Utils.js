@@ -1,5 +1,4 @@
-//This work is licensed under a GNU General Public License, v3.0. Visit http://gnu.org/licenses/gpl-3.0-standalone.html for details.
-//Javscript Utils (version 8.3.4_ES5), functions by http://github.com/Pecacheu unless otherwise stated.
+//Utils.js v8.3.5_ES5 https://github.com/Pecacheu/Utils.js Licensed under GNU GPL v3.0
 
 'use strict';
 var utils = {};
@@ -13,9 +12,9 @@ function UtilRect(t,b,l,r) {
 	if(f(t) && f(b) && f(l) && f(r)) { tt = t; bb = b; ll = l; rr = r; }
 	else if(t instanceof ClientRect) { tt = t.top; bb = t.bottom; ll = t.left; rr = t.right; }
 	
-	utils.define(this,['top','x'],function(){return tt},function(v){if(f(v))tt=v});
+	utils.define(this,['top','y'],function(){return tt},function(v){if(f(v))tt=v});
 	utils.define(this,'bottom',function(){return bb},function(v){if(f(v))bb=v});
-	utils.define(this,['left','y'],function(){return ll},function(v){if(f(v))ll=v});
+	utils.define(this,['left','x'],function(){return ll},function(v){if(f(v))ll=v});
 	utils.define(this,'right',function(){return rr},function(v){if(f(v))rr=v});
 	
 	utils.define(this,'width',function(){return rr-ll},function(v){if(f(v)){if(v<0)v=0;rr=ll+v}});
@@ -24,8 +23,8 @@ function UtilRect(t,b,l,r) {
 
 //Check if UtilRect contains point or other rect:
 UtilRect.prototype.contains = function(x, y) {
-	if(typeof x == 'object') return x.left >= this.left && x.right
-	<= this.right && x.top >= this.top && x.bottom <= this.bottom;
+	if(x instanceof UtilRect || x instanceof ClientRect) return x.left >= this.left
+	&& x.right <= this.right && x.top >= this.top && x.bottom <= this.bottom;
 	return x >= this.left && x <= this.right && y >= this.top && y <= this.bottom;
 };
 
@@ -34,6 +33,15 @@ UtilRect.prototype.contains = function(x, y) {
 UtilRect.prototype.expand = function(by) {
 	this.top -= by; this.left -= by; this.bottom += by;
 	this.right += by; return this;
+};
+
+//startsWith/endsWith Polyfill:
+if(!String.prototype.startsWith) String.prototype.startsWith = function(s, rawPos) {
+	var pos = rawPos>0?rawPos|0:0; return this.substring(pos,pos+s.length) === s;
+}
+if(!String.prototype.endsWith) String.prototype.endsWith = function(s, l) {
+	if(l === undefined || l > this.length) l = this.length;
+	return this.substring(l-s.length,l) === s;
 };
 
 (function(){ //Utils Library
@@ -419,6 +427,17 @@ utils.cutStr = function(s, rem) {
 	return s;
 }
 
+//Cuts text out of 'data' from first instance of 'startString' to next instance of 'endString'.
+//index: Optional object. index.s and index.t will be set to start and end indexes.
+utils.dCut = function(d, ss, es, sd, st) {
+	var is = d.indexOf(ss,st?st:undefined)+ss.length, it = d.indexOf(es,is);
+	if(sd) sd.s=is,sd.t=it; return (is < ss.length || it <= is)?'':d.substring(is,it);
+}
+utils.dCutLast = function(d, ss, es, sd, st) {
+	var is = d.lastIndexOf(ss,st?st:undefined)+ss.length, it = d.indexOf(es,is);
+	if(sd) sd.s=is,sd.t=it; return (is < ss.length || it <= is)?'':d.substring(is,it);
+}
+
 //Polyfill for String.trim()
 //Function by: http://www.w3schools.com/
 if(!String.prototype.trim) String.prototype.trim = function() { return this.replace(/^\s+|\s+$/gm,''); }
@@ -616,6 +635,18 @@ utils.loadJSONP = function(path, callback, timeout) {
 	document.head.appendChild(script); document.head.removeChild(script);
 }; utils.lJSONCall = [];
 
+//Downloads a file from a link.
+//cb: Optional callback with possible error.
+utils.dlFile = function(fn,uri,cb) {
+	fetch(uri).then(function(r) {r.blob()}).then(function(b) { utils.dlData(fn,b); if(cb) cb(); }).catch(function(e) { if(cb) cb(e); });
+}
+//Downloads a file generated from a Blob or ArrayBuffer.
+utils.dlData = function(fn,d) {
+	if(!(d instanceof Blob)) d=Blob(d);
+	var o=URL.createObjectURL(d), e=utils.mkEl('a',document.body,null,{display:'none'});
+	e.href=o; e.download=fn; e.click(); e.remove(); URL.revokeObjectURL(o);
+}
+
 //Converts from radians to degrees, so you can work in degrees.
 //Function by: The a**hole who invented radians.
 utils.deg = function(rad) { return rad * 180 / Math.PI; }
@@ -634,35 +665,33 @@ utils.map = function(input, minIn, maxIn, minOut, maxOut, ease) {
 
 })(); //End of Utils Library
 
-//JavaScript Easing Library, CREATED BY: http://github.com/gre
-
-/*Easing Functions - inspired from http://gizma.com/easing/
-only considering the t value for the range [0,1] => [0,1]*/
+//JavaScript Easing Library. By: http://github.com/gre & http://gizma.com/easing
+//'t' should be between 0 and 1
 var Easing = {
 	//no easing, no acceleration
-	linear:function(t) { return t },
+	linear:function(t) {return t},
 	//accelerating from zero velocity
-	easeInQuad:function(t) { return t*t },
+	easeInQuad:function(t) {return t*t},
 	//decelerating to zero velocity
-	easeOutQuad:function(t) { return t*(2-t) },
+	easeOutQuad:function(t) {return t*(2-t)},
 	//acceleration until halfway, then deceleration
-	easeInOutQuad:function(t) { return t<.5 ? 2*t*t : -1+(4-2*t)*t },
+	easeInOutQuad:function(t) {return t<.5 ? 2*t*t : -1+(4-2*t)*t},
 	//accelerating from zero velocity
-	easeInCubic:function(t) { return t*t*t },
+	easeInCubic:function(t) {return t*t*t},
 	//decelerating to zero velocity
-	easeOutCubic:function(t) { return (--t)*t*t+1 },
+	easeOutCubic:function(t) {return (--t)*t*t+1},
 	//acceleration until halfway, then deceleration
-	easeInOutCubic:function(t) { return t<.5 ? 4*t*t*t : (t-1)*(2*t-2)*(2*t-2)+1 },
+	easeInOutCubic:function(t) {return t<.5 ? 4*t*t*t : (t-1)*(2*t-2)*(2*t-2)+1},
 	//accelerating from zero velocity
-	easeInQuart:function(t) { return t*t*t*t },
+	easeInQuart:function(t) {return t*t*t*t},
 	//decelerating to zero velocity
-	easeOutQuart:function(t) { return 1-(--t)*t*t*t },
+	easeOutQuart:function(t) {return 1-(--t)*t*t*t},
 	//acceleration until halfway, then deceleration
-	easeInOutQuart:function(t) { return t<.5 ? 8*t*t*t*t : 1-8*(--t)*t*t*t },
+	easeInOutQuart:function(t) {return t<.5 ? 8*t*t*t*t : 1-8*(--t)*t*t*t},
 	//accelerating from zero velocity
-	easeInQuint:function(t) { return t*t*t*t*t },
+	easeInQuint:function(t) {return t*t*t*t*t},
 	//decelerating to zero velocity
-	easeOutQuint:function(t) { return 1+(--t)*t*t*t*t },
+	easeOutQuint:function(t) {return 1+(--t)*t*t*t*t},
 	//acceleration until halfway, then deceleration
-	easeInOutQuint:function(t) { return t<.5 ? 16*t*t*t*t*t : 1+16*(--t)*t*t*t*t }
+	easeInOutQuint:function(t) {return t<.5 ? 16*t*t*t*t*t : 1+16*(--t)*t*t*t*t}
 };

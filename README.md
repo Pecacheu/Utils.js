@@ -63,6 +63,8 @@ Note: For production code, *utils.min.js* should probably be used. It's been con
 - `utils.bounds(n,min=0,max=1) returns Number` Keeps value within max/min bounds. Also handles NaN or null.
 - `utils.norm` *OR* `utils.normalize(n,min=0,max=1) returns Number` 'Normalizes' a value so that it ranges from min to max, but unlike `utils.bounds`, this function retains input's offset. This can be used to normalize angles.
 - `utils.cutStr(s,rem) returns String` Finds and removes all instances of 'rem' contained within String 's'
+- `utils.dCut(data,startString,endString[,index[,searchStart]]) returns String` Cuts text out of 'data' from first instance of 'startString' to next instance of 'endString'.
+- `utils.dCutLast(data,startString,endString[,index[,searchStart]]) returns String` Same as *utils.dCut* but using lastIndexOf instead.
 - `utils.parseCSS(prop) returns Object` Given css property value 'prop', returns object with space-separated values from the property string.
 - `utils.buildCSS(obj) returns String` Rebuilds css string from a *parseCSS* object.
 - `utils.addClass(class,propList)` Create a css class and append it to the current document. Fill 'propList' object with key/value pairs repersenting the properties you want to add to the class.
@@ -77,5 +79,7 @@ Note: For production code, *utils.min.js* should probably be used. It's been con
 - `utils.loadAjax(path,[callback[, meth[, body[, hdList]]]])` Loads a file and returns it's contents, using GET by default. *See utils.js for details.*
 - `utils.loadJSONP(path,callback,timeout)` Loads a file at the address from a JSONP-enabled server. Callback is fired with either received data, or **false** if unsuccessful.
 - `utils.loadFile(path,callback,timeout)` Good fallback for `utils.loadAjax`. Loads a file at the address via HTML object tag. Callback is fired with either received data, or **false** if unsuccessful.
+- `utils.dlFile(filename,uri[,callback])` Downloads a file from a link.
+- `utils.dlData(filename,data)` Downloads a file generated from a Blob or ArrayBuffer.
 - `utils.rad(deg)` / `utils.deg(rad)` Convert between radians and degrees.
 - `utils.map(input,minIn,maxIn,minOut,maxOut,ease) returns Number` For unit translation and JS animation! See ease functions in *untils.js*.
