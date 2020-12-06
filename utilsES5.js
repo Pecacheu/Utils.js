@@ -589,18 +589,13 @@ utils.center = function(obj, only, type) {
 //meth: Optional HTTP method, default is GET.
 //body: Optional body content.
 //hd: Optional header list.
-utils.loadAjax = function(path, callback, meth, body, hd) {
-	var http; if(window.XMLHttpRequest) { //Chrome, Safari, Firefox, Edge:
-		try {http = new XMLHttpRequest()} catch(e) {return callback(-1)}
-	} else if(window.ActiveXObject) { //IE6 and older:
-		try {http = new ActiveXObject("Msxml2.XMLHTTP")} catch(e) {
-		try {http = new ActiveXObject("Microsoft.XMLHTTP")} catch(e) {return callback(-1)}}
-	} else return callback(-1);
+utils.loadAjax = function(path, cb, meth, body, hd) {
+	var http; try {http = new XMLHttpRequest()} catch(e) {return cb(e)}
 	http.open(meth||'GET',path); if(hd) for(var k in hd) http.setRequestHeader(k,hd[k]);
 	http.onreadystatechange = function(e) {
 		if(e.target.readyState === http.DONE) {
 			var s = e.target.status; if(s == 200) s = 0; else if(s <= 0) s = -2;
-			callback(s, e.target.response);
+			cb(s, e.target.response);
 		}
 	}
 	http.send(body||undefined);
@@ -608,15 +603,15 @@ utils.loadAjax = function(path, callback, meth, body, hd) {
 
 //Good fallback for loadAjax. Loads a file at the address via HTML object tag.
 //Callback is fired with either received data, or 'false' if unsuccessful.
-utils.loadFile = function(path, callback, timeout) {
+utils.loadFile = function(path, cb, timeout) {
 	var obj = document.createElement('object'); obj.data = path;
 	obj.style.position = 'fixed'; obj.style.opacity = 0;
 	var tmr = setTimeout(function() {
-		obj.remove(); tmr = null; callback(false);
+		obj.remove(); tmr = null; cb(false);
 	}, timeout||4000);
 	obj.onload = function() {
 		if(!tmr) return; clearTimeout(tmr);
-		callback(obj.contentDocument.documentElement.outerHTML);
+		cb(obj.contentDocument.documentElement.outerHTML);
 		obj.remove();
 	}
 	document.body.appendChild(obj);
@@ -624,13 +619,13 @@ utils.loadFile = function(path, callback, timeout) {
 
 //Loads a file at the address from a JSONP-enabled server. Callback
 //is fired with either received data, or 'false' if unsuccessful.
-utils.loadJSONP = function(path, callback, timeout) {
+utils.loadJSONP = function(path, cb, timeout) {
 	var script = document.createElement('script'), id = utils.firstEmptyChar(utils.lJSONCall);
 	script.type = 'application/javascript';
 	script.src = path+(path.indexOf('?')==-1?'?':'&')+'callback=utils.lJSONCall.'+id;
-	var tmr = setTimeout(function() { delete utils.lJSONCall[id]; callback(false); }, timeout||4000);
+	var tmr = setTimeout(function() { delete utils.lJSONCall[id]; cb(false); }, timeout||4000);
 	utils.lJSONCall[id] = function(data) {
-		if(tmr) clearTimeout(tmr); delete utils.lJSONCall[id]; callback(data);
+		if(tmr) clearTimeout(tmr); delete utils.lJSONCall[id]; cb(data);
 	}
 	document.head.appendChild(script); document.head.removeChild(script);
 }; utils.lJSONCall = [];
