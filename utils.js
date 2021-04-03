@@ -1,4 +1,4 @@
-//Utils.js v8.3.6 https://github.com/Pecacheu/Utils.js Licensed under GNU GPL v3.0
+//Utils.js v8.4.2 https://github.com/Pecacheu/Utils.js Licensed under GNU GPL v3.0
 
 'use strict';
 const utils = {};
@@ -7,32 +7,55 @@ const utils = {};
 if(!window.ClientRect) window.ClientRect = DOMRect;
 
 function UtilRect(t,b,l,r) {
-	if(!(this instanceof UtilRect)) throw "UtilRect constructor must use new keyword!";
-	const f = Number.isFinite; let tt=0,bb=0,ll=0,rr=0;
-	if(f(t) && f(b) && f(l) && f(r)) { tt = t; bb = b; ll = l; rr = r; }
-	else if(t instanceof ClientRect) { tt = t.top; bb = t.bottom; ll = t.left; rr = t.right; }
-	
-	utils.define(this,['top','y'],function(){return tt},function(v){if(f(v))tt=v});
-	utils.define(this,'bottom',function(){return bb},function(v){if(f(v))bb=v});
-	utils.define(this,['left','x'],function(){return ll},function(v){if(f(v))ll=v});
-	utils.define(this,'right',function(){return rr},function(v){if(f(v))rr=v});
-	
-	utils.define(this,'width',function(){return rr-ll},function(v){if(f(v)){if(v<0)v=0;rr=ll+v}});
-	utils.define(this,'height',function(){return bb-tt},function(v){if(f(v)){if(v<0)v=0;bb=tt+v}});
+	if(!(this instanceof UtilRect)) return new UtilRect(t,b,l,r);
+	const f=Number.isFinite; let tt=0,bb=0,ll=0,rr=0;
+	utils.define(this,['top','y'],()=>{return tt}, v=>{tt=f(v)&&v<=bb?v:tt});
+	utils.define(this,['bottom','y2'],()=>{return bb}, v=>{bb=f(v)&&v>=tt?v:bb});
+	utils.define(this,['left','x'],()=>{return ll}, v=>{ll=f(v)&&v<=rr?v:ll});
+	utils.define(this,['right','x2'],()=>{return rr}, v=>{rr=f(v)&&v>=ll?v:rr});
+	utils.define(this,'width',()=>{return rr-ll}, v=>{rr=v>=0?ll+v:rr});
+	utils.define(this,'height',()=>{return bb-tt}, v=>{bb=v>=0?tt+v:bb});
+	utils.define(this,'centerX',()=>{return ll/2+rr/2});
+	utils.define(this,'centerY',()=>{return tt/2+bb/2});
+	if(t instanceof ClientRect || t instanceof UtilRect) tt=t.top, bb=t.bottom, ll=t.left, rr=t.right;
+	else this.y=t, this.y2=b, this.x=l, this.x2=r;
 }
 
-//Check if UtilRect contains point or other rect:
-UtilRect.prototype.contains = function(x, y) {
-	if(x instanceof UtilRect || x instanceof ClientRect) return x.left >= this.left
-	&& x.right <= this.right && x.top >= this.top && x.bottom <= this.bottom;
-	return x >= this.left && x <= this.right && y >= this.top && y <= this.bottom;
-};
+//Check if rect contains point, other rect, or Element:
+UtilRect.prototype.contains = function(x,y) {
+	if(x instanceof Element) return this.contains(x.boundingRect);
+	if(x instanceof UtilRect) return x.x >= this.x && x.x2 <= this.x2 && x.y >= this.y && x.y2 <= this.y2;
+	return x >= this.x && x <= this.x2 && y >= this.y && y <= this.y2;
+}
+
+//Check if rect overlaps rect or Element:
+UtilRect.prototype.overlaps = function(r) {
+	if(r instanceof Element) return this.overlaps(r.boundingRect);
+	if(!(r instanceof UtilRect)) return 0; let x,y;
+	if(r.x2-r.x >= this.x2-this.x) x = this.x >= r.x && this.x <= r.x2 || this.x2 >= r.x && this.x2 <= r.x2;
+	else x = r.x >= this.x && r.x <= this.x2 || r.x2 >= this.x && r.x2 <= this.x2;
+	if(r.y2-r.y >= this.y2-this.y) y = this.y >= r.y && this.y <= r.y2 || this.y2 >= r.y && this.y2 <= r.y2;
+	else y = r.y >= this.y && r.y <= this.y2 || r.y2 >= this.y && r.y2 <= this.y2;
+	return x&&y;
+}
+
+//Get distance from this rect to point, other rect, or Element:
+UtilRect.prototype.dist = function(x,y) {
+	if(x instanceof Element) return this.dist(x.boundingRect); let n=(x instanceof UtilRect);
+	y=Math.abs((n?x.centerY:y)-this.centerY), x=Math.abs((n?x.centerX:x)-this.centerX);
+	return Math.sqrt(x*x+y*y);
+}
 
 //Expand (or contract if negative) a UtilRect by num of pixels.
 //Useful for using UtilRect objects as element hitboxes. Returns self for chaining.
 UtilRect.prototype.expand = function(by) {
 	this.top -= by; this.left -= by; this.bottom += by;
 	this.right += by; return this;
+}
+
+//Get touch by id, returns null if none found.
+if(window.TouchList) TouchList.prototype.get = function(id) {
+	for(let k in this) if(this[k].identifier == id) return this[k]; return 0;
 };
 
 (function(){ //Utils Library
@@ -59,7 +82,7 @@ utils.getCookie = function(name) {
 }
 
 //Wrap a function so that it always has a preset argument list when called:
-Function.prototype.wrap = function(/* ... */) {
+Function.prototype.wrap = function(/*...*/) {
 	const f = this, a = arguments; return ()=>{return f.apply(arguments,a)};
 }
 
@@ -152,68 +175,63 @@ function mulBoxLabel(sb) {
 //Optional 'decMax' parameter is maximum precision of decimal allowed. (ex. 3 would give precision of 0.001)
 //Use field.onnuminput as your oninput function, and get the number value with field.num
 //On mobile, use star key for decimal point and pound key for negative.
-utils.numField = function(field, min, max, decMax) {
+utils.numField = function(f, min, max, decMax) {
 	if(min == null) min = -2147483648; if(max == null) max = 2147483647;
-	field.setAttribute('pattern',"\\d*"); if(decMax) field.type = 'tel'; else field.type = 'number';
-	field.ns = field.value = (field.num = Number(field.value)||0).toString();
-	field.onkeydown = function(e) {
+	f.setAttribute('pattern',"\\d*"); if(decMax) f.type = 'tel'; else f.type = 'number';
+	f.ns = f.value = (f.num = Number(f.value)||0).toString();
+	f.onkeydown = function(e) {
 		const k = e.key, kn = (k.length==1)?Number(k):null, dAdd = decMax && this.num != max && this.num != min,
-		old = this.ns; let len = this.ns.length, dec = this.ns.indexOf('.'), neg = this.ns.indexOf('-')!=-1;
-		
-		if(kn || kn == 0) { if(dec == -1 || len-dec < decMax+1) this.ns += k; } //Number.
-		else if(dAdd && (k == '.' || k == '*') && dec == -1) this.ns += '.'; //Decimal.
-		else if(k == 'Backspace' || k == 'Delete') this.ns = this.ns.substr(0,len-1); //Backspace.
-		else if(min < 0 && (k == '-' || k == '#') && len == 0) { this.ns = '-'; neg = true; } //Negative Key.
-		else if(k == 'ArrowUp') this.ns = (this.num+(this.step||1)).toString(); //Up Key.
-		else if(k == 'ArrowDown') this.ns = (this.num-(this.step||1)).toString(); //Down Key.
+		old = this.ns; let len = this.ns.length, dec = this.ns.indexOf('.');
+		if(kn || kn == 0) { if(dec == -1 || len-dec < decMax+1) this.ns += k; } //Number
+		else if(dAdd && (k == '.' || k == '*') && dec == -1) this.ns += '.'; //Decimal
+		else if(k == 'Backspace' || k == 'Delete') this.ns = this.ns.substr(0,len-1); //Backspace
+		else if(min < 0 && (k == '-' || k == '#') && !len) this.ns='-'; //Negative
+		else if(k == 'ArrowUp') this.ns = (this.num+(this.step||1)).toString(); //Up
+		else if(k == 'ArrowDown') this.ns = (this.num-(this.step||1)).toString(); //Down
 		len = this.ns.length; dec = this.ns.indexOf('.');
 		if(dec != -1 && len-dec > decMax+1) len = (this.ns = this.ns.substr(0,dec+decMax+1)).length;
-		
-		let n = Number(this.ns)||0; if(!n && dec == -1 && !neg) this.ns = '';
-		if(n > max) { n = max; this.ns = n.toString(); }
-		else if(n < min) { n = min; this.ns = n.toString(); }
-		
-		const nOld = this.num; this.num = n;
-		if(this.onnuminput && this.onnuminput(n) === false) { this.ns = old; this.num = nOld; }
-		else if(len) this.value = (neg&&!n?'-':'')+n+(dec!=-1&&n%1==0?'.0':''); else this.value = n;
+		let n = Number(this.ns)||0;
+		if(n > max) n=max, this.ns=n.toString(); else if(n < min) n=min, this.ns=n.toString();
+		let nOld=this.num, neg=this.ns.startsWith('-'); this.num=n;
+		if(this.onnuminput && this.onnuminput(n) === false) this.ns=old, this.num=nOld;
+		else this.value = (neg&&!n?'-':'')+n+(dec!=-1&&n%1==0?'.0':'');
 		e.preventDefault();
 	}
-	field.set = function(n) {
-		n = Number(n)||0; if(!decMax) n = Math.floor(n);
-		if(n > max) n = max; if(n < min) n = min;
-		this.value = this.num = n; this.ns = n.toString();
-		if(this.onnuminput) this.onnuminput(n);
+	f.oninput = function() { this.set(this.value); }
+	f.set = function(n) {
+		n = Number(n)||0; if(!decMax) n=Math.floor(n); if(n > max) n=max; if(n < min) n=min;
+		let dec = this.ns.indexOf('.'); this.value = (this.num=n)+(dec!=-1&&n%1==0?'.0':'');
+		this.ns=n.toString(); if(this.onnuminput) this.onnuminput(n);
 	}
+	return f;
 }
 
 //Turns your boring <input> into a mobile-friendly currency entry field, optionally with custom currency symbol.
 //Use field.onnuminput as your oninput function, and get the number value with field.num
 //On mobile, use star key for decimal point.
-utils.costField = function(field, sym) {
-	field.setAttribute('pattern',"\\d*"); field.type = 'tel';
-	field.value = utils.formatCost(field.num = Number(field.value)||0,sym); field.ns = field.num.toString();
-	field.onkeydown = function(e) {
-		const k = e.key, kn = (k.length==1)?Number(k):null, len = this.ns.length, old = this.ns;
+utils.costField = function(f, sym) {
+	f.setAttribute('pattern',"\\d*"); f.type = 'tel';
+	f.value=utils.formatCost(f.num=Number(f.value)||0,sym); f.ns=f.num.toString();
+	f.onkeydown = function(e) {
+		const k=e.key, kn=(k.length==1)?Number(k):null, len=this.ns.length, old=this.ns;
 		let dec = this.ns.indexOf('.');
-		
-		if(kn || kn == 0) { if(dec == -1 || len-dec < 3) this.ns += k; } //Number.
-		else if((k == '.' || k == '*') && dec == -1) { this.ns += '.'; dec = len; } //Decimal.
-		else if(k == 'Backspace' || k == 'Delete') this.ns = this.ns.substr(0,len-1); //Backspace.
-		else if(k == 'ArrowUp') this.ns = (this.num+1).toString(); //Up Key.
-		else if(k == 'ArrowDown' && this.num >= 1) this.ns = (this.num-1).toString(); //Down Key.
-		
+		if(kn || kn == 0) { if(dec == -1 || len-dec < 3) this.ns += k; } //Number
+		else if((k == '.' || k == '*') && dec == -1) this.ns += '.', dec=len; //Decimal
+		else if(k == 'Backspace' || k == 'Delete') this.ns = this.ns.substr(0,len-1); //Backspace
+		else if(k == 'ArrowUp') this.ns = (this.num+1).toString(); //Up
+		else if(k == 'ArrowDown' && this.num >= 1) this.ns = (this.num-1).toString(); //Down
 		const n = Number(this.ns)||0; if(!n && dec == -1) this.ns = '';
-		
 		const nOld = this.num; this.num = n;
 		if(this.onnuminput && this.onnuminput(n) === false) { this.ns = old; this.num = nOld; }
 		else this.value = utils.formatCost(n,sym);
 		e.preventDefault();
 	}
-	field.set = function(n) {
-		n = Math.floor((Number(n)||0)*100)/100; this.num = n;
-		this.value = utils.formatCost(n,sym); this.ns = n.toString();
+	f.set = function(n) {
+		n=Math.floor((Number(n)||0)*100)/100; this.num=n;
+		this.value=utils.formatCost(n,sym); this.ns=n.toString();
 		if(this.onnuminput) this.onnuminput(n);
 	}
+	return f;
 }
 
 //Format Number as currency. Uses '$' by default.
@@ -300,12 +318,12 @@ utils.define = function(obj, name, get, set) {
 }
 
 //Remove 'empty' elements like 0, false, ' ', undefined, and NaN from array.
-//Often useful in combination with Array.split. Set 'kz' to true to keep '0's.
+//Often useful in combination with Array.split. Set 'keepZero' to true to keep '0's.
 //Function by: Pecacheu & http://stackoverflow.com/users/5445/cms
-Array.prototype.clean = function(keepZero) {
+Array.prototype.clean = function(kz) {
 	for(let i=0,e,l=this.length; i<l; i++) {
 		e=this[i]; if(utils.isBlank(e) || e === false ||
-		!keepZero && e === 0) { this.splice(i,1); i--; l--; }
+		!kz && e === 0) { this.splice(i,1); i--; l--; }
 	} return this;
 }
 
@@ -329,9 +347,8 @@ Element.prototype.insertChildAt = function(el, i) {
 }
 
 //Get element bounding rect as UtilRect object:
-utils.define(Element.prototype,'boundingRect',function() {
-	return new UtilRect(this.getBoundingClientRect());
-});
+utils.boundingRect = (e) => { return new UtilRect(e.getBoundingClientRect()); }
+utils.define(Element.prototype,'boundingRect',function() { return utils.boundingRect(this); });
 
 //No idea why this isn't built-in, but it's not.
 Math.cot = function(x) {return 1/Math.tan(x)}
@@ -380,7 +397,7 @@ function rstCount(val, maxVal) { while(val >= maxVal) val -= maxVal; return val;
 
 //Semi-recursively merges two (or more) objects, giving the last precedence.
 //If both objects contain a property at the same index, and both are Arrays/Objects, they are merged.
-utils.merge = function(o/*, src1, src2... */) {
+utils.merge = function(o/*, src1, src2...*/) {
 	for(let a=1,al=arguments.length,n,oP,nP; a<al; a++) {
 		n = arguments[a]; for(let k in n) {
 			oP = o[k]; nP = n[k]; if(oP && nP) { //Conflict.
@@ -418,9 +435,14 @@ utils.cutStr = function(s, rem) {
 }
 
 //Cuts text out of 'data' from first instance of 'startString' to next instance of 'endString'.
+//(data,startString,endString[,index[,searchStart]])
 //index: Optional object. index.s and index.t will be set to start and end indexes.
 utils.dCut = function(d, ss, es, sd, st) {
 	let is = d.indexOf(ss,st?st:undefined)+ss.length, it = d.indexOf(es,is);
+	if(sd) sd.s=is,sd.t=it; return (is < ss.length || it <= is)?'':d.substring(is,it);
+}
+utils.dCutToLast = function(d, ss, es, sd, st) {
+	let is = d.indexOf(ss,st?st:undefined)+ss.length, it = d.lastIndexOf(es);
 	if(sd) sd.s=is,sd.t=it; return (is < ss.length || it <= is)?'':d.substring(is,it);
 }
 utils.dCutLast = function(d, ss, es, sd, st) {
@@ -505,6 +527,13 @@ utils.removeSelector = function(name) {
 		for(let key in rList) if(rList[key].type == 1 && rList[key].selectorText == name) style.removeRule(key);
 	}
 }
+
+//Shorthand way to get element by id/class name, within a parent element (defaults to document).
+//(class[,parent])
+utils.getId = function(c,p) { return (p?p:document)['getElementById'](c); }
+utils.getClassList = function(c,p) { return (p?p:document)['getElementsByClassName'](c); }
+utils.getClassFirst = function(c,p) { c=utils.getClassList(c,p); return c.length>0?c[0]:0; }
+utils.getClassOnly = function(c,p) { c=utils.getClassList(c,p); return c.length==1?c[0]:0; }
 
 //Converts HEX color to 24-bit RGB.
 //Function by: https://github.com/Pecacheu and others

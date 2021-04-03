@@ -30,6 +30,7 @@ Note: For production code, the minified version *utils.min.js* should be used. T
 - `[Element].insertChildAt(el,i)` Inserts child at index. Appends child to end if index exceeds child count.
 - `UtilRect [Element].boundingRect` Element's bounding rect as a `UtilRect` object.
 - `Math.cot(x) returns Number` No idea why this isn't built-in, but it's not.
+- `[TouchList].get(id) returns Touch` Gets touch by id, returns null if none found.
 
 ### Main *utils* Class
 - `utils.setCookie(name,value,exp,secure)` Set a cookie.
@@ -64,13 +65,18 @@ Note: For production code, the minified version *utils.min.js* should be used. T
 - `utils.norm` *OR* `utils.normalize(n,min=0,max=1) returns Number` 'Normalizes' a value so that it ranges from min to max, but unlike `utils.bounds`, this function retains input's offset. This can be used to normalize angles.
 - `utils.cutStr(s,rem) returns String` Finds and removes all instances of 'rem' contained within String 's'
 - `utils.dCut(data,startString,endString[,index[,searchStart]]) returns String` Cuts text out of 'data' from first instance of 'startString' to next instance of 'endString'.
-- `utils.dCutLast(data,startString,endString[,index[,searchStart]]) returns String` Same as *utils.dCut* but using lastIndexOf instead.
+- `utils.dCutToLast(data,startString,endString[,index[,searchStart]]) returns String` Same as *utils.dCut* but using lastIndexOf for end search.
+- `utils.dCutLast(data,startString,endString[,index[,searchStart]]) returns String` Same as *utils.dCut* but using lastIndexOf for start search.
 - `utils.parseCSS(prop) returns Object` Given css property value 'prop', returns object with space-separated values from the property string.
 - `utils.buildCSS(obj) returns String` Rebuilds css string from a *parseCSS* object.
 - `utils.addClass(class,propList)` Create a css class and append it to the current document. Fill 'propList' object with key/value pairs repersenting the properties you want to add to the class.
 - `utils.addId(id,propList)` Create a css selector and append it to the current document.
 - `utils.addKeyframe(name,content)` Create a css keyframe and append it to the current document.
 - `utils.removeSelector(name)` Remove a specific css selector (including the '.' or '#') from all stylesheets in the current document.
+- `utils.getId(id[,parent]) returns Element` Shorthand way to get element by id. Parent defaults to document.
+- `utils.getClassList(class[,parent]) returns Array` Shorthand way to get list of elements with class name. Parent defaults to document.
+- `utils.getClassFirst(class[,parent]) returns Element` Get first element with class, otherwise return null. Parent defaults to document.
+- `utils.getClassOnly(class[,parent]) returns Element` Get element with class if there's only one, otherwise return null. Parent defaults to document.
 - `utils.hexToRgb(hex) returns Number` Converts HEX color to 24-bit RGB.
 - `utils.rand(min,max[,res[,ease]]) returns Number` Generates random from min to max, optionally with a decimal resolution (10, 100, 1000, etc.) or custom ease, changing the probability of various numbers being generated.
 - `utils.fromQuery(str) returns Object` Parses a url query string into an Object.
