@@ -1,4 +1,4 @@
-//Utils.js v8.4.2 https://github.com/Pecacheu/Utils.js Licensed under GNU GPL v3.0
+//Utils.js v8.4.3 https://github.com/Pecacheu/Utils.js Licensed under GNU GPL v3.0
 
 'use strict';
 const utils = {};
@@ -609,15 +609,13 @@ utils.center = function(obj, only, type) {
 //body: Optional body content.
 //hd: Optional header list.
 utils.loadAjax = function(path, cb, meth, body, hd) {
-	let http; try {http = new XMLHttpRequest()} catch(e) {return cb(e)}
-	http.open(meth||'GET',path); if(hd) for(let k in hd) http.setRequestHeader(k,hd[k]);
-	http.onreadystatechange = (e) => {
-		if(e.target.readyState === http.DONE) {
-			let s = e.target.status; if(s == 200) s = 0; else if(s <= 0) s = -2;
-			cb(s, e.target.response);
-		}
+	let H; try {H=new XMLHttpRequest()} catch(e) {return cb(e)}
+	if(hd) for(let k in hd) H.setRequestHeader(k,hd[k]);
+	H.open(meth||'GET',path); H.onreadystatechange = (e) => {
+		let t=e.target,s=t.status||-1;
+		if(t.readyState == H.DONE) cb(s==200?0:s, t.response);
 	}
-	http.send(body||undefined);
+	H.send(body||undefined);
 }
 
 //Good fallback for loadAjax. Loads a file at the address via HTML object tag.
