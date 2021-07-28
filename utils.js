@@ -1,7 +1,7 @@
-//Utils.js v8.4.3 https://github.com/Pecacheu/Utils.js Licensed under GNU GPL v3.0
+//Utils.js v8.4.4 https://github.com/Pecacheu/Utils.js Licensed under GNU GPL v3.0
 
 'use strict';
-const utils = {};
+const utils = {VER:'v8.4.4'};
 
 //UtilRect Objects & ClientRect Polyfill:
 if(!window.ClientRect) window.ClientRect = DOMRect;
@@ -334,7 +334,7 @@ Array.prototype.remove = function(itm) {
 	this.splice(i,1); return true;
 }
 
-//Get an element's index in it's parent. Returns -1 if the element has no parent.
+//Get an element's index in its parent. Returns -1 if the element has no parent.
 utils.define(Element.prototype,'index',function() {
 	const p = this.parentElement; if(!p) return -1;
 	return Array.prototype.indexOf.call(p.children, this);
@@ -544,7 +544,7 @@ utils.hexToRgb = function(hex) {
 
 //Generates random integer from min to max.
 utils.rand = function(min, max, res, ease) {
-	if(!res) res=1; max*=res,min*=res; let r=Math.random();
+	res=res||1; max*=res,min*=res; let r=Math.random();
 	return Math.round((ease?ease(r):r)*(max-min)+min)/res;
 }
 
@@ -602,20 +602,22 @@ utils.center = function(obj, only, type) {
 	}
 }
 
-//Loads a file and returns it's contents using HTTP GET.
-//Callback parameters: (err, data)
-//err: non-zero on error. -1 if AJAX not supported, otherwise standard HTTP error codes.
+//Loads a file and returns its contents using HTTP GET.
+//Callback parameters: (err, data, req)
+//err: Non-zero on error. Standard HTTP error codes.
+//data: Response text.
+//req: Full XMLHttpRequest object.
 //meth: Optional HTTP method, default is GET.
 //body: Optional body content.
 //hd: Optional header list.
 utils.loadAjax = function(path, cb, meth, body, hd) {
-	let H; try {H=new XMLHttpRequest()} catch(e) {return cb(e)}
-	if(hd) for(let k in hd) H.setRequestHeader(k,hd[k]);
-	H.open(meth||'GET',path); H.onreadystatechange = (e) => {
-		let t=e.target,s=t.status||-1;
-		if(t.readyState == H.DONE) cb(s==200?0:s, t.response);
+	let R; try {R=new XMLHttpRequest()} catch(e) {return cb(e)}
+	if(hd) for(let k in hd) R.setRequestHeader(k,hd[k]);
+	R.open(meth||'GET',path); R.onreadystatechange = () => {
+		let s=R.status||-1;
+		if(R.readyState == R.DONE) cb(s==200?0:s, R.response, R);
 	}
-	H.send(body||undefined);
+	R.send(body||undefined);
 }
 
 //Good fallback for loadAjax. Loads a file at the address via HTML object tag.
