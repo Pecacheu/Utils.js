@@ -1,7 +1,7 @@
-//Utils.js v8.4.4 https://github.com/Pecacheu/Utils.js Licensed under GNU GPL v3.0
+//Utils.js https://github.com/Pecacheu/Utils.js Licensed under GNU GPL v3.0
 
 'use strict';
-const utils = {VER:'v8.4.4'};
+const utils = {VER:'v8.4.5'};
 
 //UtilRect Objects & ClientRect Polyfill:
 if(!window.ClientRect) window.ClientRect = DOMRect;
@@ -297,13 +297,6 @@ utils.mkEl = function(tag, p, c, s, i) {
 utils.mkDiv = function(p, c, s, i) { return utils.mkEl('div',p,c,s,i); }
 utils.addText = function(el, text) { el.appendChild(document.createTextNode(text)); }
 
-//It's useful for any canvas-style webpage to have the page dimensions on hand.
-//Function by: http://w3schools.com/jsref/prop_win_innerheight.asp
-utils.updateSize = function() {
-	utils.width = window.innerWidth || document.documentElement.clientWidth || document.body.clientWidth;
-	utils.height = window.innerHeight || document.documentElement.clientHeight || document.body.clientHeight;
-}
-
 //Get predicted width of text given CSS font style.
 utils.textWidth = function(text, font) {
 	const canvas = window.textWidthCanvas || (window.textWidthCanvas = document.createElement('canvas')),
@@ -317,9 +310,13 @@ utils.define = function(obj, name, get, set) {
 	else Object.defineProperty(obj, name, t);
 }
 
+//It's useful for any canvas-style webpage to have the page dimensions on hand.
+utils.define(utils, 'w', ()=>{return window.innerWidth});
+utils.define(utils, 'h', ()=>{return window.innerHeight});
+
 //Remove 'empty' elements like 0, false, ' ', undefined, and NaN from array.
 //Often useful in combination with Array.split. Set 'keepZero' to true to keep '0's.
-//Function by: Pecacheu & http://stackoverflow.com/users/5445/cms
+//Function by: Pecacheu & https://stackoverflow.com/users/5445/cms
 Array.prototype.clean = function(kz) {
 	for(let i=0,e,l=this.length; i<l; i++) {
 		e=this[i]; if(utils.isBlank(e) || e === false ||
@@ -451,7 +448,7 @@ utils.dCutLast = function(d, ss, es, sd, st) {
 }
 
 //Polyfill for String.trim()
-//Function by: http://www.w3schools.com/
+//Function by: https://w3schools.com
 if(!String.prototype.trim) String.prototype.trim = function() { return this.replace(/^\s+|\s+$/gm,''); }
 
 //Given CSS property value 'prop', returns object with
@@ -583,8 +580,8 @@ utils.center = function(obj, only, type) {
 		if(!only || only == "x") obj.style.left = "calc(50% - "+(obj.clientWidth/2)+"px)";
 		if(!only || only == "y") obj.style.top = "calc(50% - "+(obj.clientHeight/2)+"px)";
 	} else if(type == 'move') { //Original, Not Responsive:
-		if(!only || only == "x") obj.style.left = (utils.width/2)-(obj.clientWidth/2)+"px";
-		if(!only || only == "y") obj.style.top = (utils.height/2)-(obj.clientHeight/2)+"px";
+		if(!only || only == "x") obj.style.left = (utils.w/2)-(obj.clientWidth/2)+"px";
+		if(!only || only == "y") obj.style.top = (utils.h/2)-(obj.clientHeight/2)+"px";
 	} else if(type == 'trans') { //More Efficient:
 		let trans = utils.cutStr(obj.style.transform, "translateX(-50%)");
 		trans = utils.cutStr(trans, "translateY(-50%)");
@@ -679,7 +676,7 @@ utils.map = function(input, minIn, maxIn, minOut, maxOut, ease) {
 
 })(); //End of Utils Library
 
-//JavaScript Easing Library. By: http://github.com/gre & http://gizma.com/easing
+//JavaScript Easing Library. By: https://github.com/gre & https://gizma.com/easing
 //'t' should be between 0 and 1
 const Easing = {
 	//no easing, no acceleration
