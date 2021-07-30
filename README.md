@@ -33,11 +33,13 @@ Note: For production code, the minified version *utils.min.js* should be used. T
 - `[TouchList].get(id) returns Touch` Gets touch by id, returns null if none found.
 
 ### Main *utils* Class
+- `String utils.VER` Current library version.
+- `Number utils.w` and `Number utils.h` Cross-platform window width and height.
+- `Boolean utils.mobile` Will be **true** if running on a mobile device, based on the UserAgent.
 - `utils.setCookie(name,value,exp,secure)` Set a cookie.
 - `utils.getCookie(name) returns String or null` Get a cookie by name.
 - `utils.remCookie(name)` Remove a cookie by name.
-- `Boolean utils.mobile` This will be set to **true** if running on a mobile device, based on the UserAgent.
-- `utils.copy(o[,sub]) returns Object` Deep (recursive) Object.create cloning function. If sub is set to false, will only copy 1 level deep.
+- `utils.copy(o[,sub]) returns Object` Deep (recursive) Object.create. Copies down to given sub levels, all levels if undefined.
 - `utils.skinnedInput(el)` Fallback for when css *'appearance:none'* doesn't work. Generates container for input field for css skinning on unsupported browsers.
 - `utils.numField(field[,min[,max[,decMax]]])` Turns your boring input field into a mobile-friendly number entry field with max/min & negative support!
 - `utils.costField(field[,sym])` Turns your boring input field into a mobile-friendly currency entry field, optionally with custom currency symbol.
@@ -53,7 +55,6 @@ Note: For production code, the minified version *utils.min.js* should be used. T
 - `utils.mkEl(tag,parent,class,styles,innerHTML) returns Element` Quickly create element with parent, classes, style properties (as key/value pairs), and innerHTML content. All parameters (except for tag) are optional.
 - `utils.mkDiv` Same as utils.mkEl, but assumes 'div' for tag.
 - `utils.addText(el,text)` Appends a TextNode with given text to element.
-- `utils.updateSize()` Updates variables `utils.width` and `utils.height` with window width and height.
 - `utils.textWidth(text,font) returns Number` Get predicted width of text given css font style.
 - `utils.define(obj,name,get,set)` Add getter/setter pair to an existing object. Set get or set to null to disable variable read or write.
 - `utils.isBlank(o) returns Boolean` Check if string, array, or other object is empty.

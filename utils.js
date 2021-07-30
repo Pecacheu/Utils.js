@@ -1,7 +1,7 @@
 //Utils.js https://github.com/Pecacheu/Utils.js Licensed under GNU GPL v3.0
 
 'use strict';
-const utils = {VER:'v8.4.5'};
+const utils = {VER:'v8.4.6'};
 
 //UtilRect Objects & ClientRect Polyfill:
 if(!window.ClientRect) window.ClientRect = DOMRect;
@@ -86,13 +86,13 @@ Function.prototype.wrap = function(/*...*/) {
 	const f = this, a = arguments; return ()=>{return f.apply(arguments,a)};
 }
 
-//Deep (recursive) Object.create cloning function.
-//If sub is set to false, will only copy 1 level deep.
-utils.copy = function(o,sub) {
-	if(!o || typeof o !== 'object') return o;
-	const o2 = {}, ok = Object.keys(o);
+//Deep (recursive) Object.create.
+//Copies down to given sub levels. All levels if undefined.
+utils.copy = function(o, sub) {
+	if(!o || typeof o != 'object') return o;
+	const o2={}, ok=Object.keys(o);
 	for(let i=0,l=ok.length,k; i<l; i++) {
-		k = ok[i]; o2[k] = sub===false?o[k]:utils.copy(o[k]);
+		k=ok[i]; o2[k] = sub==null||sub?o[k]:utils.copy(o[k],sub-1);
 	}
 	return o2;
 }
