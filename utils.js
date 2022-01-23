@@ -1,7 +1,7 @@
 //Utils.js https://github.com/Pecacheu/Utils.js Licensed under GNU GPL v3.0
 
 'use strict';
-const utils = {VER:'v8.4.6'};
+const utils = {VER:'v8.4.8'};
 
 //UtilRect Objects & ClientRect Polyfill:
 if(!window.ClientRect) window.ClientRect = DOMRect;
@@ -176,32 +176,33 @@ function mulBoxLabel(sb) {
 //Use field.onnuminput as your oninput function, and get the number value with field.num
 //On mobile, use star key for decimal point and pound key for negative.
 utils.numField = function(f, min, max, decMax) {
-	if(min == null) min = -2147483648; if(max == null) max = 2147483647;
-	f.setAttribute('pattern',"\\d*"); if(decMax) f.type = 'tel'; else f.type = 'number';
-	f.ns = f.value = (f.num = Number(f.value)||0).toString();
-	f.onkeydown = function(e) {
-		const k = e.key, kn = (k.length==1)?Number(k):null, dAdd = decMax && this.num != max && this.num != min,
-		old = this.ns; let len = this.ns.length, dec = this.ns.indexOf('.');
-		if(kn || kn == 0) { if(dec == -1 || len-dec < decMax+1) this.ns += k; } //Number
-		else if(dAdd && (k == '.' || k == '*') && dec == -1) this.ns += '.'; //Decimal
-		else if(k == 'Backspace' || k == 'Delete') this.ns = this.ns.substr(0,len-1); //Backspace
-		else if(min < 0 && (k == '-' || k == '#') && !len) this.ns='-'; //Negative
-		else if(k == 'ArrowUp') this.ns = (this.num+(this.step||1)).toString(); //Up
-		else if(k == 'ArrowDown') this.ns = (this.num-(this.step||1)).toString(); //Down
-		len = this.ns.length; dec = this.ns.indexOf('.');
-		if(dec != -1 && len-dec > decMax+1) len = (this.ns = this.ns.substr(0,dec+decMax+1)).length;
-		let n = Number(this.ns)||0;
-		if(n > max) n=max, this.ns=n.toString(); else if(n < min) n=min, this.ns=n.toString();
-		let nOld=this.num, neg=this.ns.startsWith('-'); this.num=n;
-		if(this.onnuminput && this.onnuminput(n) === false) this.ns=old, this.num=nOld;
-		else this.value = (neg&&!n?'-':'')+n+(dec!=-1&&n%1==0?'.0':'');
+	if(min == null) min=-2147483648; if(max == null) max=2147483647;
+	f.setAttribute('pattern',"\\d*"); f.type=(utils.mobile||decMax)?'tel':'number';
+	f.ns=f.value=(f.num=Number(f.value)||0).toString();
+	f.addEventListener('keydown',e => {
+		let k=e.key, kn=(k.length==1)?Number(k):null, dAdd=f.ns.startsWith('-')?f.num != min:f.num != max,
+		old=f.ns, len=f.ns.length, dec=f.ns.indexOf('.');
+		if(kn || kn == 0) { if(dec == -1 || len-dec < decMax+1) f.ns += k; } //Number
+		else if(decMax && dAdd && (k == '.' || k == '*') && dec == -1) f.ns += '.'; //Decimal
+		else if(k == 'Backspace' || k == 'Delete') f.ns = f.ns.substr(0,len-1); //Backspace
+		else if(min < 0 && (k == '-' || k == '#') && !len) f.ns='-'; //Negative
+		else if(k == 'ArrowUp') f.ns = (f.num+(f.step||1)).toString(); //Up
+		else if(k == 'ArrowDown') f.ns = (f.num-(f.step||1)).toString(); //Down
+		len=f.ns.length, dec=f.ns.indexOf('.');
+		if(dec != -1 && len-dec > decMax+1) len=(f.ns=f.ns.substr(0,dec+decMax+1)).length;
+		let n=Number(f.ns)||0;
+		if(n > max) n=max, f.ns=n.toString(); else if(n < min) n=min, f.ns=n.toString();
+		let nOld=f.num, neg=f.ns.startsWith('-'); f.num=n;
+		if(f.onnuminput && f.onnuminput(n) === false) f.ns=old, f.num=nOld;
+		else f.value = (neg&&!n?'-':'')+n+(dec!=-1&&n%1==0?'.0':'');
 		e.preventDefault();
-	}
-	f.oninput = function() { this.set(this.value); }
-	f.set = function(n) {
-		n = Number(n)||0; if(!decMax) n=Math.floor(n); if(n > max) n=max; if(n < min) n=min;
-		let dec = this.ns.indexOf('.'); this.value = (this.num=n)+(dec!=-1&&n%1==0?'.0':'');
-		this.ns=n.toString(); if(this.onnuminput) this.onnuminput(n);
+	});
+	f.addEventListener('input',() => {f.set(f.value)});
+	f.set=n => {
+		let dec,neg; if(typeof n=='string') dec=n.endsWith('.')&&decMax, neg=(n=='0-')&&min<0;
+		n=Number(n)||0; if(!decMax) n=Math.floor(n); if(n > max) n=max; if(n < min) n=min;
+		f.value=neg?'-0':(f.num=n)+(dec?'.0':''); f.ns=neg?'-':n+(dec?'.':'');
+		if(f.onnuminput) f.onnuminput(n);
 	}
 	return f;
 }
@@ -210,33 +211,37 @@ utils.numField = function(f, min, max, decMax) {
 //Use field.onnuminput as your oninput function, and get the number value with field.num
 //On mobile, use star key for decimal point.
 utils.costField = function(f, sym) {
-	f.setAttribute('pattern',"\\d*"); f.type = 'tel';
+	if(!sym) sym='$'; f.setAttribute('pattern',"\\d*"); f.type='tel';
 	f.value=utils.formatCost(f.num=Number(f.value)||0,sym); f.ns=f.num.toString();
-	f.onkeydown = function(e) {
-		const k=e.key, kn=(k.length==1)?Number(k):null, len=this.ns.length, old=this.ns;
-		let dec = this.ns.indexOf('.');
-		if(kn || kn == 0) { if(dec == -1 || len-dec < 3) this.ns += k; } //Number
-		else if((k == '.' || k == '*') && dec == -1) this.ns += '.', dec=len; //Decimal
-		else if(k == 'Backspace' || k == 'Delete') this.ns = this.ns.substr(0,len-1); //Backspace
-		else if(k == 'ArrowUp') this.ns = (this.num+1).toString(); //Up
-		else if(k == 'ArrowDown' && this.num >= 1) this.ns = (this.num-1).toString(); //Down
-		const n = Number(this.ns)||0; if(!n && dec == -1) this.ns = '';
-		const nOld = this.num; this.num = n;
-		if(this.onnuminput && this.onnuminput(n) === false) { this.ns = old; this.num = nOld; }
-		else this.value = utils.formatCost(n,sym);
+	f.addEventListener('keydown',e => {
+		let k=e.key, kn=(k.length==1)?Number(k):null, len=f.ns.length,
+		old=f.ns, dec=f.ns.indexOf('.');
+		if(kn || kn == 0) { if(dec == -1 || len-dec < 3) f.ns += k; } //Number
+		else if((k == '.' || k == '*') && dec == -1) f.ns += '.', dec=len; //Decimal
+		else if(k == 'Backspace' || k == 'Delete') f.ns = f.ns.substr(0,len-1); //Backspace
+		else if(k == 'ArrowUp') f.ns = (f.num+1).toString(); //Up
+		else if(k == 'ArrowDown' && f.num >= 1) f.ns = (f.num-1).toString(); //Down
+		let n=Number(f.ns)||0; if(!n && dec == -1) f.ns=''; let nOld=f.num; f.num=n;
+		if(f.onnuminput && f.onnuminput(n) === false) f.ns=old, f.num=nOld;
+		else f.value=utils.formatCost(n,sym);
 		e.preventDefault();
-	}
-	f.set = function(n) {
-		n=Math.floor((Number(n)||0)*100)/100; this.num=n;
-		this.value=utils.formatCost(n,sym); this.ns=n.toString();
-		if(this.onnuminput) this.onnuminput(n);
+	});
+	f.addEventListener('input',() => {f.set(f.value)});
+	f.set=n => {
+		let dec; if(typeof n=='string') {
+			dec=n.endsWith('.'); if(dec) n=n.substr(0,n.length-1);
+			if(n.startsWith(sym)) n=n.substr(sym.length);
+		}
+		f.num=n=Math.floor((Number(n)||0)*100)/100;
+		f.value=utils.formatCost(n,sym), f.ns=n+(dec?'.':'');
+		if(f.onnuminput) f.onnuminput(n);
 	}
 	return f;
 }
 
 //Format Number as currency. Uses '$' by default.
 utils.formatCost = function(n, sym) {
-	if(!sym) sym = '$'; if(!n) return sym+'0.00';
+	if(!sym) sym='$'; if(!n) return sym+'0.00';
 	const p = n.toFixed(2).split('.');
 	return sym+p[0].split('').reverse().reduce((a, n, i) =>
 	{ return n=='-'?n+a:n+(i&&!(i%3)?',':'')+a; },'')+'.'+p[1];
@@ -653,9 +658,11 @@ utils.dlFile = function(fn,uri) {
 }
 //Downloads a file generated from a Blob or ArrayBuffer.
 utils.dlData = function(fn,d) {
-	if(!(d instanceof Blob)) d=Blob(d);
-	let o=URL.createObjectURL(d), e=utils.mkEl('a',document.body,null,{display:'none'});
-	e.href=o; e.download=fn; e.click(); e.remove(); URL.revokeObjectURL(o);
+	let o,e=utils.mkEl('a',document.body,null,{display:'none'});
+	if(typeof d=='string') o=d; else {
+		if(!(d instanceof Blob)) d=Blob(d); o=URL.createObjectURL(d);
+	}
+	e.href=o,e.download=fn; e.click(); e.remove(); URL.revokeObjectURL(o);
 }
 
 //Converts from radians to degrees, so you can work in degrees.
