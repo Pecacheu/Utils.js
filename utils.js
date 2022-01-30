@@ -1,7 +1,7 @@
 //Utils.js https://github.com/Pecacheu/Utils.js Licensed under GNU GPL v3.0
 
 'use strict';
-const utils = {VER:'v8.4.8'};
+const utils = {VER:'v8.4.9'};
 
 //UtilRect Objects & ClientRect Polyfill:
 if(!window.ClientRect) window.ClientRect = DOMRect;
@@ -126,7 +126,7 @@ utils.deviceInfo = function(ua) {
 }
 
 utils.device = utils.deviceInfo();
-utils.mobile = ('orientation' in window || utils.device.mobile);
+utils.mobile = utils.device.mobile;
 
 //Generates modified input field for css skinning on unsupported browsers. This is a JavaScript
 //fallback for when css 'appearance:none' doesn't work. For Mobile Safari, this is usually
