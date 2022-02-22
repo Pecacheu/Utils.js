@@ -26,6 +26,7 @@ Note: For production code, the minified version *utils.min.js* should be used. T
 - `[String].endsWith(s) returns Boolean` Like Java.
 - `[Array].clean(kz)` Remove 'empty' elements like 0, false, ' ', undefined, and NaN from an array. Set 'kz' to true to keep '0's
 - `[Array].remove(item) returns Boolean` Remove first instance of item from array. Returns false if not found.
+- `[Array].each(fn[,start[,end]]) returns Any` Calls fn on each index of array, with optional start and end index.
 - `Number [Element].index` Represents an element's index in it's parent. Set to -1 if the element has no parent.
 - `[Element].insertChildAt(el,i)` Inserts child at index. Appends child to end if index exceeds child count.
 - `UtilRect [Element].boundingRect` Element's bounding rect as a `UtilRect` object.

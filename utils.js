@@ -1,7 +1,7 @@
 //Utils.js https://github.com/Pecacheu/Utils.js Licensed under GNU GPL v3.0
 
 'use strict';
-const utils = {VER:'v8.4.9'};
+const utils = {VER:'v8.5'};
 
 //UtilRect Objects & ClientRect Polyfill:
 if(!window.ClientRect) window.ClientRect = DOMRect;
@@ -325,7 +325,7 @@ utils.define(utils, 'h', ()=>{return window.innerHeight});
 Array.prototype.clean = function(kz) {
 	for(let i=0,e,l=this.length; i<l; i++) {
 		e=this[i]; if(utils.isBlank(e) || e === false ||
-		!kz && e === 0) { this.splice(i,1); i--; l--; }
+		!kz && e === 0) this.splice(i--,1),l--;
 	} return this;
 }
 
@@ -334,6 +334,20 @@ Array.prototype.clean = function(kz) {
 Array.prototype.remove = function(itm) {
 	const i = this.indexOf(itm); if(i==-1) return false;
 	this.splice(i,1); return true;
+}
+
+//Calls fn on each index of array.
+//fn: Callback function(element, index, length)
+//st: Start index, optional.
+//en: End index, optional. If negative, relative to end of array.
+//If fn returns a value less than -1 (to avoid conflict with indexOf), it will
+//remove the element from the array. Otherwise, if fn returns any non-null value,
+//the loop is broken and the value is returned by each.
+HTMLCollection.prototype.each = Array.prototype.each = function(fn,st,en) {
+	let i=st||0,l=this.length,r; if(en) l=en<0?l-en:en;
+	for(; i<l; i++) if((r=fn(this[i],i,l))<-1) {
+		this instanceof HTMLCollection?this[i].remove():this.splice(i,1); i--,l--;
+	} else if(r!=null) return r;
 }
 
 //Get an element's index in its parent. Returns -1 if the element has no parent.
