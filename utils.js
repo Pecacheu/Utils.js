@@ -78,7 +78,6 @@ utils.getCookie = function(name) {
 		c = cl[i]; eq = c.indexOf('='); sub = c.substr(0,eq);
 		if(sub == n1 || sub == n2) return decodeURIComponent(c.substr(eq+1));
 	}
-	return null;
 }
 
 //Wrap a function so that it always has a preset argument list when called:
