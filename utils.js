@@ -1,7 +1,7 @@
 //Utils.js https://github.com/Pecacheu/Utils.js Licensed under GNU GPL v3.0
 
 'use strict';
-const utils = {VER:'v8.5'};
+const utils = {VER:'v8.5.1'};
 
 //UtilRect Objects & ClientRect Polyfill:
 if(!window.ClientRect) window.ClientRect = DOMRect;
@@ -271,34 +271,35 @@ utils.formatDate = function(d) {
 }
 
 //Add appropriate suffix to number. (ex. 31st, 12th, 22nd)
-utils.suffix = function(n) {
-	let j = n % 10, k = n % 100;
-	if(j == 1 && k != 11) { return n + "st"; }
-	if(j == 2 && k != 12) { return n + "nd"; }
-	if(j == 3 && k != 13) { return n + "rd"; }
-	return n + "th";
+utils.suffix = (n) => {
+	let j=n%10, k=n%100;
+	if(j==1 && k!=11) return n+"st";
+	if(j==2 && k!=12) return n+"nd";
+	if(j==3 && k!=13) return n+"rd";
+	return n+"th";
 }
 
 //Virtual Page Navigation:
-utils.goBack = function(){history.back()}
-utils.goForward = function(){history.forward()}
-utils.go = function(url, data){history.pushState(data,'',url||location.pathname);doNav(data)}
+let H=history;
+utils.goBack = H.back.bind(H);
+utils.goForward = H.forward.bind(H);
+utils.go = (url,st) => {H.pushState(st,'',url||location.pathname),doNav(st)}
 window.addEventListener('popstate', (e) => doNav(e.state));
-window.addEventListener('load', () => setTimeout(doNav.wrap(history.state),1));
-function doNav(s) { if(utils.onNav) utils.onNav.call(null,s); }
+window.addEventListener('load', () => setTimeout(doNav.wrap(H.state),1));
+function doNav(s) {if(utils.onNav) utils.onNav.call(null,s)}
 
-//Create element with parent, classes, style properties, and innerHTML content.
-//Supply null (or undefined) for any parameters to leave blank.
-utils.mkEl = function(tag, p, c, s, i) {
-	const e = document.createElement(tag);
+//Create element with parent, className, style object, and innerHTML string.
+//(Just remember the order PCSI!) Use null to leave a value blank.
+utils.mkEl = function(t,p,c,s,i) {
+	const e = document.createElement(t);
 	if(c != null) e.className = c; if(i != null) e.innerHTML = i;
-	if(s != null && typeof s == 'object') {
+	if(s && typeof s=='object') {
 		const k = Object.keys(s), l = k.length;
 		for(let i=0; i<l; i++) e.style[k[i]] = s[k[i]];
 	}
 	if(p != null) p.appendChild(e); return e;
 }
-utils.mkDiv = function(p, c, s, i) { return utils.mkEl('div',p,c,s,i); }
+utils.mkDiv = (p,c,s,i) => utils.mkEl('div',p,c,s,i);
 utils.addText = function(el, text) { el.appendChild(document.createTextNode(text)); }
 
 //Get predicted width of text given CSS font style.
@@ -339,12 +340,12 @@ Array.prototype.remove = function(itm) {
 //fn: Callback function(element, index, length)
 //st: Start index, optional.
 //en: End index, optional. If negative, relative to end of array.
-//If fn returns a value less than -1 (to avoid conflict with indexOf), it will
-//remove the element from the array. Otherwise, if fn returns any non-null value,
+//If fn returns '!', it will remove the element from the array.
+//Otherwise, if fn returns any non-null value,
 //the loop is broken and the value is returned by each.
 HTMLCollection.prototype.each = Array.prototype.each = function(fn,st,en) {
 	let i=st||0,l=this.length,r; if(en) l=en<0?l-en:en;
-	for(; i<l; i++) if((r=fn(this[i],i,l))<-1) {
+	for(; i<l; i++) if((r=fn(this[i],i,l))==='!') {
 		this instanceof HTMLCollection?this[i].remove():this.splice(i,1); i--,l--;
 	} else if(r!=null) return r;
 }
