@@ -47,7 +47,8 @@ Note: For production code, the minified version *utils.min.js* should be used. T
 - `utils.formatCost(n[,sym]) returns String` Format Number as currency. Uses '$' by default.
 - `utils.fromDateTimeBox(el) returns Date` Convert value from 'datetime-local' input to Date object.
 - `utils.toDateTimeBox(d[,sec]) returns String` Convert Date object into format to set 'datetime-local' optionally including seconds if 'sec' is **true**.
-- `utils.formatDate(d) returns String` Format Date object into human-readable string, including time.
+- `utils.formatDate(d[,opts]) returns String` Format Date object into a pretty string, with various options.
+- `utils.months` Array of months from Jan to Dec.
 - `utils.suffix(n) returns String` Add appropriate suffix to number. (ex. 31st, 12th, 22nd)
 - `utils.goBack()` For AJAX navigation. Presses back button.
 - `utils.goForward()` For AJAX navigation. Presses forward button.
@@ -91,3 +92,4 @@ Note: For production code, the minified version *utils.min.js* should be used. T
 - `utils.dlData(filename,data)` Downloads a file generated from a Blob or ArrayBuffer.
 - `utils.rad(deg)` / `utils.deg(rad)` Convert between radians and degrees.
 - `utils.map(input,minIn,maxIn,minOut,maxOut,ease) returns Number` For unit translation and JS animation! See ease functions in *untils.js*.
+- `utils.delay(ms) returns Promise` setTimeout but async.

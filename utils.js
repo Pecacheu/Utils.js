@@ -1,34 +1,33 @@
-//Utils.js https://github.com/Pecacheu/Utils.js Licensed under GNU GPL v3.0
+//Utils.js https://github.com/Pecacheu/Utils.js GNU GPL v3
 
 'use strict';
-const utils = {VER:'v8.5.1'};
-
-//UtilRect Objects & ClientRect Polyfill:
-if(!window.ClientRect) window.ClientRect = DOMRect;
+const utils = {VER:'v8.5.3'};
 
 function UtilRect(t,b,l,r) {
 	if(!(this instanceof UtilRect)) return new UtilRect(t,b,l,r);
 	const f=Number.isFinite; let tt=0,bb=0,ll=0,rr=0;
-	utils.define(this,['top','y'],()=>{return tt}, v=>{tt=f(v)&&v<=bb?v:tt});
-	utils.define(this,['bottom','y2'],()=>{return bb}, v=>{bb=f(v)&&v>=tt?v:bb});
-	utils.define(this,['left','x'],()=>{return ll}, v=>{ll=f(v)&&v<=rr?v:ll});
-	utils.define(this,['right','x2'],()=>{return rr}, v=>{rr=f(v)&&v>=ll?v:rr});
-	utils.define(this,'width',()=>{return rr-ll}, v=>{rr=v>=0?ll+v:rr});
-	utils.define(this,'height',()=>{return bb-tt}, v=>{bb=v>=0?tt+v:bb});
-	utils.define(this,'centerX',()=>{return ll/2+rr/2});
-	utils.define(this,'centerY',()=>{return tt/2+bb/2});
-	if(t instanceof ClientRect || t instanceof UtilRect) tt=t.top, bb=t.bottom, ll=t.left, rr=t.right;
-	else this.y=t, this.y2=b, this.x=l, this.x2=r;
+	utils.define(this,'x',				()=>ll,		v=>{f(v)?(rr+=v-ll,ll=v):0});
+	utils.define(this,'y',				()=>tt,		v=>{f(v)?(bb+=v-tt,tt=v):0});
+	utils.define(this,'top',			()=>tt,		v=>{tt=f(v)?v:0});
+	utils.define(this,['bottom','y2'],	()=>bb,		v=>{bb=f(v)?v:0});
+	utils.define(this,'left',			()=>ll,		v=>{ll=f(v)?v:0});
+	utils.define(this,['right','x2'],	()=>rr,		v=>{rr=f(v)?v:0});
+	utils.define(this,['width','w'],	()=>rr-ll,	v=>{rr=v>=0?ll+v:0});
+	utils.define(this,['height','h'],	()=>bb-tt,	v=>{bb=v>=0?tt+v:0});
+	utils.define(this,'centerX',		()=>ll/2+rr/2);
+	utils.define(this,'centerY',		()=>tt/2+bb/2);
+	if(t instanceof DOMRect || t instanceof UtilRect) tt=t.top, bb=t.bottom, ll=t.left, rr=t.right;
+	else tt=t, bb=b, ll=l, rr=r;
 }
 
-//Check if rect contains point, other rect, or Element:
+//Check if rect contains point, other rect, or Element
 UtilRect.prototype.contains = function(x,y) {
 	if(x instanceof Element) return this.contains(x.boundingRect);
 	if(x instanceof UtilRect) return x.x >= this.x && x.x2 <= this.x2 && x.y >= this.y && x.y2 <= this.y2;
 	return x >= this.x && x <= this.x2 && y >= this.y && y <= this.y2;
 }
 
-//Check if rect overlaps rect or Element:
+//Check if rect overlaps rect or Element
 UtilRect.prototype.overlaps = function(r) {
 	if(r instanceof Element) return this.overlaps(r.boundingRect);
 	if(!(r instanceof UtilRect)) return 0; let x,y;
@@ -39,7 +38,7 @@ UtilRect.prototype.overlaps = function(r) {
 	return x&&y;
 }
 
-//Get distance from this rect to point, other rect, or Element:
+//Get distance from this rect to point, other rect, or Element
 UtilRect.prototype.dist = function(x,y) {
 	if(x instanceof Element) return this.dist(x.boundingRect); let n=(x instanceof UtilRect);
 	y=Math.abs((n?x.centerY:y)-this.centerY), x=Math.abs((n?x.centerX:x)-this.centerX);
@@ -58,10 +57,10 @@ if(window.TouchList) TouchList.prototype.get = function(id) {
 	for(let k in this) if(this[k].identifier == id) return this[k]; return 0;
 };
 
-(function(){ //Utils Library
+(() => { //Utils Library
 
 //Cookie Parsing.
-utils.setCookie = function(name,value,exp,secure) {
+utils.setCookie = (name,value,exp,secure) => {
 	let c = encodeURIComponent(name)+'='+(value==null?'':encodeURIComponent(value));
 	if(exp != null) {
 		if(!(exp instanceof Date)) exp = new Date(exp);
@@ -69,10 +68,10 @@ utils.setCookie = function(name,value,exp,secure) {
 	}
 	if(secure) c += ';secure'; document.cookie = c;
 }
-utils.remCookie = function(name) {
+utils.remCookie = name => {
 	document.cookie = encodeURIComponent(name)+'=;expires='+new Date(0).toUTCString();
 }
-utils.getCookie = function(name) {
+utils.getCookie = name => {
 	const n1 = encodeURIComponent(name), n2 = ' '+n1, cl = document.cookie.split(';');
 	for(let i=0,l=cl.length,c,eq,sub; i<l; i++) {
 		c = cl[i]; eq = c.indexOf('='); sub = c.substr(0,eq);
@@ -82,22 +81,22 @@ utils.getCookie = function(name) {
 
 //Wrap a function so that it always has a preset argument list when called:
 Function.prototype.wrap = function(/*...*/) {
-	const f = this, a = arguments; return ()=>{return f.apply(arguments,a)};
+	const f = this, a = arguments; return ()=>f.apply(arguments,a);
 }
 
 //Deep (recursive) Object.create.
 //Copies down to given sub levels. All levels if undefined.
-utils.copy = function(o, sub) {
-	if(!o || typeof o != 'object') return o;
-	const o2={}, ok=Object.keys(o);
-	for(let i=0,l=ok.length,k; i<l; i++) {
-		k=ok[i]; o2[k] = sub==null||sub?o[k]:utils.copy(o[k],sub-1);
-	}
+utils.copy = (o, sub) => {
+	if(sub===0 || typeof o != 'object') return o;
+	sub=sub>0?sub-1:null; let o2;
+	if(Array.isArray(o)) o2=new Array(o.length),
+		o.forEach((v,i) => {o2[i]=utils.copy(v,sub)});
+	else {o2={};for(let k in o) o2[k]=utils.copy(o[k],sub)}
 	return o2;
 }
 
 //UserAgent-based Mobile device detection.
-utils.deviceInfo = function(ua) {
+utils.deviceInfo = ua => {
 	if(!ua) ua = navigator.userAgent; const d = {};
 	if(!ua.startsWith("Mozilla/5.0 ")) return d;
 	let o = ua.indexOf(')'), o2 = ua.indexOf(' ',o+2), o3 = ua.indexOf(')',o2+1);
@@ -130,7 +129,7 @@ utils.mobile = utils.device.mobile;
 //Generates modified input field for css skinning on unsupported browsers. This is a JavaScript
 //fallback for when css 'appearance:none' doesn't work. For Mobile Safari, this is usually
 //needed with 'datetime-local', 'select-one', and 'select-multiple' input types.
-utils.skinnedInput = function(el) {
+utils.skinnedInput = el => {
 	const cont = utils.mkDiv(null,el.className), is = el.style, type = el.type; el.className += ' isSub';
 	if(type == 'datetime-local' || type == 'select-one' || type == 'select-multiple') { //Datetime or Select:
 		is.opacity = 0; is.top = '-100%'; el.siT = utils.mkEl('span',cont,'isText');
@@ -139,19 +138,17 @@ utils.skinnedInput = function(el) {
 	}
 	el.replaceWith(cont); cont.appendChild(el);
 	//Append StyleSheet:
-	if(!document.isStyles) { document.isStyles = true; utils.mkEl('style',document.body,null,null,'.isSub {\
-		width:100% !important; height:100% !important; border:none !important; display:inline-block !important;\
-		position:relative !important; box-shadow:none !important; margin:0 !important; padding:initial !important;\
-	}\
-	.isText {\
-		display:inline-block; height:100%; max-width:95%;\
-		overflow:hidden; text-overflow:ellipsis; white-space:nowrap;\
-	}\
-	.isArrow {\
-		width:0; height:0; display:inline-block; float:right; top:38%; position:relative;\
-		border-left:3px solid transparent; border-right:3px solid transparent;\
-		border-top:6px solid #000; vertical-align:middle;\
-	}'); }
+	if(!document.isStyles) { document.isStyles = true; utils.mkEl('style',document.body,null,null,'.isSub {'+
+		'width:100% !important; height:100% !important; border:none !important; display:inline-block !important;'+
+		'position:relative !important; box-shadow:none !important; margin:0 !important; padding:initial !important;'+
+	'} .isText {'+
+		'display:inline-block; height:100%; max-width:95%;'+
+		'overflow:hidden; text-overflow:ellipsis; white-space:nowrap;'+
+	'} .isArrow {'+
+		'width:0; height:0; display:inline-block; float:right; top:38%; position:relative;'+
+		'border-left:3px solid transparent; border-right:3px solid transparent;'+
+		'border-top:6px solid #000; vertical-align:middle;'+
+	'}'); }
 }
 function siChange() {
 	switch(this.type) {
@@ -174,7 +171,7 @@ function mulBoxLabel(sb) {
 //Optional 'decMax' parameter is maximum precision of decimal allowed. (ex. 3 would give precision of 0.001)
 //Use field.onnuminput as your oninput function, and get the number value with field.num
 //On mobile, use star key for decimal point and pound key for negative.
-utils.numField = function(f, min, max, decMax) {
+utils.numField = (f, min, max, decMax) => {
 	if(min == null) min=-2147483648; if(max == null) max=2147483647;
 	f.setAttribute('pattern',"\\d*"); f.type=(utils.mobile||decMax)?'tel':'number';
 	f.ns=f.value=(f.num=Number(f.value)||0).toString();
@@ -209,7 +206,7 @@ utils.numField = function(f, min, max, decMax) {
 //Turns your boring <input> into a mobile-friendly currency entry field, optionally with custom currency symbol.
 //Use field.onnuminput as your oninput function, and get the number value with field.num
 //On mobile, use star key for decimal point.
-utils.costField = function(f, sym) {
+utils.costField = (f, sym) => {
 	if(!sym) sym='$'; f.setAttribute('pattern',"\\d*"); f.type='tel';
 	f.value=utils.formatCost(f.num=Number(f.value)||0,sym); f.ns=f.num.toString();
 	f.addEventListener('keydown',e => {
@@ -239,39 +236,48 @@ utils.costField = function(f, sym) {
 }
 
 //Format Number as currency. Uses '$' by default.
-utils.formatCost = function(n, sym) {
+utils.formatCost = (n, sym) => {
 	if(!sym) sym='$'; if(!n) return sym+'0.00';
 	const p = n.toFixed(2).split('.');
-	return sym+p[0].split('').reverse().reduce((a, n, i) =>
-	{ return n=='-'?n+a:n+(i&&!(i%3)?',':'')+a; },'')+'.'+p[1];
+	return sym+p[0].split('').reverse().reduce((a,n,i) =>
+	n=='-'?n+a:n+(i&&!(i%3)?',':'')+a,'')+'.'+p[1];
 }
 
 //Convert value from 'datetime-local' input to Date object.
-utils.fromDateTimeBox = function(el) {
+utils.fromDateTimeBox = el => {
 	const v=el.value; if(!v) return new Date();
 	return new Date(v.replace(/-/g,'/').replace(/T/g,' '));
 }
 
 //Convert Date object into format to set 'datetime-local'
 //input value, optionally including seconds if 'sec' is true.
-utils.toDateTimeBox = function(d, sec) {
-	return d.getFullYear()+'-'+fixedNum2(d.getMonth()+1)+'-'+fixedNum2(d.getDate())+'T'+
-	fixedNum2(d.getHours())+':'+fixedNum2(d.getMinutes())+(sec?':'+fixedNum2(d.getSeconds()):'');
+utils.toDateTimeBox = (d, sec) => {
+	return d.getFullYear()+'-'+fixed2(d.getMonth()+1)+'-'+fixed2(d.getDate())+'T'+
+	fixed2(d.getHours())+':'+fixed2(d.getMinutes())+(sec?':'+fixed2(d.getSeconds()):'');
 }
 
-const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-function fixedNum2(num) { if(num <= 9) return '0'+num; return num; }
+utils.months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function fixed2(n) {if(n<=9) return'0'+n; return n}
 
 //Format Date object into human-readable string.
-utils.formatDate = function(d) {
-	if(d == null || !d.getDate || !d.getFullYear()) return "Invalid Date";
-	const mins=d.getMinutes(), month=d.getMonth(), day=d.getDate(), year=d.getFullYear();
-	let hour=d.getHours(), pm=false; if(hour >= 12) { pm = true; hour -= 12; } if(hour == 0) hour = 12;
-	return hour+':'+fixedNum2(mins)+' '+(pm?'PM':'AM')+' '+months[month]+' '+utils.suffix(day)+', '+year;
+//opt:
+//	sec: True to include seconds
+//	h24: True to use 24-hour time
+//	time: False to show date only
+//	suf: False to drop date suffix (1st, 2nd, etc.)
+utils.formatDate = (d,opt={}) => {
+	let t='',yy,dd;
+	if(d==null || !d.getDate || (yy=d.getFullYear())<=1969) return "[Invalid Date]";
+	if(opt.time==null||opt.time) {
+		let h=d.getHours(),pm=''; if(!opt.h24) {pm='AM '; if(h>=12) pm='PM ',h-=12; if(!h) h=12}
+		t=h+`:${fixed2(d.getMinutes())}${opt.sec?':'+fixed2(d.getSeconds()):''} `+pm;
+	}
+	dd=d.getDate(); if(opt.suf==null||opt.suf) dd=utils.suffix(dd);
+	return t+`${utils.months[d.getMonth()]} ${dd}, `+yy;
 }
 
 //Add appropriate suffix to number. (ex. 31st, 12th, 22nd)
-utils.suffix = (n) => {
+utils.suffix = n => {
 	let j=n%10, k=n%100;
 	if(j==1 && k!=11) return n+"st";
 	if(j==2 && k!=12) return n+"nd";
@@ -284,40 +290,40 @@ let H=history;
 utils.goBack = H.back.bind(H);
 utils.goForward = H.forward.bind(H);
 utils.go = (url,st) => {H.pushState(st,'',url||location.pathname),doNav(st)}
-window.addEventListener('popstate', (e) => doNav(e.state));
-window.addEventListener('load', () => setTimeout(doNav.wrap(H.state),1));
+addEventListener('popstate', (e) => doNav(e.state));
+addEventListener('load', () => setTimeout(doNav.wrap(H.state),1));
 function doNav(s) {if(utils.onNav) utils.onNav.call(null,s)}
 
 //Create element with parent, className, style object, and innerHTML string.
 //(Just remember the order PCSI!) Use null to leave a value blank.
-utils.mkEl = function(t,p,c,s,i) {
-	const e = document.createElement(t);
-	if(c != null) e.className = c; if(i != null) e.innerHTML = i;
+utils.mkEl = (t,p,c,s,i) => {
+	const e=document.createElement(t);
+	if(c!=null) e.className=c; if(i!=null) e.innerHTML=i;
 	if(s && typeof s=='object') {
-		const k = Object.keys(s), l = k.length;
-		for(let i=0; i<l; i++) e.style[k[i]] = s[k[i]];
+		let k=Object.keys(s),i=0,l=k.length;
+		for(; i<l; i++) e.style[k[i]]=s[k[i]];
 	}
-	if(p != null) p.appendChild(e); return e;
+	if(p!=null) p.appendChild(e); return e;
 }
 utils.mkDiv = (p,c,s,i) => utils.mkEl('div',p,c,s,i);
-utils.addText = function(el, text) { el.appendChild(document.createTextNode(text)); }
+utils.addText = (el, text) => el.appendChild(document.createTextNode(text));
 
 //Get predicted width of text given CSS font style.
-utils.textWidth = function(text, font) {
-	const canvas = window.textWidthCanvas || (window.textWidthCanvas = document.createElement('canvas')),
-	context = canvas.getContext('2d'); context.font = font; return context.measureText(text).width;
+utils.textWidth = (txt, font) => {
+	const c=window.TWCanvas||(window.TWCanvas=document.createElement('canvas')),
+	ctx=c.getContext('2d'); ctx.font=font; return ctx.measureText(txt).width;
 }
 
 //Add a getter/setter pair to an existing object:
-utils.define = function(obj, name, get, set) {
+utils.define = (obj, name, get, set) => {
 	const t={}; if(get) t.get=get; if(set) t.set=set;
 	if(Array.isArray(name)) for(let i=0,l=name.length; i<l; i++) Object.defineProperty(obj, name[i] ,t);
 	else Object.defineProperty(obj, name, t);
 }
 
 //It's useful for any canvas-style webpage to have the page dimensions on hand.
-utils.define(utils, 'w', ()=>{return window.innerWidth});
-utils.define(utils, 'h', ()=>{return window.innerHeight});
+utils.define(utils, 'w', ()=>innerWidth);
+utils.define(utils, 'h', ()=>innerHeight);
 
 //Remove 'empty' elements like 0, false, ' ', undefined, and NaN from array.
 //Often useful in combination with Array.split. Set 'keepZero' to true to keep '0's.
@@ -363,14 +369,14 @@ Element.prototype.insertChildAt = function(el, i) {
 }
 
 //Get element bounding rect as UtilRect object:
-utils.boundingRect = (e) => { return new UtilRect(e.getBoundingClientRect()); }
-utils.define(Element.prototype,'boundingRect',function() { return utils.boundingRect(this); });
+utils.boundingRect = e => new UtilRect(e.getBoundingClientRect());
+utils.define(Element.prototype,'boundingRect',function() {return utils.boundingRect(this)});
 
 //No idea why this isn't built-in, but it's not.
-Math.cot = function(x) {return 1/Math.tan(x)}
+Math.cot = x => 1/Math.tan(x);
 
 //Check if string, array, or other object is empty.
-utils.isBlank = function(s) {
+utils.isBlank = s => {
 	if(s == null) return true;
 	if(typeof s == 'string') return !/\S/.test(s);
 	if(typeof s == 'object') {
@@ -381,21 +387,21 @@ utils.isBlank = function(s) {
 }
 
 //Finds first empty (undefined) slot in array.
-utils.firstEmpty = function(arr) {
+utils.firstEmpty = arr => {
 	const len = arr.length;
 	for(let i=0; i<len; i++) if(arr[i] == null) return i;
 	return len;
 }
 
 //Like 'firstEmpty', but uses letters a-Z instead.
-utils.firstEmptyChar = function(obj) {
+utils.firstEmptyChar = obj => {
 	const keys = Object.keys(obj), len = keys.length;
 	for(let i=0; i<len; i++) if(obj[keys[i]] == null) return keys[i];
 	return utils.numToChar(len);
 }
 
 //Converts a number into letters (upper and lower) from a to Z.
-utils.numToChar = function(n) {
+utils.numToChar = n => {
 	if(n<=25) return String.fromCharCode(n+97);
 	else if(n>=26 && n<=51) return String.fromCharCode(n+39);
 	let mVal, fVal;
@@ -430,20 +436,20 @@ utils.merge = function(o/*, src1, src2...*/) {
 }
 
 //Keeps value within max/min bounds. Also handles NaN or null.
-utils.bounds = function(n, min=0, max=1) {
+utils.bounds = (n, min=0, max=1) => {
 	if(!(n>=min)) return min; if(!(n<=max)) return max; return n;
 }
 
 //'Normalizes' a value so that it ranges from min to max, but unlike utils.bounds,
 //this function retains input's offset. This can be used to normalize angles.
-utils.norm = utils.normalize = function(n, min=0, max=1) {
+utils.norm = utils.normalize = (n, min=0, max=1) => {
 	const c = Math.abs(max-min);
 	if(n < min) while(n < min) n += c; else while(n >= max) n -= c;
 	return n;
 }
 
 //Finds and removes all instances of 'rem' contained within s.
-utils.cutStr = function(s, rem) {
+utils.cutStr = (s, rem) => {
 	let fnd; while((fnd=s.indexOf(rem)) != -1) {
 		s = s.slice(0, fnd)+s.slice(fnd+rem.length);
 	}
@@ -453,26 +459,26 @@ utils.cutStr = function(s, rem) {
 //Cuts text out of 'data' from first instance of 'startString' to next instance of 'endString'.
 //(data,startString,endString[,index[,searchStart]])
 //index: Optional object. index.s and index.t will be set to start and end indexes.
-utils.dCut = function(d, ss, es, sd, st) {
+utils.dCut = (d, ss, es, sd, st) => {
 	let is = d.indexOf(ss,st?st:undefined)+ss.length, it = d.indexOf(es,is);
 	if(sd) sd.s=is,sd.t=it; return (is < ss.length || it <= is)?'':d.substring(is,it);
 }
-utils.dCutToLast = function(d, ss, es, sd, st) {
+utils.dCutToLast = (d, ss, es, sd, st) => {
 	let is = d.indexOf(ss,st?st:undefined)+ss.length, it = d.lastIndexOf(es);
 	if(sd) sd.s=is,sd.t=it; return (is < ss.length || it <= is)?'':d.substring(is,it);
 }
-utils.dCutLast = function(d, ss, es, sd, st) {
+utils.dCutLast = (d, ss, es, sd, st) => {
 	let is = d.lastIndexOf(ss,st?st:undefined)+ss.length, it = d.indexOf(es,is);
 	if(sd) sd.s=is,sd.t=it; return (is < ss.length || it <= is)?'':d.substring(is,it);
 }
 
 //Polyfill for String.trim()
 //Function by: https://w3schools.com
-if(!String.prototype.trim) String.prototype.trim = function() { return this.replace(/^\s+|\s+$/gm,''); }
+if(!String.prototype.trim) String.prototype.trim = function() {return this.replace(/^\s+|\s+$/gm,'')}
 
 //Given CSS property value 'prop', returns object with
 //space-separated values from the property string.
-utils.parseCSS = function(prop) {
+utils.parseCSS = prop => {
 	const pArr={}, pKey="", keyNum=0; prop=prop.trim();
 	function parseInner(str) {
 		if(str.indexOf(',') !== -1) {
@@ -499,7 +505,7 @@ utils.parseCSS = function(prop) {
 }
 
 //Rebuilds CSS string from a parseCSS object.
-utils.buildCSS = function(propArr) {
+utils.buildCSS = propArr => {
 	const keyArr=Object.keys(propArr), l=keyArr.length; let pStr='', i=0;
 	while(i<l) { const k = keyArr[i], v = propArr[keyArr[i]]; i++;
 	if(0<=Number(k)) pStr += v+" "; else pStr += k+"("+v+") "; }
@@ -513,31 +519,31 @@ function defaultStyle() {
 	return ns.sheet;
 }
 function toKey(k) {
-	return k.replace(/[A-Z]/g, (s) => {return '-'+s.toLowerCase()});
+	return k.replace(/[A-Z]/g, s => '-'+s.toLowerCase());
 }
 
 //Create a CSS class and append it to the current document. Fill 'propList' object
 //with key/value pairs representing the properties you want to add to the class.
-utils.addClass = function(className, propList) {
+utils.addClass = (className, propList) => {
 	const style = defaultStyle(), keys = Object.keys(propList); let str='';
 	for(let i=0,l=keys.length; i<l; i++) str += toKey(keys[i])+":"+propList[keys[i]]+";";
 	style.addRule("."+className,str);
 }
 
 //Create a CSS selector and append it to the current document.
-utils.addId = function(idName, propList) {
+utils.addId = (idName, propList) => {
 	const style = defaultStyle(), keys = Object.keys(propList); let str='';
 	for(let i=0,l=keys.length; i<l; i++) str += toKey(keys[i])+":"+propList[keys[i]]+";";
 	style.addRule("#"+idName,str);
 }
 
 //Create a CSS keyframe and append it to the current document.
-utils.addKeyframe = function(name, content) {
+utils.addKeyframe = (name, content) => {
 	defaultStyle().addRule("@keyframes "+name,content);
 }
 
 //Remove a specific css selector (including the '.' or '#') from all stylesheets in the current document.
-utils.removeSelector = function(name) {
+utils.removeSelector = name => {
 	for(let s=0,style,rList,j=document.styleSheets.length; s<j; s++) {
 		style = document.styleSheets[s]; try { rList = style.rules; } catch(e) { continue; }
 		for(let key in rList) if(rList[key].type == 1 && rList[key].selectorText == name) style.removeRule(key);
@@ -546,27 +552,27 @@ utils.removeSelector = function(name) {
 
 //Shorthand way to get element by id/class name, within a parent element (defaults to document).
 //(class[,parent])
-utils.getId = function(c,p) { return (p?p:document)['getElementById'](c); }
-utils.getClassList = function(c,p) { return (p?p:document)['getElementsByClassName'](c); }
-utils.getClassFirst = function(c,p) { c=utils.getClassList(c,p); return c.length>0?c[0]:0; }
-utils.getClassOnly = function(c,p) { c=utils.getClassList(c,p); return c.length==1?c[0]:0; }
+utils.getId = (c,p) => (p?p:document)['getElementById'](c);
+utils.getClassList = (c,p) => (p?p:document)['getElementsByClassName'](c);
+utils.getClassFirst = (c,p) => (c=utils.getClassList(c,p),c.length>0?c[0]:0);
+utils.getClassOnly = (c,p) => (c=utils.getClassList(c,p),c.length==1?c[0]:0);
 
 //Converts HEX color to 24-bit RGB.
 //Function by: https://github.com/Pecacheu and others
-utils.hexToRgb = function(hex) {
+utils.hexToRgb = hex => {
 	const c = parseInt(hex.substr(1), 16);
 	return [(c >> 16) & 255, (c >> 8) & 255, c & 255];
 }
 
 //Generates random integer from min to max.
-utils.rand = function(min, max, res, ease) {
+utils.rand = (min, max, res, ease) => {
 	res=res||1; max*=res,min*=res; let r=Math.random();
 	return Math.round((ease?ease(r):r)*(max-min)+min)/res;
 }
 
 //Parses a url query string into an Object.
 //Function by: Pecacheu (From Pecacheu's Apache Test Server)
-utils.fromQuery = function(str) {
+utils.fromQuery = str => {
 	if(str.startsWith('?')) str = str.substr(1);
 	function parse(params, pairs) {
 		const pair = pairs[0], spl = pair.indexOf('='),
@@ -581,7 +587,7 @@ utils.fromQuery = function(str) {
 }
 
 //Converts an object into a url query string.
-utils.toQuery = function(obj) {
+utils.toQuery = obj => {
 	let str = ''; if(typeof obj != 'object') return encodeURIComponent(obj);
 	for(let key in obj) {
 		let val = obj[key]; if(typeof val == 'object') val = JSON.stringify(val);
@@ -593,7 +599,7 @@ utils.toQuery = function(obj) {
 //obj: Object to center.
 //only: 'x' for only x axis centering, 'y' for only y axis, null for both.
 //type: Use 'calc', 'trans', 'move', or null for various centering methods.
-utils.center = function(obj, only, type) {
+utils.center = (obj, only, type) => {
 	if(!obj.style.position) obj.style.position = "absolute";
 	if(type == 'calc') { //Efficient, but Only Responsive for Changes in Page Size:
 		if(!only || only == "x") obj.style.left = "calc(50% - "+(obj.clientWidth/2)+"px)";
@@ -626,7 +632,7 @@ utils.center = function(obj, only, type) {
 //meth: Optional HTTP method, default is GET.
 //body: Optional body content.
 //hd: Optional header list.
-utils.loadAjax = function(path, cb, meth, body, hd) {
+utils.loadAjax = (path, cb, meth, body, hd) => {
 	let R; try {R=new XMLHttpRequest()} catch(e) {return cb(e)}
 	if(hd) for(let k in hd) R.setRequestHeader(k,hd[k]);
 	R.open(meth||'GET',path); R.onreadystatechange = () => {
@@ -638,7 +644,7 @@ utils.loadAjax = function(path, cb, meth, body, hd) {
 
 //Good fallback for loadAjax. Loads a file at the address via HTML object tag.
 //Callback is fired with either received data, or 'false' if unsuccessful.
-utils.loadFile = function(path, cb, timeout) {
+utils.loadFile = (path, cb, timeout) => {
 	const obj = document.createElement('object'); obj.data = path;
 	obj.style.position = 'fixed'; obj.style.opacity = 0;
 	let tmr = setTimeout(() => {
@@ -654,24 +660,24 @@ utils.loadFile = function(path, cb, timeout) {
 
 //Loads a file at the address from a JSONP-enabled server. Callback
 //is fired with either received data, or 'false' if unsuccessful.
-utils.loadJSONP = function(path, cb, timeout) {
+utils.loadJSONP = (path, cb, timeout) => {
 	const script = document.createElement('script'), id = utils.firstEmptyChar(utils.lJSONCall);
 	script.type = 'application/javascript';
 	script.src = path+(path.indexOf('?')==-1?'?':'&')+'callback=utils.lJSONCall.'+id;
 	let tmr = setTimeout(() => { delete utils.lJSONCall[id]; cb(false); }, timeout||4000);
-	utils.lJSONCall[id] = (data) => {
+	utils.lJSONCall[id] = data => {
 		if(tmr) clearTimeout(tmr); delete utils.lJSONCall[id]; cb(data);
 	}
 	document.head.appendChild(script); document.head.removeChild(script);
 }; utils.lJSONCall = [];
 
 //Downloads a file from a link.
-utils.dlFile = function(fn,uri) {
+utils.dlFile = (fn,uri) => {
 	return fetch(uri).then(r => { if(r.status != 200) throw "Code "+r.status; return r.blob(); })
 		.then(b => { utils.dlData(fn,b); });
 }
 //Downloads a file generated from a Blob or ArrayBuffer.
-utils.dlData = function(fn,d) {
+utils.dlData = (fn,d) => {
 	let o,e=utils.mkEl('a',document.body,null,{display:'none'});
 	if(typeof d=='string') o=d; else {
 		if(!(d instanceof Blob)) d=Blob(d); o=URL.createObjectURL(d);
@@ -681,19 +687,20 @@ utils.dlData = function(fn,d) {
 
 //Converts from radians to degrees, so you can work in degrees.
 //Function by: The a**hole who invented radians.
-utils.deg = function(rad) { return rad * 180 / Math.PI; }
+utils.deg = rad => rad*180/Math.PI;
 
 //Converts from degrees to radians, so you can convert back for given stupid library.
 //Function by: The a**hole who invented radians.
-utils.rad = function(deg) { return deg * Math.PI / 180; }
-
-//Even though this is fairly standard, I figured this formula out on my own when I was like 5, so I'm very proud of it...
+utils.rad = deg => deg*Math.PI/180;
 
 //Pecacheu's ultimate unit translation formula!
 //This Version -- Bounds Checking: NO, Rounding: NO, Max/Min Switching: NO, Easing: YES
-utils.map = function(input, minIn, maxIn, minOut, maxOut, ease) {
+utils.map = (input, minIn, maxIn, minOut, maxOut, ease) => {
 	let i=(input-minIn)/(maxIn-minIn); return ((ease?ease(i):i)*(maxOut-minOut))+minOut;
 }
+
+//setTimeout but async
+utils.delay = ms => new Promise(r => setTimeout(r,ms));
 
 })(); //End of Utils Library
 
@@ -701,29 +708,29 @@ utils.map = function(input, minIn, maxIn, minOut, maxOut, ease) {
 //'t' should be between 0 and 1
 const Easing = {
 	//no easing, no acceleration
-	linear:(t) => {return t},
+	linear:t => t,
 	//accelerating from zero velocity
-	easeInQuad:(t) => {return t*t},
+	easeInQuad:t => t*t,
 	//decelerating to zero velocity
-	easeOutQuad:(t) => {return t*(2-t)},
+	easeOutQuad:t => t*(2-t),
 	//acceleration until halfway, then deceleration
-	easeInOutQuad:(t) => {return t<.5 ? 2*t*t : -1+(4-2*t)*t},
+	easeInOutQuad:t => t<.5 ? 2*t*t : -1+(4-2*t)*t,
 	//accelerating from zero velocity
-	easeInCubic:(t) => {return t*t*t},
+	easeInCubic:t => t*t*t,
 	//decelerating to zero velocity
-	easeOutCubic:(t) => {return (--t)*t*t+1},
+	easeOutCubic:t => (--t)*t*t+1,
 	//acceleration until halfway, then deceleration
-	easeInOutCubic:(t) => {return t<.5 ? 4*t*t*t : (t-1)*(2*t-2)*(2*t-2)+1},
+	easeInOutCubic:t => t<.5 ? 4*t*t*t : (t-1)*(2*t-2)*(2*t-2)+1,
 	//accelerating from zero velocity
-	easeInQuart:(t) => {return t*t*t*t},
+	easeInQuart:t => t*t*t*t,
 	//decelerating to zero velocity
-	easeOutQuart:(t) => {return 1-(--t)*t*t*t},
+	easeOutQuart:t => 1-(--t)*t*t*t,
 	//acceleration until halfway, then deceleration
-	easeInOutQuart:(t) => {return t<.5 ? 8*t*t*t*t : 1-8*(--t)*t*t*t},
+	easeInOutQuart:t => t<.5 ? 8*t*t*t*t : 1-8*(--t)*t*t*t,
 	//accelerating from zero velocity
-	easeInQuint:(t) => {return t*t*t*t*t},
+	easeInQuint:t => t*t*t*t*t,
 	//decelerating to zero velocity
-	easeOutQuint:(t) => {return 1+(--t)*t*t*t*t},
+	easeOutQuint:t => 1+(--t)*t*t*t*t,
 	//acceleration until halfway, then deceleration
-	easeInOutQuint:(t) => {return t<.5 ? 16*t*t*t*t*t : 1+16*(--t)*t*t*t*t}
-};
+	easeInOutQuint:t => t<.5 ? 16*t*t*t*t*t : 1+16*(--t)*t*t*t*t
+}
