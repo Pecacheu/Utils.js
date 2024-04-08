@@ -1,7 +1,7 @@
 //Utils.js https://github.com/Pecacheu/Utils.js GNU GPL v3
 
 'use strict';
-const utils = {VER:'v8.5.3'};
+const utils = {VER:'v8.5.5'};
 
 function UtilRect(t,b,l,r) {
 	if(!(this instanceof UtilRect)) return new UtilRect(t,b,l,r);
@@ -59,21 +59,21 @@ if(window.TouchList) TouchList.prototype.get = function(id) {
 
 (() => { //Utils Library
 
-//Cookie Parsing.
+//Cookie Parsing
 utils.setCookie = (name,value,exp,secure) => {
-	let c = encodeURIComponent(name)+'='+(value==null?'':encodeURIComponent(value));
+	let c=encodeURIComponent(name)+'='+(value==null?'':encodeURIComponent(value))+';path=/';
 	if(exp != null) {
 		if(!(exp instanceof Date)) exp = new Date(exp);
-		c += ';expires='+exp.toUTCString();
+		c+=';expires='+exp.toUTCString();
 	}
-	if(secure) c += ';secure'; document.cookie = c;
+	if(secure) c+=';secure'; document.cookie=c;
 }
 utils.remCookie = name => {
 	document.cookie = encodeURIComponent(name)+'=;expires='+new Date(0).toUTCString();
 }
 utils.getCookie = name => {
 	const n1 = encodeURIComponent(name), n2 = ' '+n1, cl = document.cookie.split(';');
-	for(let i=0,l=cl.length,c,eq,sub; i<l; i++) {
+	for(let i=0,l=cl.length,c,eq,sub; i<l; ++i) {
 		c = cl[i]; eq = c.indexOf('='); sub = c.substr(0,eq);
 		if(sub == n1 || sub == n2) return decodeURIComponent(c.substr(eq+1));
 	}
@@ -163,7 +163,7 @@ function selBoxLabel(sb) {
 	return "No Options Selected";
 }
 function mulBoxLabel(sb) {
-	const op = sb.options; let str = ''; for(let i=0,l=op.length; i<l; i++)
+	const op = sb.options; let str = ''; for(let i=0,l=op.length; i<l; ++i)
 	if(op[i].selected) str += (str?', ':'')+op[i].label; return str||"No Options Selected";
 }
 
@@ -257,23 +257,30 @@ utils.toDateTimeBox = (d, sec) => {
 }
 
 utils.months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-function fixed2(n) {if(n<=9) return'0'+n; return n}
+function fixed2(n) {return n<=9?'0'+n:n}
 
 //Format Date object into human-readable string.
 //opt:
 //	sec: True to include seconds
+//	ms: True or 3 to include milliseconds (requires sec), 2 or 1 to limit precision
 //	h24: True to use 24-hour time
-//	time: False to show date only
+//	time: True to show time only, false to show date only, null to show both
 //	suf: False to drop date suffix (1st, 2nd, etc.)
+//	year: False to hide year, or a number to show year only if it differs from given year
+//	df: True to put date first instead of time
 utils.formatDate = (d,opt={}) => {
 	let t='',yy,dd;
-	if(d==null || !d.getDate || (yy=d.getFullYear())<=1969) return "[Invalid Date]";
+	if(d==null || !d.getDate || !((yy=d.getFullYear())>1969)) return "[Invalid Date]";
 	if(opt.time==null||opt.time) {
-		let h=d.getHours(),pm=''; if(!opt.h24) {pm='AM '; if(h>=12) pm='PM ',h-=12; if(!h) h=12}
-		t=h+`:${fixed2(d.getMinutes())}${opt.sec?':'+fixed2(d.getSeconds()):''} `+pm;
+		let h=d.getHours(),pm=''; if(!opt.h24) {pm=' AM'; if(h>=12) pm=' PM',h-=12; if(!h) h=12}
+		t=h+':'+fixed2(d.getMinutes())+(opt.sec?':'+fixed2(d.getSeconds())
+			+(opt.ms?(d.getMilliseconds()/1000).toFixed(Number.isFinite(opt.ms)?opt.ms:3).substr(1):''):'');
+		t+=pm; if(opt.time) return t;
 	}
-	dd=d.getDate(); if(opt.suf==null||opt.suf) dd=utils.suffix(dd);
-	return t+`${utils.months[d.getMonth()]} ${dd}, `+yy;
+	dd=d.getDate();
+	dd=utils.months[d.getMonth()]+' '+((opt.suf==null||opt.suf)?utils.suffix(dd):dd);
+	if((opt.year==null||opt.year) && opt.year!==yy) dd=dd+', '+yy;
+	return opt.df?dd+(t&&' '+t):(t&&t+' ')+dd;
 }
 
 //Add appropriate suffix to number. (ex. 31st, 12th, 22nd)
@@ -301,7 +308,7 @@ utils.mkEl = (t,p,c,s,i) => {
 	if(c!=null) e.className=c; if(i!=null) e.innerHTML=i;
 	if(s && typeof s=='object') {
 		let k=Object.keys(s),i=0,l=k.length;
-		for(; i<l; i++) e.style[k[i]]=s[k[i]];
+		for(; i<l; ++i) e.style[k[i]]=s[k[i]];
 	}
 	if(p!=null) p.appendChild(e); return e;
 }
@@ -310,18 +317,18 @@ utils.addText = (el, text) => el.appendChild(document.createTextNode(text));
 
 //Get predicted width of text given CSS font style.
 utils.textWidth = (txt, font) => {
-	const c=window.TWCanvas||(window.TWCanvas=document.createElement('canvas')),
+	const c=window.TWCanvas||(window.TWCanvas=utils.mkEl('canvas')),
 	ctx=c.getContext('2d'); ctx.font=font; return ctx.measureText(txt).width;
 }
 
 //Add a getter/setter pair to an existing object:
 utils.define = (obj, name, get, set) => {
 	const t={}; if(get) t.get=get; if(set) t.set=set;
-	if(Array.isArray(name)) for(let i=0,l=name.length; i<l; i++) Object.defineProperty(obj, name[i] ,t);
+	if(Array.isArray(name)) for(let i=0,l=name.length; i<l; ++i) Object.defineProperty(obj, name[i] ,t);
 	else Object.defineProperty(obj, name, t);
 }
 
-//It's useful for any canvas-style webpage to have the page dimensions on hand.
+//It's useful for any canvas-style app to have the page dimensions on hand.
 utils.define(utils, 'w', ()=>innerWidth);
 utils.define(utils, 'h', ()=>innerHeight);
 
@@ -329,7 +336,7 @@ utils.define(utils, 'h', ()=>innerHeight);
 //Often useful in combination with Array.split. Set 'keepZero' to true to keep '0's.
 //Function by: Pecacheu & https://stackoverflow.com/users/5445/cms
 Array.prototype.clean = function(kz) {
-	for(let i=0,e,l=this.length; i<l; i++) {
+	for(let i=0,e,l=this.length; i<l; ++i) {
 		e=this[i]; if(utils.isBlank(e) || e === false ||
 		!kz && e === 0) this.splice(i--,1),l--;
 	} return this;
@@ -338,7 +345,7 @@ Array.prototype.clean = function(kz) {
 //Remove first instance of item from array. Returns false if not found.
 //Use a while loop to remove all instances.
 Array.prototype.remove = function(itm) {
-	const i = this.indexOf(itm); if(i==-1) return false;
+	const i=this.indexOf(itm); if(i==-1) return false;
 	this.splice(i,1); return true;
 }
 
@@ -349,16 +356,16 @@ Array.prototype.remove = function(itm) {
 //If fn returns '!', it will remove the element from the array.
 //Otherwise, if fn returns any non-null value,
 //the loop is broken and the value is returned by each.
-HTMLCollection.prototype.each = Array.prototype.each = function(fn,st,en) {
+NodeList.prototype.each = HTMLCollection.prototype.each = Array.prototype.each = function(fn,st,en) {
 	let i=st||0,l=this.length,r; if(en) l=en<0?l-en:en;
-	for(; i<l; i++) if((r=fn(this[i],i,l))==='!') {
+	for(; i<l; ++i) if((r=fn(this[i],i,l))==='!') {
 		this instanceof HTMLCollection?this[i].remove():this.splice(i,1); i--,l--;
 	} else if(r!=null) return r;
 }
 
 //Get an element's index in its parent. Returns -1 if the element has no parent.
 utils.define(Element.prototype,'index',function() {
-	const p = this.parentElement; if(!p) return -1;
+	const p=this.parentElement; if(!p) return -1;
 	return Array.prototype.indexOf.call(p.children, this);
 });
 
@@ -389,14 +396,14 @@ utils.isBlank = s => {
 //Finds first empty (undefined) slot in array.
 utils.firstEmpty = arr => {
 	const len = arr.length;
-	for(let i=0; i<len; i++) if(arr[i] == null) return i;
+	for(let i=0; i<len; ++i) if(arr[i] == null) return i;
 	return len;
 }
 
 //Like 'firstEmpty', but uses letters a-Z instead.
 utils.firstEmptyChar = obj => {
 	const keys = Object.keys(obj), len = keys.length;
-	for(let i=0; i<len; i++) if(obj[keys[i]] == null) return keys[i];
+	for(let i=0; i<len; ++i) if(obj[keys[i]] == null) return keys[i];
 	return utils.numToChar(len);
 }
 
@@ -420,11 +427,11 @@ function rstCount(val, maxVal) { while(val >= maxVal) val -= maxVal; return val;
 //Semi-recursively merges two (or more) objects, giving the last precedence.
 //If both objects contain a property at the same index, and both are Arrays/Objects, they are merged.
 utils.merge = function(o/*, src1, src2...*/) {
-	for(let a=1,al=arguments.length,n,oP,nP; a<al; a++) {
+	for(let a=1,al=arguments.length,n,oP,nP; a<al; ++a) {
 		n = arguments[a]; for(let k in n) {
 			oP = o[k]; nP = n[k]; if(oP && nP) { //Conflict.
 				if(oP.length >= 0 && nP.length >= 0) { //Both Array-like.
-					for(let i=0,l=nP.length,ofs=oP.length; i<l; i++) oP[i+ofs] = nP[i]; continue;
+					for(let i=0,l=nP.length,ofs=oP.length; i<l; ++i) oP[i+ofs] = nP[i]; continue;
 				} else if(typeof oP == 'object' && typeof nP == 'object') { //Both Objects.
 					for(let pk in nP) oP[pk] = nP[pk]; continue;
 				}
@@ -483,7 +490,7 @@ utils.parseCSS = prop => {
 	function parseInner(str) {
 		if(str.indexOf(',') !== -1) {
 			const arr = utils.clean(str.split(','));
-			for(let i=0, l=arr.length; i<l; i++) arr[i]=arr[i].trim();
+			for(let i=0, l=arr.length; i<l; ++i) arr[i]=arr[i].trim();
 			return arr;
 		}
 		return str.trim();
@@ -494,7 +501,7 @@ utils.parseCSS = prop => {
 			pArr[pKey] = parseInner(pStr);
 			pKey = ""; prop = prop.substring(end+1);
 		} else if(prop.search(/[#!\w]/) == 0) {
-			if(pKey) { pArr[keyNum] = pKey; keyNum++; }
+			if(pKey) pArr[keyNum++] = pKey;
 			let end=prop.search(/[^#!\w-%]/); if(end==-1) end=prop.length;
 			pKey = prop.substring(0, end); prop = prop.substring(end);
 		} else {
@@ -507,16 +514,17 @@ utils.parseCSS = prop => {
 //Rebuilds CSS string from a parseCSS object.
 utils.buildCSS = propArr => {
 	const keyArr=Object.keys(propArr), l=keyArr.length; let pStr='', i=0;
-	while(i<l) { const k = keyArr[i], v = propArr[keyArr[i]]; i++;
-	if(0<=Number(k)) pStr += v+" "; else pStr += k+"("+v+") "; }
+	while(i<l) {
+		const k=keyArr[i], v=propArr[keyArr[i]]; ++i;
+		if(0<=Number(k)) pStr+=v+' '; else pStr+=`${k}(${v}) `;
+	}
 	return pStr.substring(0, pStr.length-1);
 }
 
 function defaultStyle() {
-	const ss = document.styleSheets;
-	for(let s=0,j=ss.length; s<j; s++) try { ss[s].rules; return ss[s]; } catch(e) {}
-	let ns = utils.mkEl('style',document.head); ns.appendChild(document.createTextNode(''));
-	return ns.sheet;
+	const ss=document.styleSheets;
+	for(let s=0,j=ss.length; s<j; ++s) try { ss[s].cssRules; return ss[s]; } catch(e) {}
+	let ns=utils.mkEl('style',document.head); utils.addText(ns,''); return ns.sheet;
 }
 function toKey(k) {
 	return k.replace(/[A-Z]/g, s => '-'+s.toLowerCase());
@@ -526,14 +534,14 @@ function toKey(k) {
 //with key/value pairs representing the properties you want to add to the class.
 utils.addClass = (className, propList) => {
 	const style = defaultStyle(), keys = Object.keys(propList); let str='';
-	for(let i=0,l=keys.length; i<l; i++) str += toKey(keys[i])+":"+propList[keys[i]]+";";
+	for(let i=0,l=keys.length; i<l; ++i) str += toKey(keys[i])+":"+propList[keys[i]]+";";
 	style.addRule("."+className,str);
 }
 
 //Create a CSS selector and append it to the current document.
 utils.addId = (idName, propList) => {
 	const style = defaultStyle(), keys = Object.keys(propList); let str='';
-	for(let i=0,l=keys.length; i<l; i++) str += toKey(keys[i])+":"+propList[keys[i]]+";";
+	for(let i=0,l=keys.length; i<l; ++i) str += toKey(keys[i])+":"+propList[keys[i]]+";";
 	style.addRule("#"+idName,str);
 }
 
@@ -544,8 +552,8 @@ utils.addKeyframe = (name, content) => {
 
 //Remove a specific css selector (including the '.' or '#') from all stylesheets in the current document.
 utils.removeSelector = name => {
-	for(let s=0,style,rList,j=document.styleSheets.length; s<j; s++) {
-		style = document.styleSheets[s]; try { rList = style.rules; } catch(e) { continue; }
+	for(let s=0,style,rList,j=document.styleSheets.length; s<j; ++s) {
+		style = document.styleSheets[s]; try { rList=style.cssRules; } catch(e) { continue; }
 		for(let key in rList) if(rList[key].type == 1 && rList[key].selectorText == name) style.removeRule(key);
 	}
 }
@@ -598,29 +606,29 @@ utils.toQuery = obj => {
 //Various methods of centering objects using JavaScript.
 //obj: Object to center.
 //only: 'x' for only x axis centering, 'y' for only y axis, null for both.
-//type: Use 'calc', 'trans', 'move', or null for various centering methods.
+//type: 'calc', 'trans', 'move', or null, modes explained below.
 utils.center = (obj, only, type) => {
-	if(!obj.style.position) obj.style.position = "absolute";
-	if(type == 'calc') { //Efficient, but Only Responsive for Changes in Page Size:
-		if(!only || only == "x") obj.style.left = "calc(50% - "+(obj.clientWidth/2)+"px)";
-		if(!only || only == "y") obj.style.top = "calc(50% - "+(obj.clientHeight/2)+"px)";
-	} else if(type == 'move') { //Original, Not Responsive:
-		if(!only || only == "x") obj.style.left = (utils.w/2)-(obj.clientWidth/2)+"px";
-		if(!only || only == "y") obj.style.top = (utils.h/2)-(obj.clientHeight/2)+"px";
-	} else if(type == 'trans') { //More Efficient:
-		let trans = utils.cutStr(obj.style.transform, "translateX(-50%)");
+	let os=obj.style;
+	if(!os.position) os.position="absolute";
+	if(type == 'calc') { //Responsive, but only if object size is static
+		if(!only || only == "x") os.left=`calc(50% - ${obj.clientWidth/2}px)`;
+		if(!only || only == "y") os.top=`calc(50% - ${obj.clientHeight/2}px)`;
+	} else if(type == 'move') { //Not responsive
+		if(!only || only == "x") os.left=`${utils.w/2 - obj.clientWidth/2}px`;
+		if(!only || only == "y") os.top=`${utils.h/2 - obj.clientHeight/2}px`;
+	} else if(type == 'trans') { //Responsive, doesn't create container
+		let trans = utils.cutStr(os.transform, "translateX(-50%)");
 		trans = utils.cutStr(trans, "translateY(-50%)");
-		if(!only || only == "x") { obj.style.left = "50%"; trans += "translateX(-50%)"; }
-		if(!only || only == "y") { obj.style.top = "50%"; trans += "translateY(-50%)"; }
-		if(trans) obj.style.transform = trans;
-	} else { //Largest Browser Support for Responsive Centering:
-		let cont = document.createElement("div"); obj.parentNode.appendChild(cont);
-		cont.style.display = "table"; cont.style.position = "absolute"; cont.style.top = 0;
-		cont.style.left = 0; cont.style.width = "100%"; cont.style.height = "100%";
-		obj.parentNode.removeChild(obj); cont.appendChild(obj); obj.style.display = "table-cell";
-		if(!only || only == "x") { obj.style.textAlign = "center"; }
-		if(!only || only == "y") { obj.style.verticalAlign = "middle"; }
-		obj.style.position = "relative";
+		if(!only || only == "x") os.left="50%", trans+="translateX(-50%)";
+		if(!only || only == "y") os.top="50%", trans+="translateY(-50%)";
+		if(trans) os.transform=trans;
+	} else { //Responsive, largest browser support
+		let cont=utils.mkEl("div", obj.parentNode, null, {display:'table',
+			position:'absolute', top:0, left:0, width:'100%', height:'100%'});
+		cont.appendChild(obj); os.display="table-cell";
+		if(!only || only == "x") os.textAlign="center";
+		if(!only || only == "y") os.verticalAlign="middle";
+		os.position="relative";
 	}
 }
 
@@ -645,8 +653,8 @@ utils.loadAjax = (path, cb, meth, body, hd) => {
 //Good fallback for loadAjax. Loads a file at the address via HTML object tag.
 //Callback is fired with either received data, or 'false' if unsuccessful.
 utils.loadFile = (path, cb, timeout) => {
-	const obj = document.createElement('object'); obj.data = path;
-	obj.style.position = 'fixed'; obj.style.opacity = 0;
+	const obj = utils.mkEl('object', document.body, null, {position:'fixed', opacity:0});
+	obj.data = path;
 	let tmr = setTimeout(() => {
 		obj.remove(); tmr = null; cb(false);
 	}, timeout||4000);
@@ -655,20 +663,19 @@ utils.loadFile = (path, cb, timeout) => {
 		cb(obj.contentDocument.documentElement.outerHTML);
 		obj.remove();
 	}
-	document.body.appendChild(obj);
 }
 
 //Loads a file at the address from a JSONP-enabled server. Callback
 //is fired with either received data, or 'false' if unsuccessful.
 utils.loadJSONP = (path, cb, timeout) => {
-	const script = document.createElement('script'), id = utils.firstEmptyChar(utils.lJSONCall);
+	const script = utils.mkEl('script', document.head), id = utils.firstEmptyChar(utils.lJSONCall);
 	script.type = 'application/javascript';
 	script.src = path+(path.indexOf('?')==-1?'?':'&')+'callback=utils.lJSONCall.'+id;
 	let tmr = setTimeout(() => { delete utils.lJSONCall[id]; cb(false); }, timeout||4000);
 	utils.lJSONCall[id] = data => {
 		if(tmr) clearTimeout(tmr); delete utils.lJSONCall[id]; cb(data);
 	}
-	document.head.appendChild(script); document.head.removeChild(script);
+	document.head.removeChild(script);
 }; utils.lJSONCall = [];
 
 //Downloads a file from a link.
