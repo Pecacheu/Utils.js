@@ -1,7 +1,7 @@
 //Utils.js https://github.com/Pecacheu/Utils.js GNU GPL v3
 
 'use strict';
-const utils = {VER:'v8.5.5'};
+const utils = {VER:'v8.5.6'};
 
 function UtilRect(t,b,l,r) {
 	if(!(this instanceof UtilRect)) return new UtilRect(t,b,l,r);
@@ -79,9 +79,10 @@ utils.getCookie = name => {
 	}
 }
 
-//Wrap a function so that it always has a preset argument list when called:
+//Wrap a function so that it always has a preset argument list when called.
+//In the called function, 'this' is set to the caller's arguments, granting access to both.
 Function.prototype.wrap = function(/*...*/) {
-	const f = this, a = arguments; return ()=>f.apply(arguments,a);
+	const f=this, a=arguments; return function() {f.apply(arguments,a)}
 }
 
 //Deep (recursive) Object.create.
