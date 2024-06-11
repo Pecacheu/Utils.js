@@ -1,7 +1,7 @@
-//Utils.js https://github.com/Pecacheu/Utils.js GNU GPL v3
+//https://github.com/Pecacheu/Utils.js; MIT License
 
 'use strict';
-const utils = {VER:'v8.5.6'};
+const utils = {VER:'v8.5.7'};
 
 function UtilRect(t,b,l,r) {
 	if(!(this instanceof UtilRect)) return new UtilRect(t,b,l,r);
@@ -293,7 +293,7 @@ utils.suffix = n => {
 	return n+"th";
 }
 
-//Virtual Page Navigation:
+//Virtual Page Navigation
 let H=history;
 utils.goBack = H.back.bind(H);
 utils.goForward = H.forward.bind(H);
@@ -333,6 +333,27 @@ utils.define = (obj, name, get, set) => {
 utils.define(utils, 'w', ()=>innerWidth);
 utils.define(utils, 'h', ()=>innerHeight);
 
+/*Set a nested/recursive property in an object, even if the higher levels don't exist. Useful for defining settings in a complex config object.
+obj: Object to set property in
+path: String (dot separated) or array defining the path to the property
+val: Value to set
+onlyNull: True to set value only if it doesn't exist*/
+utils.setPropSafe = (obj, path, val, onlyNull=false) => {
+	if(typeof path=='string') path=path.split('.');
+	let li=path.length-1;
+	path.each(p => {typeof obj[p]=='object'?obj=obj[p]:obj=obj[p]={}},0,li);
+	li=path[li]; if(!onlyNull || obj[li]==null) return obj[li]=val;
+	return obj[li];
+}
+
+/*Gets a nested/recursive property in an object, returning undefined if it or any higher level doesn't exist. Useful for reading settings from a complex config object.
+obj: Object to read property from
+path: String (dot separated) or array defining the path to the property*/
+utils.getPropSafe = (obj, path) => {
+	if(typeof path=='string') path=path.split('.');
+	try {path.each(p => {obj=obj[p]}); return obj} catch(_) {}
+}
+
 //Remove 'empty' elements like 0, false, ' ', undefined, and NaN from array.
 //Often useful in combination with Array.split. Set 'keepZero' to true to keep '0's.
 //Function by: Pecacheu & https://stackoverflow.com/users/5445/cms
@@ -352,13 +373,13 @@ Array.prototype.remove = function(itm) {
 
 //Calls fn on each index of array.
 //fn: Callback function(element, index, length)
-//st: Start index, optional.
+//st: Start index, optional. If negative, relative to end of array.
 //en: End index, optional. If negative, relative to end of array.
 //If fn returns '!', it will remove the element from the array.
 //Otherwise, if fn returns any non-null value,
 //the loop is broken and the value is returned by each.
 NodeList.prototype.each = HTMLCollection.prototype.each = Array.prototype.each = function(fn,st,en) {
-	let i=st||0,l=this.length,r; if(en) l=en<0?l-en:en;
+	let l=this.length,i=st<0?l+st:(st||0),r; if(en!=null) l=en<0?l+en:en;
 	for(; i<l; ++i) if((r=fn(this[i],i,l))==='!') {
 		this instanceof HTMLCollection?this[i].remove():this.splice(i,1); i--,l--;
 	} else if(r!=null) return r;

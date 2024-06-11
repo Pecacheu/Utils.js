@@ -40,6 +40,8 @@ Note: For production code, the minified version *utils.min.js* should be used. T
 - `utils.setCookie(name,value,exp,secure)` Set a cookie.
 - `utils.getCookie(name) returns String or null` Get a cookie by name.
 - `utils.remCookie(name)` Remove a cookie by name.
+- `utils.setPropSafe(obj, path, val, onlyNull=false)` Set a nested property, even if higher levels don't exist. Useful for defining settings in a complex config object.
+- `utils.getPropSafe(obj, path) returns Object` Gets a nested property, returns undefined if any level doesn't exist.
 - `utils.copy(o[,sub]) returns Object` Deep (recursive) Object.create. Copies down to given sub levels, all levels if undefined.
 - `utils.skinnedInput(el)` Fallback for when css *'appearance:none'* doesn't work. Generates container for input field for css skinning on unsupported browsers.
 - `utils.numField(field[,min[,max[,decMax]]])` Turns your boring input field into a mobile-friendly number entry field with max/min & negative support!
