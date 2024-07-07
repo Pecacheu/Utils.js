@@ -1,7 +1,7 @@
 //https://github.com/Pecacheu/Utils.js; MIT License
 
 'use strict';
-const utils = {VER:'v8.5.7'};
+const utils = {VER:'v8.5.8'};
 
 function UtilRect(t,b,l,r) {
 	if(!(this instanceof UtilRect)) return new UtilRect(t,b,l,r);
@@ -302,14 +302,13 @@ addEventListener('popstate', (e) => doNav(e.state));
 addEventListener('load', () => setTimeout(doNav.wrap(H.state),1));
 function doNav(s) {if(utils.onNav) utils.onNav.call(null,s)}
 
-//Create element with parent, className, style object, and innerHTML string.
-//(Just remember the order PCSI!) Use null to leave a value blank.
+//Create element of type with parent, className, style object, and innerHTML string.
+//(Just remember the order PCSI!) Use null to leave any parameter blank.
 utils.mkEl = (t,p,c,s,i) => {
 	const e=document.createElement(t);
 	if(c!=null) e.className=c; if(i!=null) e.innerHTML=i;
-	if(s && typeof s=='object') {
-		let k=Object.keys(s),i=0,l=k.length;
-		for(; i<l; ++i) e.style[k[i]]=s[k[i]];
+	if(s && typeof s=='object') for(let k in s) {
+		if(k in e.style) e.style[k]=s[k]; else e.style.setProperty(k,s[k]);
 	}
 	if(p!=null) p.appendChild(e); return e;
 }
@@ -576,7 +575,8 @@ utils.addKeyframe = (name, content) => {
 utils.removeSelector = name => {
 	for(let s=0,style,rList,j=document.styleSheets.length; s<j; ++s) {
 		style = document.styleSheets[s]; try { rList=style.cssRules; } catch(e) { continue; }
-		for(let key in rList) if(rList[key].type == 1 && rList[key].selectorText == name) style.removeRule(key);
+		for(let key in rList) if(rList[key].constructor.name == "CSSStyleRule"
+			&& rList[key].selectorText == name) style.deleteRule(key);
 	}
 }
 
