@@ -1,7 +1,7 @@
 //https://github.com/Pecacheu/Utils.js; MIT License
 
 'use strict';
-const utils = {VER:'v8.5.8'};
+const utils = {VER:'v8.5.9'};
 
 function UtilRect(t,b,l,r) {
 	if(!(this instanceof UtilRect)) return new UtilRect(t,b,l,r);
@@ -396,9 +396,17 @@ Element.prototype.insertChildAt = function(el, i) {
 	else this.insertBefore(el, this.children[i]);
 }
 
-//Get element bounding rect as UtilRect object:
-utils.boundingRect = e => new UtilRect(e.getBoundingClientRect());
+//Get element bounding rect as UtilRect object
+utils.boundingRect=e => new UtilRect(e.getBoundingClientRect());
+utils.innerRect=e => {
+	let r=e.getBoundingClientRect(), s=getComputedStyle(e);
+	return new UtilRect(r.top+parseFloat(s.paddingTop)+parseFloat(s.borderTopWidth),
+		r.bottom-parseFloat(s.paddingBottom)-parseFloat(s.borderBottomWidth),
+		r.left+parseFloat(s.paddingLeft)+parseFloat(s.borderLeftWidth),
+		r.right-parseFloat(s.paddingRight)-parseFloat(s.borderRightWidth));
+};
 utils.define(Element.prototype,'boundingRect',function() {return utils.boundingRect(this)});
+utils.define(Element.prototype,'innerRect',function() {return utils.innerRect(this)});
 
 //No idea why this isn't built-in, but it's not.
 Math.cot = x => 1/Math.tan(x);

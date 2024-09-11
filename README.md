@@ -30,6 +30,7 @@ Note: For production code, the minified version *utils.min.js* should be used. T
 - `Number [Element].index` Represents an element's index in it's parent. Set to -1 if the element has no parent.
 - `[Element].insertChildAt(el,i)` Inserts child at index. Appends child to end if index exceeds child count.
 - `UtilRect [Element].boundingRect` Element's bounding rect as a `UtilRect` object.
+- `UtilRect [Element].innerRect` Element's inner rect (excluding margin, padding, and border)
 - `Math.cot(x) returns Number` No idea why this isn't built-in, but it's not.
 - `[TouchList].get(id) returns Touch` Gets touch by id, returns null if none found.
 
