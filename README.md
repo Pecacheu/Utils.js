@@ -62,6 +62,7 @@ Note: For production code, the minified version *utils.min.js* should be used. T
 - `utils.addText(el,text)` Appends a TextNode with given text to element.
 - `utils.textWidth(text,font) returns Number` Get predicted width of text given css font style.
 - `utils.define(obj,name,get,set)` Add getter/setter pair to an existing object. Set get or set to null to disable variable read or write.
+- `utils.proto(obj,name,val)` Define immutable, non-enumerable property in an object prototype.
 - `utils.isBlank(o) returns Boolean` Check if string, array, or other object is empty.
 - `utils.firstEmpty(arr) returns Number` Finds first empty (undefined/null) slot in array.
 - `utils.firstEmptyChar(obj) returns String` Like *firstEmpty*, but uses letters from `utils.numToChar` instead.

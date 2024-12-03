@@ -1,63 +1,22 @@
 //https://github.com/Pecacheu/Utils.js; MIT License
 
 'use strict';
-const utils = {VER:'v8.5.9'};
-
-function UtilRect(t,b,l,r) {
-	if(!(this instanceof UtilRect)) return new UtilRect(t,b,l,r);
-	const f=Number.isFinite; let tt=0,bb=0,ll=0,rr=0;
-	utils.define(this,'x',				()=>ll,		v=>{f(v)?(rr+=v-ll,ll=v):0});
-	utils.define(this,'y',				()=>tt,		v=>{f(v)?(bb+=v-tt,tt=v):0});
-	utils.define(this,'top',			()=>tt,		v=>{tt=f(v)?v:0});
-	utils.define(this,['bottom','y2'],	()=>bb,		v=>{bb=f(v)?v:0});
-	utils.define(this,'left',			()=>ll,		v=>{ll=f(v)?v:0});
-	utils.define(this,['right','x2'],	()=>rr,		v=>{rr=f(v)?v:0});
-	utils.define(this,['width','w'],	()=>rr-ll,	v=>{rr=v>=0?ll+v:0});
-	utils.define(this,['height','h'],	()=>bb-tt,	v=>{bb=v>=0?tt+v:0});
-	utils.define(this,'centerX',		()=>ll/2+rr/2);
-	utils.define(this,'centerY',		()=>tt/2+bb/2);
-	if(t instanceof DOMRect || t instanceof UtilRect) tt=t.top, bb=t.bottom, ll=t.left, rr=t.right;
-	else tt=t, bb=b, ll=l, rr=r;
-}
-
-//Check if rect contains point, other rect, or Element
-UtilRect.prototype.contains = function(x,y) {
-	if(x instanceof Element) return this.contains(x.boundingRect);
-	if(x instanceof UtilRect) return x.x >= this.x && x.x2 <= this.x2 && x.y >= this.y && x.y2 <= this.y2;
-	return x >= this.x && x <= this.x2 && y >= this.y && y <= this.y2;
-}
-
-//Check if rect overlaps rect or Element
-UtilRect.prototype.overlaps = function(r) {
-	if(r instanceof Element) return this.overlaps(r.boundingRect);
-	if(!(r instanceof UtilRect)) return 0; let x,y;
-	if(r.x2-r.x >= this.x2-this.x) x = this.x >= r.x && this.x <= r.x2 || this.x2 >= r.x && this.x2 <= r.x2;
-	else x = r.x >= this.x && r.x <= this.x2 || r.x2 >= this.x && r.x2 <= this.x2;
-	if(r.y2-r.y >= this.y2-this.y) y = this.y >= r.y && this.y <= r.y2 || this.y2 >= r.y && this.y2 <= r.y2;
-	else y = r.y >= this.y && r.y <= this.y2 || r.y2 >= this.y && r.y2 <= this.y2;
-	return x&&y;
-}
-
-//Get distance from this rect to point, other rect, or Element
-UtilRect.prototype.dist = function(x,y) {
-	if(x instanceof Element) return this.dist(x.boundingRect); let n=(x instanceof UtilRect);
-	y=Math.abs((n?x.centerY:y)-this.centerY), x=Math.abs((n?x.centerX:x)-this.centerX);
-	return Math.sqrt(x*x+y*y);
-}
-
-//Expand (or contract if negative) a UtilRect by num of pixels.
-//Useful for using UtilRect objects as element hitboxes. Returns self for chaining.
-UtilRect.prototype.expand = function(by) {
-	this.top -= by; this.left -= by; this.bottom += by;
-	this.right += by; return this;
-}
-
-//Get touch by id, returns null if none found.
-if(window.TouchList) TouchList.prototype.get = function(id) {
-	for(let k in this) if(this[k].identifier == id) return this[k]; return 0;
-};
+const utils = {VER:'v8.6'};
 
 (() => { //Utils Library
+
+//Add a getter/setter pair to an existing object
+utils.define = (obj, name, get, set) => {
+	const t={}; if(get) t.get=get; if(set) t.set=set;
+	if(Array.isArray(name)) name.each(n => Object.defineProperty(obj,n,t));
+	else Object.defineProperty(obj,name,t);
+}
+//Define property in object prototype
+utils.proto = (obj, name, v) => {
+	const t={value:v}; obj=obj.prototype;
+	if(Array.isArray(name)) name.each(n => Object.defineProperty(obj,n,t));
+	else Object.defineProperty(obj,name,t);
+}
 
 //Cookie Parsing
 utils.setCookie = (name,value,exp,secure) => {
@@ -79,14 +38,14 @@ utils.getCookie = name => {
 	}
 }
 
-//Wrap a function so that it always has a preset argument list when called.
-//In the called function, 'this' is set to the caller's arguments, granting access to both.
-Function.prototype.wrap = function(/*...*/) {
+//Wrap a function so that it always has a preset argument list when called
+//In the called function, 'this' is set to the caller's arguments, granting access to both
+utils.proto(Function, 'wrap', function(/*...*/) {
 	const f=this, a=arguments; return function() {f.apply(arguments,a)}
-}
+})
 
-//Deep (recursive) Object.create.
-//Copies down to given sub levels. All levels if undefined.
+//Deep (recursive) Object.create
+//Copies down to given sub levels. All levels if undefined
 utils.copy = (o, sub) => {
 	if(sub===0 || typeof o != 'object') return o;
 	sub=sub>0?sub-1:null; let o2;
@@ -96,7 +55,7 @@ utils.copy = (o, sub) => {
 	return o2;
 }
 
-//UserAgent-based Mobile device detection.
+//UserAgent-based Mobile device detection
 utils.deviceInfo = ua => {
 	if(!ua) ua = navigator.userAgent; const d = {};
 	if(!ua.startsWith("Mozilla/5.0 ")) return d;
@@ -127,18 +86,23 @@ utils.deviceInfo = ua => {
 utils.device = utils.deviceInfo();
 utils.mobile = utils.device.mobile;
 
+//Get touch by id, returns null if none found
+if(window.TouchList) utils.proto(TouchList, 'get', function(id) {
+	for(let k in this) if(this[k].identifier == id) return this[k]; return 0;
+})
+
 //Generates modified input field for css skinning on unsupported browsers. This is a JavaScript
 //fallback for when css 'appearance:none' doesn't work. For Mobile Safari, this is usually
-//needed with 'datetime-local', 'select-one', and 'select-multiple' input types.
+//needed with 'datetime-local', 'select-one', and 'select-multiple' input types
 utils.skinnedInput = el => {
 	const cont = utils.mkDiv(null,el.className), is = el.style, type = el.type; el.className += ' isSub';
-	if(type == 'datetime-local' || type == 'select-one' || type == 'select-multiple') { //Datetime or Select:
+	if(type == 'datetime-local' || type == 'select-one' || type == 'select-multiple') { //Datetime or Select
 		is.opacity = 0; is.top = '-100%'; el.siT = utils.mkEl('span',cont,'isText');
 		utils.mkEl('span',cont,'isArrow',{borderTopColor:getComputedStyle(el).color});
 		let si=siChange.bind(el); el.addEventListener('change',si); el.forceUpdate=si; si();
 	}
 	el.replaceWith(cont); cont.appendChild(el);
-	//Append StyleSheet:
+	//Append StyleSheet
 	if(!document.isStyles) { document.isStyles = true; utils.mkEl('style',document.body,null,null,'.isSub {'+
 		'width:100% !important; height:100% !important; border:none !important; display:inline-block !important;'+
 		'position:relative !important; box-shadow:none !important; margin:0 !important; padding:initial !important;'+
@@ -168,10 +132,10 @@ function mulBoxLabel(sb) {
 	if(op[i].selected) str += (str?', ':'')+op[i].label; return str||"No Options Selected";
 }
 
-//Turns your boring <input> into a mobile-friendly number entry field with max/min & negative support.
+//Turns your boring <input> into a mobile-friendly number entry field with max/min & negative support
 //Optional 'decMax' parameter is maximum precision of decimal allowed. (ex. 3 would give precision of 0.001)
 //Use field.onnuminput as your oninput function, and get the number value with field.num
-//On mobile, use star key for decimal point and pound key for negative.
+//On mobile, use star key for decimal point and pound key for negative
 utils.numField = (f, min, max, decMax) => {
 	if(min == null) min=-2147483648; if(max == null) max=2147483647;
 	f.setAttribute('pattern',"\\d*"); f.type=(utils.mobile||decMax)?'tel':'number';
@@ -204,9 +168,9 @@ utils.numField = (f, min, max, decMax) => {
 	return f;
 }
 
-//Turns your boring <input> into a mobile-friendly currency entry field, optionally with custom currency symbol.
+//Turns your boring <input> into a mobile-friendly currency entry field, optionally with custom currency symbol
 //Use field.onnuminput as your oninput function, and get the number value with field.num
-//On mobile, use star key for decimal point.
+//On mobile, use star key for decimal point
 utils.costField = (f, sym) => {
 	if(!sym) sym='$'; f.setAttribute('pattern',"\\d*"); f.type='tel';
 	f.value=utils.formatCost(f.num=Number(f.value)||0,sym); f.ns=f.num.toString();
@@ -236,7 +200,7 @@ utils.costField = (f, sym) => {
 	return f;
 }
 
-//Format Number as currency. Uses '$' by default.
+//Format Number as currency. Uses '$' by default
 utils.formatCost = (n, sym) => {
 	if(!sym) sym='$'; if(!n) return sym+'0.00';
 	const p = n.toFixed(2).split('.');
@@ -244,14 +208,14 @@ utils.formatCost = (n, sym) => {
 	n=='-'?n+a:n+(i&&!(i%3)?',':'')+a,'')+'.'+p[1];
 }
 
-//Convert value from 'datetime-local' input to Date object.
+//Convert value from 'datetime-local' input to Date object
 utils.fromDateTimeBox = el => {
 	const v=el.value; if(!v) return new Date();
 	return new Date(v.replace(/-/g,'/').replace(/T/g,' '));
 }
 
 //Convert Date object into format to set 'datetime-local'
-//input value, optionally including seconds if 'sec' is true.
+//input value, optionally including seconds if 'sec' is true
 utils.toDateTimeBox = (d, sec) => {
 	return d.getFullYear()+'-'+fixed2(d.getMonth()+1)+'-'+fixed2(d.getDate())+'T'+
 	fixed2(d.getHours())+':'+fixed2(d.getMinutes())+(sec?':'+fixed2(d.getSeconds()):'');
@@ -260,7 +224,7 @@ utils.toDateTimeBox = (d, sec) => {
 utils.months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 function fixed2(n) {return n<=9?'0'+n:n}
 
-//Format Date object into human-readable string.
+//Format Date object into human-readable string
 //opt:
 //	sec: True to include seconds
 //	ms: True or 3 to include milliseconds (requires sec), 2 or 1 to limit precision
@@ -302,8 +266,8 @@ addEventListener('popstate', (e) => doNav(e.state));
 addEventListener('load', () => setTimeout(doNav.wrap(H.state),1));
 function doNav(s) {if(utils.onNav) utils.onNav.call(null,s)}
 
-//Create element of type with parent, className, style object, and innerHTML string.
-//(Just remember the order PCSI!) Use null to leave any parameter blank.
+//Create element of type with parent, className, style object, and innerHTML string
+//(Just remember the order PCSI!) Use null to leave any parameter blank
 utils.mkEl = (t,p,c,s,i) => {
 	const e=document.createElement(t);
 	if(c!=null) e.className=c; if(i!=null) e.innerHTML=i;
@@ -315,24 +279,17 @@ utils.mkEl = (t,p,c,s,i) => {
 utils.mkDiv = (p,c,s,i) => utils.mkEl('div',p,c,s,i);
 utils.addText = (el, text) => el.appendChild(document.createTextNode(text));
 
-//Get predicted width of text given CSS font style.
+//Get predicted width of text given CSS font style
 utils.textWidth = (txt, font) => {
 	const c=window.TWCanvas||(window.TWCanvas=utils.mkEl('canvas')),
 	ctx=c.getContext('2d'); ctx.font=font; return ctx.measureText(txt).width;
 }
 
-//Add a getter/setter pair to an existing object:
-utils.define = (obj, name, get, set) => {
-	const t={}; if(get) t.get=get; if(set) t.set=set;
-	if(Array.isArray(name)) for(let i=0,l=name.length; i<l; ++i) Object.defineProperty(obj, name[i] ,t);
-	else Object.defineProperty(obj, name, t);
-}
-
-//It's useful for any canvas-style app to have the page dimensions on hand.
+//It's useful for any canvas-style app to have the page dimensions on hand
 utils.define(utils, 'w', ()=>innerWidth);
 utils.define(utils, 'h', ()=>innerHeight);
 
-/*Set a nested/recursive property in an object, even if the higher levels don't exist. Useful for defining settings in a complex config object.
+/*Set a nested/recursive property in an object, even if the higher levels don't exist. Useful for defining settings in a complex config object
 obj: Object to set property in
 path: String (dot separated) or array defining the path to the property
 val: Value to set
@@ -345,7 +302,7 @@ utils.setPropSafe = (obj, path, val, onlyNull=false) => {
 	return obj[li];
 }
 
-/*Gets a nested/recursive property in an object, returning undefined if it or any higher level doesn't exist. Useful for reading settings from a complex config object.
+/*Gets a nested/recursive property in an object, returning undefined if it or any higher level doesn't exist. Useful for reading settings from a complex config object
 obj: Object to read property from
 path: String (dot separated) or array defining the path to the property*/
 utils.getPropSafe = (obj, path) => {
@@ -353,48 +310,51 @@ utils.getPropSafe = (obj, path) => {
 	try {path.each(p => {obj=obj[p]}); return obj} catch(_) {}
 }
 
-//Remove 'empty' elements like 0, false, ' ', undefined, and NaN from array.
-//Often useful in combination with Array.split. Set 'keepZero' to true to keep '0's.
+//Remove 'empty' elements like 0, false, ' ', undefined, and NaN from array
+//Often useful in combination with Array.split. Set 'keepZero' to true to keep '0's
 //Function by: Pecacheu & https://stackoverflow.com/users/5445/cms
-Array.prototype.clean = function(kz) {
+utils.proto(Array, 'clean', function(kz) {
 	for(let i=0,e,l=this.length; i<l; ++i) {
 		e=this[i]; if(utils.isBlank(e) || e === false ||
 		!kz && e === 0) this.splice(i--,1),l--;
 	} return this;
-}
+})
 
-//Remove first instance of item from array. Returns false if not found.
-//Use a while loop to remove all instances.
-Array.prototype.remove = function(itm) {
+//Remove first instance of item from array. Returns false if not found
+//Use a while loop to remove all instances
+utils.proto(Array, 'remove', function(itm) {
 	const i=this.indexOf(itm); if(i==-1) return false;
 	this.splice(i,1); return true;
-}
+})
 
-//Calls fn on each index of array.
+//Calls fn on each index of array
 //fn: Callback function(element, index, length)
-//st: Start index, optional. If negative, relative to end of array.
-//en: End index, optional. If negative, relative to end of array.
-//If fn returns '!', it will remove the element from the array.
+//st: Start index, optional. If negative, relative to end of array
+//en: End index, optional. If negative, relative to end of array
+//If fn returns '!', it will remove the element from the array
 //Otherwise, if fn returns any non-null value,
-//the loop is broken and the value is returned by each.
-NodeList.prototype.each = HTMLCollection.prototype.each = Array.prototype.each = function(fn,st,en) {
+//the loop is broken and the value is returned by each
+function each(fn,st,en) {
 	let l=this.length,i=st<0?l+st:(st||0),r; if(en!=null) l=en<0?l+en:en;
 	for(; i<l; ++i) if((r=fn(this[i],i,l))==='!') {
 		this instanceof HTMLCollection?this[i].remove():this.splice(i,1); i--,l--;
 	} else if(r!=null) return r;
 }
+utils.proto(Array, 'each', each);
+utils.proto(HTMLCollection, 'each', each);
+utils.proto(NodeList, 'each', each);
 
-//Get an element's index in its parent. Returns -1 if the element has no parent.
-utils.define(Element.prototype,'index',function() {
+//Get an element's index in its parent. Returns -1 if the element has no parent
+utils.define(Element.prototype, 'index', function() {
 	const p=this.parentElement; if(!p) return -1;
 	return Array.prototype.indexOf.call(p.children, this);
-});
+})
 
-//Insert child at index:
-Element.prototype.insertChildAt = function(el, i) {
+//Insert child at index
+utils.proto(Element, 'insertChildAt', function(el, i) {
 	if(i<0) i=0; if(i >= this.children.length) this.appendChild(el);
 	else this.insertBefore(el, this.children[i]);
-}
+})
 
 //Get element bounding rect as UtilRect object
 utils.boundingRect=e => new UtilRect(e.getBoundingClientRect());
@@ -408,10 +368,10 @@ utils.innerRect=e => {
 utils.define(Element.prototype,'boundingRect',function() {return utils.boundingRect(this)});
 utils.define(Element.prototype,'innerRect',function() {return utils.innerRect(this)});
 
-//No idea why this isn't built-in, but it's not.
+//No idea why this isn't built-in, but it's not
 Math.cot = x => 1/Math.tan(x);
 
-//Check if string, array, or other object is empty.
+//Check if string, array, or other object is empty
 utils.isBlank = s => {
 	if(s == null) return true;
 	if(typeof s == 'string') return !/\S/.test(s);
@@ -422,21 +382,21 @@ utils.isBlank = s => {
 	return false;
 }
 
-//Finds first empty (undefined) slot in array.
+//Finds first empty (undefined) slot in array
 utils.firstEmpty = arr => {
 	const len = arr.length;
 	for(let i=0; i<len; ++i) if(arr[i] == null) return i;
 	return len;
 }
 
-//Like 'firstEmpty', but uses letters a-Z instead.
+//Like 'firstEmpty', but uses letters a-Z instead
 utils.firstEmptyChar = obj => {
 	const keys = Object.keys(obj), len = keys.length;
 	for(let i=0; i<len; ++i) if(obj[keys[i]] == null) return keys[i];
 	return utils.numToChar(len);
 }
 
-//Converts a number into letters (upper and lower) from a to Z.
+//Converts a number into letters (upper and lower) from a to Z
 utils.numToChar = n => {
 	if(n<=25) return String.fromCharCode(n+97);
 	else if(n>=26 && n<=51) return String.fromCharCode(n+39);
@@ -444,24 +404,22 @@ utils.numToChar = n => {
 	if(n<2756) { mVal=rstCount(Math.floor(n/52)-1,52); fVal=rstCount(n,52); }
 	else if(n<143364) { mVal=rstCount(Math.floor((n-52)/2704)-1,52); fVal=rstCount(n-52,2704)+52; }
 	else if(n<7454980) { mVal=rstCount(Math.floor((n-2756)/140608)-1,52); fVal=rstCount(n-2756,140608)+2756; }
-	else return false; //More than "ZZZZ"? No. Just, no.
+	else return false; //More than "ZZZZ"? No. Just, no
 	return utils.numToChar(mVal)+utils.numToChar(fVal);
 }
 
-//Use this to reset your counter each time 'maxVal' is reached.
+//Use this to reset your counter each time 'maxVal' is reached
 function rstCount(val, maxVal) { while(val >= maxVal) val -= maxVal; return val; }
-//This alternate method doesn't always work due to inaccuracy of trig functions:
-//function squareWave(x,p) {a=p/2; return Math.round(-(2*a/Math.PI)*Math.atan(utils.cot(x*Math.PI/p))+a)}
 
-//Semi-recursively merges two (or more) objects, giving the last precedence.
-//If both objects contain a property at the same index, and both are Arrays/Objects, they are merged.
+//Semi-recursively merges two (or more) objects, giving the last precedence
+//If both objects contain a property at the same index, and both are Arrays/Objects, they are merged
 utils.merge = function(o/*, src1, src2...*/) {
 	for(let a=1,al=arguments.length,n,oP,nP; a<al; ++a) {
 		n = arguments[a]; for(let k in n) {
-			oP = o[k]; nP = n[k]; if(oP && nP) { //Conflict.
-				if(oP.length >= 0 && nP.length >= 0) { //Both Array-like.
+			oP = o[k]; nP = n[k]; if(oP && nP) { //Conflict
+				if(oP.length >= 0 && nP.length >= 0) { //Both Array-like
 					for(let i=0,l=nP.length,ofs=oP.length; i<l; ++i) oP[i+ofs] = nP[i]; continue;
-				} else if(typeof oP == 'object' && typeof nP == 'object') { //Both Objects.
+				} else if(typeof oP == 'object' && typeof nP == 'object') { //Both Objects
 					for(let pk in nP) oP[pk] = nP[pk]; continue;
 				}
 			}
@@ -471,20 +429,20 @@ utils.merge = function(o/*, src1, src2...*/) {
 	return o;
 }
 
-//Keeps value within max/min bounds. Also handles NaN or null.
+//Keeps value within max/min bounds. Also handles NaN or null
 utils.bounds = (n, min=0, max=1) => {
 	if(!(n>=min)) return min; if(!(n<=max)) return max; return n;
 }
 
 //'Normalizes' a value so that it ranges from min to max, but unlike utils.bounds,
-//this function retains input's offset. This can be used to normalize angles.
+//this function retains input's offset. This can be used to normalize angles
 utils.norm = utils.normalize = (n, min=0, max=1) => {
 	const c = Math.abs(max-min);
 	if(n < min) while(n < min) n += c; else while(n >= max) n -= c;
 	return n;
 }
 
-//Finds and removes all instances of 'rem' contained within s.
+//Finds and removes all instances of 'rem' contained within s
 utils.cutStr = (s, rem) => {
 	let fnd; while((fnd=s.indexOf(rem)) != -1) {
 		s = s.slice(0, fnd)+s.slice(fnd+rem.length);
@@ -492,9 +450,9 @@ utils.cutStr = (s, rem) => {
 	return s;
 }
 
-//Cuts text out of 'data' from first instance of 'startString' to next instance of 'endString'.
+//Cuts text out of 'data' from first instance of 'startString' to next instance of 'endString'
 //(data,startString,endString[,index[,searchStart]])
-//index: Optional object. index.s and index.t will be set to start and end indexes.
+//index: Optional object. index.s and index.t will be set to start and end indexes
 utils.dCut = (d, ss, es, sd, st) => {
 	let is = d.indexOf(ss,st?st:undefined)+ss.length, it = d.indexOf(es,is);
 	if(sd) sd.s=is,sd.t=it; return (is < ss.length || it <= is)?'':d.substring(is,it);
@@ -508,12 +466,8 @@ utils.dCutLast = (d, ss, es, sd, st) => {
 	if(sd) sd.s=is,sd.t=it; return (is < ss.length || it <= is)?'':d.substring(is,it);
 }
 
-//Polyfill for String.trim()
-//Function by: https://w3schools.com
-if(!String.prototype.trim) String.prototype.trim = function() {return this.replace(/^\s+|\s+$/gm,'')}
-
 //Given CSS property value 'prop', returns object with
-//space-separated values from the property string.
+//space-separated values from the property string
 utils.parseCSS = prop => {
 	const pArr={}, pKey="", keyNum=0; prop=prop.trim();
 	function parseInner(str) {
@@ -540,7 +494,7 @@ utils.parseCSS = prop => {
 	if(pKey) pArr[keyNum] = pKey; return pArr;
 }
 
-//Rebuilds CSS string from a parseCSS object.
+//Rebuilds CSS string from a parseCSS object
 utils.buildCSS = propArr => {
 	const keyArr=Object.keys(propArr), l=keyArr.length; let pStr='', i=0;
 	while(i<l) {
@@ -560,26 +514,26 @@ function toKey(k) {
 }
 
 //Create a CSS class and append it to the current document. Fill 'propList' object
-//with key/value pairs representing the properties you want to add to the class.
+//with key/value pairs representing the properties you want to add to the class
 utils.addClass = (className, propList) => {
 	const style = defaultStyle(), keys = Object.keys(propList); let str='';
 	for(let i=0,l=keys.length; i<l; ++i) str += toKey(keys[i])+":"+propList[keys[i]]+";";
 	style.addRule("."+className,str);
 }
 
-//Create a CSS selector and append it to the current document.
+//Create a CSS selector and append it to the current document
 utils.addId = (idName, propList) => {
 	const style = defaultStyle(), keys = Object.keys(propList); let str='';
 	for(let i=0,l=keys.length; i<l; ++i) str += toKey(keys[i])+":"+propList[keys[i]]+";";
 	style.addRule("#"+idName,str);
 }
 
-//Create a CSS keyframe and append it to the current document.
+//Create a CSS keyframe and append it to the current document
 utils.addKeyframe = (name, content) => {
 	defaultStyle().addRule("@keyframes "+name,content);
 }
 
-//Remove a specific css selector (including the '.' or '#') from all stylesheets in the current document.
+//Remove a specific css selector (including the '.' or '#') from all stylesheets in the current document
 utils.removeSelector = name => {
 	for(let s=0,style,rList,j=document.styleSheets.length; s<j; ++s) {
 		style = document.styleSheets[s]; try { rList=style.cssRules; } catch(e) { continue; }
@@ -588,27 +542,27 @@ utils.removeSelector = name => {
 	}
 }
 
-//Shorthand way to get element by id/class name, within a parent element (defaults to document).
+//Shorthand way to get element by id/class name, within a parent element (defaults to document)
 //(class[,parent])
 utils.getId = (c,p) => (p?p:document)['getElementById'](c);
 utils.getClassList = (c,p) => (p?p:document)['getElementsByClassName'](c);
 utils.getClassFirst = (c,p) => (c=utils.getClassList(c,p),c.length>0?c[0]:0);
 utils.getClassOnly = (c,p) => (c=utils.getClassList(c,p),c.length==1?c[0]:0);
 
-//Converts HEX color to 24-bit RGB.
+//Converts HEX color to 24-bit RGB
 //Function by: https://github.com/Pecacheu and others
 utils.hexToRgb = hex => {
 	const c = parseInt(hex.substr(1), 16);
 	return [(c >> 16) & 255, (c >> 8) & 255, c & 255];
 }
 
-//Generates random integer from min to max.
+//Generates random integer from min to max
 utils.rand = (min, max, res, ease) => {
 	res=res||1; max*=res,min*=res; let r=Math.random();
 	return Math.round((ease?ease(r):r)*(max-min)+min)/res;
 }
 
-//Parses a url query string into an Object.
+//Parses a url query string into an Object
 //Function by: Pecacheu (From Pecacheu's Apache Test Server)
 utils.fromQuery = str => {
 	if(str.startsWith('?')) str = str.substr(1);
@@ -616,7 +570,7 @@ utils.fromQuery = str => {
 		const pair = pairs[0], spl = pair.indexOf('='),
 		key = decodeURIComponent(pair.substr(0,spl)),
 		value = decodeURIComponent(pair.substr(spl+1));
-		//Handle multiple parameters of the same name:
+		//Handle multiple parameters of the same name
 		if(params[key] == null) params[key] = value;
 		else if(typeof params[key] == 'array') params[key].push(value);
 		else params[key] = [params[key],value];
@@ -624,7 +578,7 @@ utils.fromQuery = str => {
 	} return str.length == 0 ? {} : parse({}, str.split('&'));
 }
 
-//Converts an object into a url query string.
+//Converts an object into a url query string
 utils.toQuery = obj => {
 	let str = ''; if(typeof obj != 'object') return encodeURIComponent(obj);
 	for(let key in obj) {
@@ -633,10 +587,10 @@ utils.toQuery = obj => {
 	} return str.slice(1);
 }
 
-//Various methods of centering objects using JavaScript.
-//obj: Object to center.
-//only: 'x' for only x axis centering, 'y' for only y axis, null for both.
-//type: 'calc', 'trans', 'move', or null, modes explained below.
+//Various methods of centering objects using JavaScript
+//obj: Object to center
+//only: 'x' for only x axis centering, 'y' for only y axis, null for both
+//type: 'calc', 'trans', 'move', or null, modes explained below
 utils.center = (obj, only, type) => {
 	let os=obj.style;
 	if(!os.position) os.position="absolute";
@@ -662,14 +616,14 @@ utils.center = (obj, only, type) => {
 	}
 }
 
-//Loads a file and returns its contents using HTTP GET.
+//Loads a file and returns its contents using HTTP GET
 //Callback parameters: (err, data, req)
-//err: Non-zero on error. Standard HTTP error codes.
-//data: Response text.
-//req: Full XMLHttpRequest object.
-//meth: Optional HTTP method, default is GET.
-//body: Optional body content.
-//hd: Optional header list.
+//err: Non-zero on error. Standard HTTP error codes
+//data: Response text
+//req: Full XMLHttpRequest object
+//meth: Optional HTTP method, default is GET
+//body: Optional body content
+//hd: Optional header list
 utils.loadAjax = (path, cb, meth, body, hd) => {
 	let R; try {R=new XMLHttpRequest()} catch(e) {return cb(e)}
 	if(hd) for(let k in hd) R.setRequestHeader(k,hd[k]);
@@ -680,8 +634,8 @@ utils.loadAjax = (path, cb, meth, body, hd) => {
 	R.send(body||undefined);
 }
 
-//Good fallback for loadAjax. Loads a file at the address via HTML object tag.
-//Callback is fired with either received data, or 'false' if unsuccessful.
+//Good fallback for loadAjax. Loads a file at the address via HTML object tag
+//Callback is fired with either received data, or 'false' if unsuccessful
 utils.loadFile = (path, cb, timeout) => {
 	const obj = utils.mkEl('object', document.body, null, {position:'fixed', opacity:0});
 	obj.data = path;
@@ -696,7 +650,7 @@ utils.loadFile = (path, cb, timeout) => {
 }
 
 //Loads a file at the address from a JSONP-enabled server. Callback
-//is fired with either received data, or 'false' if unsuccessful.
+//is fired with either received data, or 'false' if unsuccessful
 utils.loadJSONP = (path, cb, timeout) => {
 	const script = utils.mkEl('script', document.head), id = utils.firstEmptyChar(utils.lJSONCall);
 	script.type = 'application/javascript';
@@ -708,12 +662,12 @@ utils.loadJSONP = (path, cb, timeout) => {
 	document.head.removeChild(script);
 }; utils.lJSONCall = [];
 
-//Downloads a file from a link.
+//Downloads a file from a link
 utils.dlFile = (fn,uri) => {
 	return fetch(uri).then(r => { if(r.status != 200) throw "Code "+r.status; return r.blob(); })
 		.then(b => { utils.dlData(fn,b); });
 }
-//Downloads a file generated from a Blob or ArrayBuffer.
+//Downloads a file generated from a Blob or ArrayBuffer
 utils.dlData = (fn,d) => {
 	let o,e=utils.mkEl('a',document.body,null,{display:'none'});
 	if(typeof d=='string') o=d; else {
@@ -722,12 +676,12 @@ utils.dlData = (fn,d) => {
 	e.href=o,e.download=fn; e.click(); e.remove(); URL.revokeObjectURL(o);
 }
 
-//Converts from radians to degrees, so you can work in degrees.
-//Function by: The a**hole who invented radians.
+//Converts from radians to degrees, so you can work in degrees
+//Function by: The a**hole who invented radians
 utils.deg = rad => rad*180/Math.PI;
 
-//Converts from degrees to radians, so you can convert back for given stupid library.
-//Function by: The a**hole who invented radians.
+//Converts from degrees to radians, so you can convert back for given stupid library
+//Function by: The a**hole who invented radians
 utils.rad = deg => deg*Math.PI/180;
 
 //Pecacheu's ultimate unit translation formula!
@@ -771,3 +725,52 @@ const Easing = {
 	//acceleration until halfway, then deceleration
 	easeInOutQuint:t => t<.5 ? 16*t*t*t*t*t : 1+16*(--t)*t*t*t*t
 }
+
+function UtilRect(t,b,l,r) {
+	if(!(this instanceof UtilRect)) return new UtilRect(t,b,l,r);
+	const f=Number.isFinite; let tt=0,bb=0,ll=0,rr=0;
+	utils.define(this,'x',				()=>ll,		v=>{f(v)?(rr+=v-ll,ll=v):0});
+	utils.define(this,'y',				()=>tt,		v=>{f(v)?(bb+=v-tt,tt=v):0});
+	utils.define(this,'top',			()=>tt,		v=>{tt=f(v)?v:0});
+	utils.define(this,['bottom','y2'],	()=>bb,		v=>{bb=f(v)?v:0});
+	utils.define(this,'left',			()=>ll,		v=>{ll=f(v)?v:0});
+	utils.define(this,['right','x2'],	()=>rr,		v=>{rr=f(v)?v:0});
+	utils.define(this,['width','w'],	()=>rr-ll,	v=>{rr=v>=0?ll+v:0});
+	utils.define(this,['height','h'],	()=>bb-tt,	v=>{bb=v>=0?tt+v:0});
+	utils.define(this,'centerX',		()=>ll/2+rr/2);
+	utils.define(this,'centerY',		()=>tt/2+bb/2);
+	if(t instanceof DOMRect || t instanceof UtilRect) tt=t.top, bb=t.bottom, ll=t.left, rr=t.right;
+	else tt=t, bb=b, ll=l, rr=r;
+}
+
+//Check if rect contains point, other rect, or Element
+utils.proto(UtilRect, 'contains', function(x,y) {
+	if(x instanceof Element) return this.contains(x.boundingRect);
+	if(x instanceof UtilRect) return x.x >= this.x && x.x2 <= this.x2 && x.y >= this.y && x.y2 <= this.y2;
+	return x >= this.x && x <= this.x2 && y >= this.y && y <= this.y2;
+})
+
+//Check if rect overlaps rect or Element
+utils.proto(UtilRect, 'overlaps', function(r) {
+	if(r instanceof Element) return this.overlaps(r.boundingRect);
+	if(!(r instanceof UtilRect)) return 0; let x,y;
+	if(r.x2-r.x >= this.x2-this.x) x = this.x >= r.x && this.x <= r.x2 || this.x2 >= r.x && this.x2 <= r.x2;
+	else x = r.x >= this.x && r.x <= this.x2 || r.x2 >= this.x && r.x2 <= this.x2;
+	if(r.y2-r.y >= this.y2-this.y) y = this.y >= r.y && this.y <= r.y2 || this.y2 >= r.y && this.y2 <= r.y2;
+	else y = r.y >= this.y && r.y <= this.y2 || r.y2 >= this.y && r.y2 <= this.y2;
+	return x&&y;
+})
+
+//Get distance from this rect to point, other rect, or Element
+utils.proto(UtilRect, 'dist', function(x,y) {
+	if(x instanceof Element) return this.dist(x.boundingRect); let n=(x instanceof UtilRect);
+	y=Math.abs((n?x.centerY:y)-this.centerY), x=Math.abs((n?x.centerX:x)-this.centerX);
+	return Math.sqrt(x*x+y*y);
+})
+
+//Expand (or contract if negative) a UtilRect by num of pixels
+//Useful for using UtilRect objects as element hitboxes. Returns self for chaining
+utils.proto(UtilRect, 'expand', function(by) {
+	this.top -= by; this.left -= by; this.bottom += by;
+	this.right += by; return this;
+})
