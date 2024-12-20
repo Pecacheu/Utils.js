@@ -1,19 +1,19 @@
 //https://github.com/Pecacheu/Utils.js; MIT License
 
 'use strict';
-const utils = {VER:'v8.6'};
+const utils = {VER:'v8.6.1'};
 
 (() => { //Utils Library
 
-//Add a getter/setter pair to an existing object
+//Add getter/setter to object
 utils.define = (obj, name, get, set) => {
 	const t={}; if(get) t.get=get; if(set) t.set=set;
 	if(Array.isArray(name)) name.each(n => Object.defineProperty(obj,n,t));
 	else Object.defineProperty(obj,name,t);
 }
-//Define property in object prototype
-utils.proto = (obj, name, v) => {
-	const t={value:v}; obj=obj.prototype;
+//Define prop in object prototype
+utils.proto = (obj, name, val, st) => {
+	const t={value:val}; if(!st) obj=obj.prototype;
 	if(Array.isArray(name)) name.each(n => Object.defineProperty(obj,n,t));
 	else Object.defineProperty(obj,name,t);
 }
@@ -57,29 +57,31 @@ utils.copy = (o, sub) => {
 
 //UserAgent-based Mobile device detection
 utils.deviceInfo = ua => {
-	if(!ua) ua = navigator.userAgent; const d = {};
+	const d={}; if(!ua) ua=navigator.userAgent;
 	if(!ua.startsWith("Mozilla/5.0 ")) return d;
-	let o = ua.indexOf(')'), o2 = ua.indexOf(' ',o+2), o3 = ua.indexOf(')',o2+1);
-	o3 = o3==-1?o2+1:o3+2; let os = d.rawOS = ua.substring(13,o);
-	if(os.startsWith("Windows NT ")) {
-		d.os = "Windows"; let vs = os.indexOf(';',12), ts = os.indexOf(';',vs+1)+2, te = os.indexOf(';',ts);
-		d.type = os.substring(ts,te==-1?undefined:te)+" PC"; d.version = os.substring(11,vs).replace(/.0$/,'');
-	} else if(os.startsWith("Linux; Android ")) {
-		d.os = "Android"; let ds = os.indexOf(';',16), te = os.indexOf(' Build',ds+3);
-		d.type = os.substring(ds+2, te==-1?undefined:te);
-		d.version = os.substring(15,ds).replace(/.0$/,'');
-	} else if(os.startsWith("iPhone; CPU iPhone OS ")) {
-		d.os = "iOS"; d.type = "iPhone";
-		d.version = os.substring(22, os.indexOf(' ',23)).replace(/_/g,'.');
-	} else if(os.startsWith("Macintosh; Intel Mac OS X ")) {
-		d.os = "MacOS"; d.type = "Macintosh";
-		d.version = os.substr(26).replace(/_/g,'.');
-	} else if(os.startsWith("X11; ")) {
-		let ds = os.indexOf(';',6), ts = os.indexOf(';',ds+3);
-		d.os = "Linux "+os.substring(5,ds); d.type = os.substring(ds+2,ts);
-		d.version = os.substr(ts+5);
+	let o=ua.indexOf(')'), os=d.rawOS=ua.substring(13,o), o2,o3;
+	if(os.startsWith("Windows")) {
+		o2=os.split('; '), d.os = "Windows";
+		d.type = o2.indexOf('WOW64')!=-1?'x64 PC; x86 Browser':o2.indexOf('x64')!=-1?'x64 PC':'x86 PC';
+		o2=os.indexOf("Windows NT "), d.version = os.substring(o2+11,os.indexOf(';',o2+12));
+	} else if(os.startsWith("iP")) {
+		o2=os.indexOf("OS"), d.os = "iOS", d.type = os.substr(0,os.indexOf(';'));
+		d.version = os.substring(o2+3, os.indexOf(' ',o2+4)).replace(/_/g,'.');
+	} else if(os.startsWith("Macintosh;")) {
+		o2=os.indexOf(" Mac OS X"), d.os = "MacOS", d.type = os.substring(11,o2)+" Mac";
+		d.version = os.substr(o2+10).replace(/_/g,'.');
+	} else if((o2=os.indexOf("Android"))!=-1) {
+		d.os = "Android", d.version = os.substring(o2+8, os.indexOf(';',o2+9));
+		o2=os.lastIndexOf(';'), o3=os.indexOf(" Build",o2+2);
+		d.type = os.substring(o2+2, o3==-1?undefined:o3);
+	} else if(os.startsWith("X11;")) {
+		os=os.substr(5).split(/[;\s]+/), o2=os.length;
+		d.os = (os[0]=="Linux"?'':"Linux ")+os[0];
+		d.type = os[o2-2], d.version = os[o2-1];
 	}
-	d.engine = ua.substring(o+2,o2); d.browser = ua.substring(o3);
+	if(o2=Number(d.version)) d.version=o2;
+	o2=ua.indexOf(' ',o+2), o3=ua.indexOf(')',o2+1), o3=o3==-1?o2+1:o3+2;
+	d.engine = ua.substring(o+2,o2), d.browser = ua.substring(o3);
 	d.mobile = !!ua.match(/Mobi/i); return d;
 }
 
@@ -214,15 +216,22 @@ utils.fromDateTimeBox = el => {
 	return new Date(v.replace(/-/g,'/').replace(/T/g,' '));
 }
 
+//Convert Number to fixed-length
+//Set radix to 16 for HEX
+utils.fixedNum = function(n,len,radix=10) {
+	let s=Math.abs(n).toString(radix).toUpperCase();
+	return (n<0?'-':'')+(radix==16?'0x':radix==2?'0b':'')+'0'.repeat(Math.max(len-s.length,0))+s;
+}
+
+utils.months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+function fixed2(n) {return n<=9?'0'+n:n}
+
 //Convert Date object into format to set 'datetime-local'
 //input value, optionally including seconds if 'sec' is true
 utils.toDateTimeBox = (d, sec) => {
 	return d.getFullYear()+'-'+fixed2(d.getMonth()+1)+'-'+fixed2(d.getDate())+'T'+
 	fixed2(d.getHours())+':'+fixed2(d.getMinutes())+(sec?':'+fixed2(d.getSeconds()):'');
 }
-
-utils.months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-function fixed2(n) {return n<=9?'0'+n:n}
 
 //Format Date object into human-readable string
 //opt:
@@ -335,14 +344,79 @@ utils.proto(Array, 'remove', function(itm) {
 //Otherwise, if fn returns any non-null value,
 //the loop is broken and the value is returned by each
 function each(fn,st,en) {
-	let l=this.length,i=st<0?l+st:(st||0),r; if(en!=null) l=en<0?l+en:en;
+	let l=this.length,i=Math.max(st<0?l+st:(st||0),0),r;
+	if(en!=null) l=Math.min(en<0?l+en:en,l);
 	for(; i<l; ++i) if((r=fn(this[i],i,l))==='!') {
-		this instanceof HTMLCollection?this[i].remove():this.splice(i,1); i--,l--;
+		this instanceof HTMLCollection?this[i].remove():this.splice(i,1); --i,--l;
 	} else if(r!=null) return r;
 }
-utils.proto(Array, 'each', each);
-utils.proto(HTMLCollection, 'each', each);
-utils.proto(NodeList, 'each', each);
+
+//Adds async support to each
+//pe: true (default) to enable parallel async execution
+async function eachAsync(fn,st,en,pe=true) {
+	let l=this.length,i=st=Math.max(st<0?l+st:(st||0),0),n,r=[];
+	if(en!=null) l=Math.min(en<0?l+en:en,l);
+	for(; i<l; ++i) {
+		n=fn(this[i],i,l);
+		if(!pe) { n=await n; if(n!=='!' && n!=null) return n; }
+		r.push(n);
+	}
+	if(pe) r=await Promise.all(r);
+	for(i=st,n=0; i<l; ++i,++n) if(r[n]==='!') {
+		this instanceof HTMLCollection?this[i].remove():this.splice(i,1); --i,--l;
+	} else if(r[n]!=null) return r[n];
+}
+[Array,HTMLCollection,NodeList].forEach(p => {utils.proto(p,'each',each), utils.proto(p,'eachAsync',eachAsync)});
+
+const B64='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/', B64URL=B64.replace('+/','-_'),
+B64F={43:62,47:63,48:52,49:53,50:54,51:55,52:56,53:57,54:58,55:59,56:60,57:61,65:0,66:1,67:2,68:3,69:4,70:5,71:6,72:7,73:8,
+	74:9,75:10,76:11,77:12,78:13,79:14,80:15,81:16,82:17,83:18,84:19,85:20,86:21,87:22,88:23,89:24,90:25,97:26,98:27,99:28,
+	100:29,101:30,102:31,103:32,104:33,105:34,106:35,107:36,108:37,109:38,110:39,111:40,112:41,113:42,114:43,115:44,116:45,
+	117:46,118:47,119:48,120:49,121:50,122:51,45:62,95:63};
+
+//Polyfill for Uint8Array.toBase64
+if(!('toBase64' in Uint8Array.prototype)) utils.proto(Uint8Array, 'toBase64', function(opt) {
+	let l=this.byteLength, br=l%3, b=opt&&opt.alphabet==='base64url'?B64URL:B64, i=0,str='',chk; l-=br;
+	for(; i<l; i+=3) {
+		chk = (this[i]<<16)|(this[i+1]<<8)|this[i+2];
+		str += b[(chk&16515072)>>18] + b[(chk&258048)>>12] + b[(chk&4032)>>6] + b[chk&63];
+	}
+	if(br==1) {
+		chk = this[l];
+		str += b[(chk&252)>>2] + b[(chk&3)<<4];
+		if(!opt || !opt.omitPadding) str += '=';
+	} else if(br==2) {
+		chk = (this[l]<<8)|this[l+1];
+		str += b[(chk&64512)>>10] + b[(chk&1008)>>4] + b[(chk&15)<<2];
+		if(!opt || !opt.omitPadding) str += '==';
+	}
+	return str;
+})
+
+function b64Char(s,i) {
+	s=B64F[s.charCodeAt(i)];
+	if(s==null) throw "Bad char at "+i;
+	return s;
+}
+
+//Polyfill for Uint8Array.fromBase64
+if(!('fromBase64' in Uint8Array)) utils.proto(Uint8Array, 'fromBase64', str => {
+	let l=str.length, i=l-1;
+	for(; i>=0; --i) if(str.charCodeAt(i)!==61) break;
+	l=i+1,i=0; let br=l%4; l-=br; if(br==1) throw "Bad b64 len";
+	let arr=new Uint8Array(l*3/4+(br?br-1:0)), b=-1,chk;
+	for(; i<l; i+=4) {
+		chk = (b64Char(str,i)<<18)|(b64Char(str,i+1)<<12)|(b64Char(str,i+2)<<6)|b64Char(str,i+3);
+		arr[++b]=chk>>16, arr[++b]=chk>>8, arr[++b]=chk;
+	}
+	if(br==2) {
+		arr[++b] = (b64Char(str,i)<<2)|(b64Char(str,i+1)>>4);
+	} else if(br==3) {
+		chk = (b64Char(str,i)<<10)|(b64Char(str,i+1)<<4)|(b64Char(str,i+2)>>2);
+		arr[++b]=chk>>8, arr[++b]=chk;
+	}
+	return arr;
+},1)
 
 //Get an element's index in its parent. Returns -1 if the element has no parent
 utils.define(Element.prototype, 'index', function() {

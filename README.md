@@ -27,12 +27,15 @@ Note: For production code, the minified version *utils.min.js* should be used. T
 - `[Array].clean(kz)` Remove 'empty' elements like 0, false, ' ', undefined, and NaN from an array. Set 'kz' to true to keep '0's
 - `[Array].remove(item) returns Boolean` Remove first instance of item from array. Returns false if not found.
 - `[Array].each(fn[,start[,end]]) returns Any` Calls fn on each index of array, with optional start and end index.
+- `[Array].eachAsync(fn[,start[,end[,pe=true]]]) returns Any` Like `each` but async.
 - `Number [Element].index` Represents an element's index in it's parent. Set to -1 if the element has no parent.
 - `[Element].insertChildAt(el,i)` Inserts child at index. Appends child to end if index exceeds child count.
 - `UtilRect [Element].boundingRect` Element's bounding rect as a `UtilRect` object.
 - `UtilRect [Element].innerRect` Element's inner rect (excluding margin, padding, and border)
 - `Math.cot(x) returns Number` No idea why this isn't built-in, but it's not.
 - `[TouchList].get(id) returns Touch` Gets touch by id, returns null if none found.
+- `[Uint8Array].toBase64([opts]) returns String` Polyfill; See MDN docs.
+- `Uint8Array.fromBase64(str[, opts]) returns Uint8Array` Polyfill; See MDN docs.
 
 ### Main *utils* Class
 - `String utils.VER` Current library version.
@@ -53,6 +56,7 @@ Note: For production code, the minified version *utils.min.js* should be used. T
 - `utils.formatDate(d[,opts]) returns String` Format Date object into a pretty string, with various options.
 - `utils.months` Array of months from Jan to Dec.
 - `utils.suffix(n) returns String` Add appropriate suffix to number. (ex. 31st, 12th, 22nd)
+- `utils.fixedNum(n,len[,radix=10]) returns String` Fix number to a given minimum length with padded 0's. Adds '0b' for binary *(radix=2)* and '0x' for hex *(radix=16)*
 - `utils.goBack()` For AJAX navigation. Presses back button.
 - `utils.goForward()` For AJAX navigation. Presses forward button.
 - `utils.go(url, data)` Push new history state for AJAX navigation. You can provide additional data to access later.
@@ -61,8 +65,8 @@ Note: For production code, the minified version *utils.min.js* should be used. T
 - `utils.mkDiv` Same as utils.mkEl, but assumes 'div' for tag.
 - `utils.addText(el,text)` Appends a TextNode with given text to element.
 - `utils.textWidth(text,font) returns Number` Get predicted width of text given css font style.
-- `utils.define(obj,name,get,set)` Add getter/setter pair to an existing object. Set get or set to null to disable variable read or write.
-- `utils.proto(obj,name,val)` Define immutable, non-enumerable property in an object prototype.
+- `utils.define(obj,name,get,set)` Add getter/setter pair to an existing object. Get or set may be null to disable.
+- `utils.proto(obj,name,val[,static])` Define immutable, non-enumerable property or method in an object prototype (or object if 'static' is **true**).
 - `utils.isBlank(o) returns Boolean` Check if string, array, or other object is empty.
 - `utils.firstEmpty(arr) returns Number` Finds first empty (undefined/null) slot in array.
 - `utils.firstEmptyChar(obj) returns String` Like *firstEmpty*, but uses letters from `utils.numToChar` instead.
