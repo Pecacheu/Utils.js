@@ -1,7 +1,7 @@
 //https://github.com/Pecacheu/Utils.js; MIT License
 
 'use strict';
-const utils = {VER:'v8.6.1'};
+const utils = {VER:'v8.6.2'};
 
 (() => { //Utils Library
 
@@ -139,13 +139,14 @@ function mulBoxLabel(sb) {
 //Use field.onnuminput as your oninput function, and get the number value with field.num
 //On mobile, use star key for decimal point and pound key for negative
 utils.numField = (f, min, max, decMax) => {
-	if(min == null) min=-2147483648; if(max == null) max=2147483647;
+	if(min==null) min=-2147483648; if(max==null) max=2147483647;
 	f.setAttribute('pattern',"\\d*"); f.type=(utils.mobile||decMax)?'tel':'number';
-	f.ns=f.value=(f.num=Number(f.value)||0).toString();
+	f.ns=f.value=(f.num=Number(f.value)||Math.max(0,min)).toString();
 	f.addEventListener('keydown',e => {
+		if(e.ctrlKey) return;
 		let k=e.key, kn=(k.length==1)?Number(k):null, dAdd=f.ns.startsWith('-')?f.num != min:f.num != max,
 		old=f.ns, len=f.ns.length, dec=f.ns.indexOf('.');
-		if(kn || kn == 0) { if(dec == -1 || len-dec < decMax+1) f.ns += k; } //Number
+		if(kn || kn == 0) {if(dec == -1 || len-dec < decMax+1) f.ns += k} //Number
 		else if(decMax && dAdd && (k == '.' || k == '*') && dec == -1) f.ns += '.'; //Decimal
 		else if(k == 'Backspace' || k == 'Delete') f.ns = f.ns.substr(0,len-1); //Backspace
 		else if(min < 0 && (k == '-' || k == '#') && !len) f.ns='-'; //Negative
@@ -154,16 +155,17 @@ utils.numField = (f, min, max, decMax) => {
 		len=f.ns.length, dec=f.ns.indexOf('.');
 		if(dec != -1 && len-dec > decMax+1) len=(f.ns=f.ns.substr(0,dec+decMax+1)).length;
 		let n=Number(f.ns)||0;
-		if(n > max) n=max, f.ns=n.toString(); else if(n < min) n=min, f.ns=n.toString();
+		if(n>max) n=max, f.ns=n.toString(); else if(n<min) n=min, f.ns=n.toString();
 		let nOld=f.num, neg=f.ns.startsWith('-'); f.num=n;
-		if(f.onnuminput && f.onnuminput(n) === false) f.ns=old, f.num=nOld;
+		if(f.onnuminput && f.onnuminput(n)===false) f.ns=old, f.num=nOld;
 		else f.value = (neg&&!n?'-':'')+n+(dec!=-1&&n%1==0?'.0':'');
 		e.preventDefault();
 	});
-	f.addEventListener('input',() => {f.set(f.value)});
+	f.addEventListener('input',() => f.set(f.value));
+	f.addEventListener('paste',e => {f.set(e.clipboardData.getData('text')); e.preventDefault()});
 	f.set=n => {
 		let dec,neg; if(typeof n=='string') dec=n.endsWith('.')&&decMax, neg=(n=='0-')&&min<0;
-		n=Number(n)||0; if(!decMax) n=Math.floor(n); if(n > max) n=max; if(n < min) n=min;
+		n=Number(n)||0; if(!decMax) n=Math.floor(n); if(n>max) n=max; if(n<min) n=min;
 		f.value=neg?'-0':(f.num=n)+(dec?'.0':''); f.ns=neg?'-':n+(dec?'.':'');
 		if(f.onnuminput) f.onnuminput(n);
 	}
@@ -179,17 +181,18 @@ utils.costField = (f, sym) => {
 	f.addEventListener('keydown',e => {
 		let k=e.key, kn=(k.length==1)?Number(k):null, len=f.ns.length,
 		old=f.ns, dec=f.ns.indexOf('.');
-		if(kn || kn == 0) { if(dec == -1 || len-dec < 3) f.ns += k; } //Number
+		if(kn || kn == 0) {if(dec == -1 || len-dec < 3) f.ns += k} //Number
 		else if((k == '.' || k == '*') && dec == -1) f.ns += '.', dec=len; //Decimal
 		else if(k == 'Backspace' || k == 'Delete') f.ns = f.ns.substr(0,len-1); //Backspace
 		else if(k == 'ArrowUp') f.ns = (f.num+1).toString(); //Up
 		else if(k == 'ArrowDown' && f.num >= 1) f.ns = (f.num-1).toString(); //Down
 		let n=Number(f.ns)||0; if(!n && dec == -1) f.ns=''; let nOld=f.num; f.num=n;
-		if(f.onnuminput && f.onnuminput(n) === false) f.ns=old, f.num=nOld;
+		if(f.onnuminput && f.onnuminput(n)===false) f.ns=old, f.num=nOld;
 		else f.value=utils.formatCost(n,sym);
 		e.preventDefault();
 	});
-	f.addEventListener('input',() => {f.set(f.value)});
+	f.addEventListener('input',() => f.set(f.value));
+	f.addEventListener('paste',e => {f.set(e.clipboardData.getData('text')); e.preventDefault()});
 	f.set=n => {
 		let dec; if(typeof n=='string') {
 			dec=n.endsWith('.'); if(dec) n=n.substr(0,n.length-1);
