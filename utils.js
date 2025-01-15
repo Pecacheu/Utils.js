@@ -1,7 +1,7 @@
 //https://github.com/Pecacheu/Utils.js; MIT License
 
 'use strict';
-const utils = {VER:'v8.6.2'};
+const utils = {VER:'v8.6.3'};
 
 (() => { //Utils Library
 
@@ -146,7 +146,8 @@ utils.numField = (f, min, max, decMax) => {
 		if(e.ctrlKey) return;
 		let k=e.key, kn=(k.length==1)?Number(k):null, dAdd=f.ns.startsWith('-')?f.num != min:f.num != max,
 		old=f.ns, len=f.ns.length, dec=f.ns.indexOf('.');
-		if(kn || kn == 0) {if(dec == -1 || len-dec < decMax+1) f.ns += k} //Number
+		if(k == 'Tab' || k == 'Enter') return;
+		else if(kn || kn == 0) {if(dec == -1 || len-dec < decMax+1) f.ns += k} //Number
 		else if(decMax && dAdd && (k == '.' || k == '*') && dec == -1) f.ns += '.'; //Decimal
 		else if(k == 'Backspace' || k == 'Delete') f.ns = f.ns.substr(0,len-1); //Backspace
 		else if(min < 0 && (k == '-' || k == '#') && !len) f.ns='-'; //Negative
@@ -179,9 +180,11 @@ utils.costField = (f, sym) => {
 	if(!sym) sym='$'; f.setAttribute('pattern',"\\d*"); f.type='tel';
 	f.value=utils.formatCost(f.num=Number(f.value)||0,sym); f.ns=f.num.toString();
 	f.addEventListener('keydown',e => {
+		if(e.ctrlKey) return;
 		let k=e.key, kn=(k.length==1)?Number(k):null, len=f.ns.length,
 		old=f.ns, dec=f.ns.indexOf('.');
-		if(kn || kn == 0) {if(dec == -1 || len-dec < 3) f.ns += k} //Number
+		if(k == 'Tab' || k == 'Enter') return;
+		else if(kn || kn == 0) {if(dec == -1 || len-dec < 3) f.ns += k} //Number
 		else if((k == '.' || k == '*') && dec == -1) f.ns += '.', dec=len; //Decimal
 		else if(k == 'Backspace' || k == 'Delete') f.ns = f.ns.substr(0,len-1); //Backspace
 		else if(k == 'ArrowUp') f.ns = (f.num+1).toString(); //Up
