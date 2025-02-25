@@ -1,7 +1,7 @@
 //https://github.com/Pecacheu/Utils.js; MIT License
 
 'use strict';
-const utils = {VER:'v8.6.3'};
+const utils = {VER:'v8.6.4'};
 
 (() => { //Utils Library
 
@@ -105,7 +105,7 @@ utils.skinnedInput = el => {
 	}
 	el.replaceWith(cont); cont.appendChild(el);
 	//Append StyleSheet
-	if(!document.isStyles) { document.isStyles = true; utils.mkEl('style',document.body,null,null,'.isSub {'+
+	if(!document.isStyles) document.isStyles=true, utils.mkEl('style',document.body,null,null,'.isSub {'+
 		'width:100% !important; height:100% !important; border:none !important; display:inline-block !important;'+
 		'position:relative !important; box-shadow:none !important; margin:0 !important; padding:initial !important;'+
 	'} .isText {'+
@@ -115,7 +115,7 @@ utils.skinnedInput = el => {
 		'width:0; height:0; display:inline-block; float:right; top:38%; position:relative;'+
 		'border-left:3px solid transparent; border-right:3px solid transparent;'+
 		'border-top:6px solid #000; vertical-align:middle;'+
-	'}'); }
+	'}');
 }
 function siChange() {
 	switch(this.type) {
@@ -134,86 +134,79 @@ function mulBoxLabel(sb) {
 	if(op[i].selected) str += (str?', ':'')+op[i].label; return str||"No Options Selected";
 }
 
-//Turns your boring <input> into a mobile-friendly number entry field with max/min & negative support
-//Optional 'decMax' parameter is maximum precision of decimal allowed. (ex. 3 would give precision of 0.001)
-//Use field.onnuminput as your oninput function, and get the number value with field.num
-//On mobile, use star key for decimal point and pound key for negative
-utils.numField = (f, min, max, decMax) => {
-	if(min==null) min=-2147483648; if(max==null) max=2147483647;
-	f.setAttribute('pattern',"\\d*"); f.type=(utils.mobile||decMax)?'tel':'number';
-	f.ns=f.value=(f.num=Number(f.value)||Math.max(0,min)).toString();
+/*Turns your boring <input> into a mobile-friendly number entry field with max/min & negative support!
+min: Min value, default min safe int
+max: Max value, default max safe int
+decMax: Max decimal precision (eg. 3 is 0.001), default 0
+sym: If a symbol (eg. '$') is given, uses currency mode
+Tips:
+- Use field.onnuminput in place of oninput, get number value with field.num
+- On mobile, use star key for decimal point and pound key for negative
+- You can set field.step in order to change the up/down arrow step size
+- Use field.setRange to change min, max, and decMax*/
+utils.numField=(f, min, max, decMax, sym) => {
+	const RM=RegExp(`[,${sym?RegExp.escape(sym):''}]`,'g');
+	f.type=(utils.mobile||decMax||sym)?'tel':'number';
+	f.setAttribute('pattern',"\\d*");
+	if(min==null) min=Number.MIN_SAFE_INTEGER;
+	if(max==null) max=Number.MAX_SAFE_INTEGER;
+	if(decMax==null) decMax=sym?2:0;
+	if(!f.step) f.step=1;
+	f.num=Math.max(0,min), f.ns='';
+	f.value=sym?utils.formatCost(f.num,sym):f.num.toString();
 	f.addEventListener('keydown',e => {
 		if(e.ctrlKey) return;
-		let k=e.key, kn=(k.length==1)?Number(k):null, dAdd=f.ns.startsWith('-')?f.num != min:f.num != max,
-		old=f.ns, len=f.ns.length, dec=f.ns.indexOf('.');
-		if(k == 'Tab' || k == 'Enter') return;
-		else if(kn || kn == 0) {if(dec == -1 || len-dec < decMax+1) f.ns += k} //Number
-		else if(decMax && dAdd && (k == '.' || k == '*') && dec == -1) f.ns += '.'; //Decimal
-		else if(k == 'Backspace' || k == 'Delete') f.ns = f.ns.substr(0,len-1); //Backspace
-		else if(min < 0 && (k == '-' || k == '#') && !len) f.ns='-'; //Negative
-		else if(k == 'ArrowUp') f.ns = (f.num+(f.step||1)).toString(); //Up
-		else if(k == 'ArrowDown') f.ns = (f.num-(f.step||1)).toString(); //Down
-		len=f.ns.length, dec=f.ns.indexOf('.');
-		if(dec != -1 && len-dec > decMax+1) len=(f.ns=f.ns.substr(0,dec+decMax+1)).length;
-		let n=Number(f.ns)||0;
-		if(n>max) n=max, f.ns=n.toString(); else if(n<min) n=min, f.ns=n.toString();
-		let nOld=f.num, neg=f.ns.startsWith('-'); f.num=n;
-		if(f.onnuminput && f.onnuminput(n)===false) f.ns=old, f.num=nOld;
-		else f.value = (neg&&!n?'-':'')+n+(dec!=-1&&n%1==0?'.0':'');
-		e.preventDefault();
-	});
-	f.addEventListener('input',() => f.set(f.value));
-	f.addEventListener('paste',e => {f.set(e.clipboardData.getData('text')); e.preventDefault()});
-	f.set=n => {
-		let dec,neg; if(typeof n=='string') dec=n.endsWith('.')&&decMax, neg=(n=='0-')&&min<0;
-		n=Number(n)||0; if(!decMax) n=Math.floor(n); if(n>max) n=max; if(n<min) n=min;
-		f.value=neg?'-0':(f.num=n)+(dec?'.0':''); f.ns=neg?'-':n+(dec?'.':'');
-		if(f.onnuminput) f.onnuminput(n);
-	}
-	return f;
-}
+		let k=e.key, kn=k.length==1&&Number.isFinite(Number(k)),
+			ns=f.ns, len=ns.length, dec=ns.indexOf('.');
 
-//Turns your boring <input> into a mobile-friendly currency entry field, optionally with custom currency symbol
-//Use field.onnuminput as your oninput function, and get the number value with field.num
-//On mobile, use star key for decimal point
-utils.costField = (f, sym) => {
-	if(!sym) sym='$'; f.setAttribute('pattern',"\\d*"); f.type='tel';
-	f.value=utils.formatCost(f.num=Number(f.value)||0,sym); f.ns=f.num.toString();
-	f.addEventListener('keydown',e => {
-		if(e.ctrlKey) return;
-		let k=e.key, kn=(k.length==1)?Number(k):null, len=f.ns.length,
-		old=f.ns, dec=f.ns.indexOf('.');
-		if(k == 'Tab' || k == 'Enter') return;
-		else if(kn || kn == 0) {if(dec == -1 || len-dec < 3) f.ns += k} //Number
-		else if((k == '.' || k == '*') && dec == -1) f.ns += '.', dec=len; //Decimal
-		else if(k == 'Backspace' || k == 'Delete') f.ns = f.ns.substr(0,len-1); //Backspace
-		else if(k == 'ArrowUp') f.ns = (f.num+1).toString(); //Up
-		else if(k == 'ArrowDown' && f.num >= 1) f.ns = (f.num-1).toString(); //Down
-		let n=Number(f.ns)||0; if(!n && dec == -1) f.ns=''; let nOld=f.num; f.num=n;
-		if(f.onnuminput && f.onnuminput(n)===false) f.ns=old, f.num=nOld;
-		else f.value=utils.formatCost(n,sym);
+		if(k=='Tab' || k=='Enter') return;
+		else if(kn) {if(dec==-1 || len-dec < decMax+1) ns+=k} //Number
+		else if(k=='.' || k=='*') {if(decMax && dec==-1
+				&& f.num!=max && (min>=0 || f.num!=min)) { //Decimal
+			if(!len && min>0) ns=Math.floor(min)+'.';
+			else ns+='.';
+		}} else if(k=='Backspace' || k=='Delete') { //Backspace
+			if(min>0 && f.num==min && ns.endsWith('.')) ns='';
+			else ns=ns.slice(0,-1);
+		} else if(k=='-' || k=='#') {if(min<0 && !len) ns='-'} //Negative
+		else if(k=='ArrowUp') ns=null, f.set(f.num+Number(f.step)); //Up
+		else if(k=='ArrowDown') ns=null, f.set(f.num-Number(f.step)); //Down
+
+		if(ns !== null && ns !== f.ns) {
+			let neg=ns=='-'||ns=='-.', s=neg?'0':ns+(ns.endsWith('.')?'0':''),
+				nr=Number(s), n=Math.min(max,Math.max(min,nr));
+			if(!kn || f.num !== n || nr === min) {
+				f.ns=ns, f.num=n;
+				f.value = sym ? (neg?sym+'-0.00':utils.formatCost(n,sym)):
+					((neg?'-':'')+n+(ns.endsWith('.')&&(min<=0||n!=min)?'.0':''));
+				if(f.onnuminput) f.onnuminput.call(f);
+			}
+		}
 		e.preventDefault();
 	});
+	f.set=n => {
+		if(typeof n=='string') n=n.replace(RM,'');
+		n=Math.min(max,Math.max(min,Number(n)||0));
+		f.num = decMax?Number(n.toFixed(decMax)):Math.round(n);
+		f.ns = f.num.toString();
+		f.value = sym?utils.formatCost(f.num,sym):f.ns;
+		f.ns=f.ns.replace(/^(-?)0+/,'$1');
+		if(f.onnuminput) f.onnuminput.call(f);
+	}
+	f.setRange=(nMin, nMax, nDecMax) => {
+		min=nMin, max=nMax, decMax=nDecMax;
+	}
 	f.addEventListener('input',() => f.set(f.value));
 	f.addEventListener('paste',e => {f.set(e.clipboardData.getData('text')); e.preventDefault()});
-	f.set=n => {
-		let dec; if(typeof n=='string') {
-			dec=n.endsWith('.'); if(dec) n=n.substr(0,n.length-1);
-			if(n.startsWith(sym)) n=n.substr(sym.length);
-		}
-		f.num=n=Math.floor((Number(n)||0)*100)/100;
-		f.value=utils.formatCost(n,sym), f.ns=n+(dec?'.':'');
-		if(f.onnuminput) f.onnuminput(n);
-	}
 	return f;
 }
 
 //Format Number as currency. Uses '$' by default
-utils.formatCost = (n, sym) => {
-	if(!sym) sym='$'; if(!n) return sym+'0.00';
-	const p = n.toFixed(2).split('.');
+utils.formatCost = (n, sym='$') => {
+	if(!n) return sym+'0.00';
+	const p=n.toFixed(2).split('.');
 	return sym+p[0].split('').reverse().reduce((a,n,i) =>
-	n=='-'?n+a:n+(i&&!(i%3)?',':'')+a,'')+'.'+p[1];
+		n=='-'?n+a:n+(i&&!(i%3)?',':'')+a,'')+'.'+p[1];
 }
 
 //Convert value from 'datetime-local' input to Date object
@@ -424,6 +417,13 @@ if(!('fromBase64' in Uint8Array)) utils.proto(Uint8Array, 'fromBase64', str => {
 	return arr;
 },1)
 
+const R_ESC1=/[|\\{}()[\]^$+*?.]/g, R_ESC2=/-/g;
+
+//Polyfill for RegExp.escape by https://github.com/sindresorhus
+if(!('escape' in RegExp)) utils.proto(RegExp, 'escape', s => {
+	return s.replace(R_ESC1,'\\$&').replace(R_ESC2,'\\x2d');
+},1)
+
 //Get an element's index in its parent. Returns -1 if the element has no parent
 utils.define(Element.prototype, 'index', function() {
 	const p=this.parentElement; if(!p) return -1;
@@ -630,7 +630,6 @@ utils.getClassFirst = (c,p) => (c=utils.getClassList(c,p),c.length>0?c[0]:0);
 utils.getClassOnly = (c,p) => (c=utils.getClassList(c,p),c.length==1?c[0]:0);
 
 //Converts HEX color to 24-bit RGB
-//Function by: https://github.com/Pecacheu and others
 utils.hexToRgb = hex => {
 	const c = parseInt(hex.substr(1), 16);
 	return [(c >> 16) & 255, (c >> 8) & 255, c & 255];

@@ -36,6 +36,7 @@ Note: For production code, the minified version *utils.min.js* should be used. T
 - `[TouchList].get(id) returns Touch` Gets touch by id, returns null if none found.
 - `[Uint8Array].toBase64([opts]) returns String` Polyfill; See MDN docs.
 - `Uint8Array.fromBase64(str[, opts]) returns Uint8Array` Polyfill; See MDN docs.
+- `RegExp.escape(string) return String` Polyfill; See MDN docs.
 
 ### Main *utils* Class
 - `String utils.VER` Current library version.
@@ -48,8 +49,7 @@ Note: For production code, the minified version *utils.min.js* should be used. T
 - `utils.getPropSafe(obj, path) returns Object` Gets a nested property, returns undefined if any level doesn't exist.
 - `utils.copy(o[,sub]) returns Object` Deep (recursive) Object.create. Copies down to given sub levels, all levels if undefined.
 - `utils.skinnedInput(el)` Fallback for when css *'appearance:none'* doesn't work. Generates container for input field for css skinning on unsupported browsers.
-- `utils.numField(field[,min[,max[,decMax]]])` Turns your boring input field into a mobile-friendly number entry field with max/min & negative support!
-- `utils.costField(field[,sym])` Turns your boring input field into a mobile-friendly currency entry field, optionally with custom currency symbol.
+- `utils.numField(field[,min[,max[,decMax[,sym]]]])` Turns your boring input field into a mobile-friendly integer, decimal, or financial entry field with max/min & negative support!
 - `utils.formatCost(n[,sym]) returns String` Format Number as currency. Uses '$' by default.
 - `utils.fromDateTimeBox(el) returns Date` Convert value from 'datetime-local' input to Date object.
 - `utils.toDateTimeBox(d[,sec]) returns String` Convert Date object into format to set 'datetime-local' optionally including seconds if 'sec' is **true**.
