@@ -1,20 +1,26 @@
 //https://github.com/Pecacheu/Utils.js; MIT License
 
 'use strict';
-const utils = {VER:'v8.6.4'};
+const utils = {VER:'v8.6.5'};
 
 (() => { //Utils Library
+
+//Node.js compatibility mode
+if(!('window' in this)) {
+	this.window=this, this.history={back:()=>{},forward:()=>{}};
+	this.HTMLCollection=this.Element=this.NodeList=class{};
+}
 
 //Add getter/setter to object
 utils.define = (obj, name, get, set) => {
 	const t={}; if(get) t.get=get; if(set) t.set=set;
-	if(Array.isArray(name)) name.each(n => Object.defineProperty(obj,n,t));
+	if(Array.isArray(name)) for(let n of name) Object.defineProperty(obj,n,t);
 	else Object.defineProperty(obj,name,t);
 }
 //Define prop in object prototype
 utils.proto = (obj, name, val, st) => {
 	const t={value:val}; if(!st) obj=obj.prototype;
-	if(Array.isArray(name)) name.each(n => Object.defineProperty(obj,n,t));
+	if(Array.isArray(name)) for(let n of name) Object.defineProperty(obj,n,t);
 	else Object.defineProperty(obj,name,t);
 }
 
@@ -315,7 +321,7 @@ obj: Object to read property from
 path: String (dot separated) or array defining the path to the property*/
 utils.getPropSafe = (obj, path) => {
 	if(typeof path=='string') path=path.split('.');
-	try {path.each(p => {obj=obj[p]}); return obj} catch(_) {}
+	try {for(let p of path) obj=obj[p]; return obj} catch(_) {}
 }
 
 //Remove 'empty' elements like 0, false, ' ', undefined, and NaN from array
