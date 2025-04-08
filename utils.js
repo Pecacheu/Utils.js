@@ -1,15 +1,17 @@
 //https://github.com/Pecacheu/Utils.js; MIT License
 
 'use strict';
-const utils = {VER:'v8.6.5'};
+const utils = {VER:'v8.6.6'};
+
+//Node.js compat
+let UtilRect, P=(typeof window=='undefined')?
+	[{}, {back:()=>{},forward:()=>{}}, class{}, class{}, class{}, class{}, ()=>{}]:
+	[window, history, DOMRect, HTMLCollection, Element, NodeList, addEventListener];
 
 (() => { //Utils Library
 
-//Node.js compatibility mode
-if(!('window' in this)) {
-	this.window=this, this.history={back:()=>{},forward:()=>{}};
-	this.HTMLCollection=this.Element=this.NodeList=class{};
-}
+const [window, history, DOMRect, HTMLCollection,
+	Element, NodeList, addEventListener] = P;
 
 //Add getter/setter to object
 utils.define = (obj, name, get, set) => {
@@ -778,40 +780,7 @@ utils.map = (input, minIn, maxIn, minOut, maxOut, ease) => {
 //setTimeout but async
 utils.delay = ms => new Promise(r => setTimeout(r,ms));
 
-})(); //End of Utils Library
-
-//JavaScript Easing Library. By: https://github.com/gre & https://gizma.com/easing
-//'t' should be between 0 and 1
-const Easing = {
-	//no easing, no acceleration
-	linear:t => t,
-	//accelerating from zero velocity
-	easeInQuad:t => t*t,
-	//decelerating to zero velocity
-	easeOutQuad:t => t*(2-t),
-	//acceleration until halfway, then deceleration
-	easeInOutQuad:t => t<.5 ? 2*t*t : -1+(4-2*t)*t,
-	//accelerating from zero velocity
-	easeInCubic:t => t*t*t,
-	//decelerating to zero velocity
-	easeOutCubic:t => (--t)*t*t+1,
-	//acceleration until halfway, then deceleration
-	easeInOutCubic:t => t<.5 ? 4*t*t*t : (t-1)*(2*t-2)*(2*t-2)+1,
-	//accelerating from zero velocity
-	easeInQuart:t => t*t*t*t,
-	//decelerating to zero velocity
-	easeOutQuart:t => 1-(--t)*t*t*t,
-	//acceleration until halfway, then deceleration
-	easeInOutQuart:t => t<.5 ? 8*t*t*t*t : 1-8*(--t)*t*t*t,
-	//accelerating from zero velocity
-	easeInQuint:t => t*t*t*t*t,
-	//decelerating to zero velocity
-	easeOutQuint:t => 1+(--t)*t*t*t*t,
-	//acceleration until halfway, then deceleration
-	easeInOutQuint:t => t<.5 ? 16*t*t*t*t*t : 1+16*(--t)*t*t*t*t
-}
-
-function UtilRect(t,b,l,r) {
+UtilRect = function(t,b,l,r) {
 	if(!(this instanceof UtilRect)) return new UtilRect(t,b,l,r);
 	const f=Number.isFinite; let tt=0,bb=0,ll=0,rr=0;
 	utils.define(this,'x',				()=>ll,		v=>{f(v)?(rr+=v-ll,ll=v):0});
@@ -859,3 +828,41 @@ utils.proto(UtilRect, 'expand', function(by) {
 	this.top -= by; this.left -= by; this.bottom += by;
 	this.right += by; return this;
 })
+
+})(); //End of Utils Library
+
+//JavaScript Easing Library by: https://github.com/gre & https://gizma.com/easing
+//t should be between 0 and 1
+const Easing = {
+	//no easing, no acceleration
+	linear:t => t,
+	//accelerating from zero velocity
+	easeInQuad:t => t*t,
+	//decelerating to zero velocity
+	easeOutQuad:t => t*(2-t),
+	//acceleration until halfway, then deceleration
+	easeInOutQuad:t => t<.5 ? 2*t*t : -1+(4-2*t)*t,
+	//accelerating from zero velocity
+	easeInCubic:t => t*t*t,
+	//decelerating to zero velocity
+	easeOutCubic:t => (--t)*t*t+1,
+	//acceleration until halfway, then deceleration
+	easeInOutCubic:t => t<.5 ? 4*t*t*t : (t-1)*(2*t-2)*(2*t-2)+1,
+	//accelerating from zero velocity
+	easeInQuart:t => t*t*t*t,
+	//decelerating to zero velocity
+	easeOutQuart:t => 1-(--t)*t*t*t,
+	//acceleration until halfway, then deceleration
+	easeInOutQuart:t => t<.5 ? 8*t*t*t*t : 1-8*(--t)*t*t*t,
+	//accelerating from zero velocity
+	easeInQuint:t => t*t*t*t*t,
+	//decelerating to zero velocity
+	easeOutQuint:t => 1+(--t)*t*t*t*t,
+	//acceleration until halfway, then deceleration
+	easeInOutQuint:t => t<.5 ? 16*t*t*t*t*t : 1+16*(--t)*t*t*t*t
+}
+
+//Node.js compat
+if(typeof global!='undefined') {
+	global.utils=utils, global.UtilRect=UtilRect, global.Easing=Easing;
+}
