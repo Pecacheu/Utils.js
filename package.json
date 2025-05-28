@@ -1,6 +1,6 @@
 {
 	"name": "raiutils",
-	"version": "8.7.0",
+	"version": "8.7.1",
 	"type": "module",
 	"description": "The ultimate JavaScript companion library. You'll never need jQuery again!",
 	"repository": "https://github.com/Pecacheu/Utils.js",
@@ -27,7 +27,7 @@
 		".": "./utils.js",
 		"./router": "./router.js",
 		"./schema": "./schema.js",
-		"./uuid": "./router.js"
+		"./uuid": "./uuid.js"
 	},
 	"dependencies": {
 		"chalk": "^5.4.1"

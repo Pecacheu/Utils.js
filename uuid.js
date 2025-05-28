@@ -4,7 +4,7 @@ import os from 'os';
 import fs from 'fs/promises';
 import crypto from 'crypto';
 import {promisify} from 'util';
-import 'utils.js';
+import 'raiutils';
 
 const ID_FN = 'uuid', ID_DELAY = 10000;
 let IDCount, UT;

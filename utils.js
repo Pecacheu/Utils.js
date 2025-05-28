@@ -1,7 +1,7 @@
 //https://github.com/Pecacheu/Utils.js; GNU GPL v3
 
 'use strict';
-const utils = {VER:'v8.7'},
+const utils = {VER:'v8.7.1'},
 _uNJS = typeof global!='undefined';
 
 //Node.js compat
