@@ -1,25 +1,40 @@
 # Utils.js
-###### If you, like many developers, prefer native JavaScript to jQuery, but can't live without those one or two essential features, then you need Utils.js!
+###### If you, like many devs, prefer native JS to jQuery or similar heavy/bloated frameworks, but can't live without those one or two essential features, then you need Utils.js!
 
-Note: For production code, the minified version *utils.min.js* should be used. There's also *utilsES5.js*. It's been converted to the older ES5 standard, so should be more compatible with older browsers. Expect IE. Literally no one cares about IE :(
+### Now includes Node.js support!
 
-*More detailed usage & help available in utils.js!*
+Importing in Node works slightly different due to automatic browser/Node.js compatibility. Install via `npm i raiutils` and import as follows:
+```js
+import 'utils.js';
 
-#### The most commonly functions in this library are:
+console.log("Hello utils", utils.VER);
+```
 
-*utils.mkEl(t,p,c,s,i) utils.mkDiv(p,c,s,i)* To use these quickly and efficiently, just remember PCSI: Parent, class, style, innerHTML!
+For client-side use, the minified *utils.min.js* is recommended (Minified with https://toptal.com/developers/javascript-minifier).
 
-*utils.center(obj[,only[,type]])* Does what it says on the tin! Input an Element, choose whether you want X, Y, or by default, both, and change the centering type.
+*Note: More detailed usage & help available in utils.js!*
 
-*UtilRect* Getting the bounds/position of an element used to be a complete mess with incompatibilities across every browser. Not anymore! Use UtilRects to keep track of your object positions! Simply access the *boundingRect* property of any Element and you can access it's *top*, *bottom*, *left*, *right*, *width*, and *height* on the client's screen! If you need this relative to the top of the page, it's as simple as `Element.boundingRect.top + window.scrollY`
+## Most popular features
 
-*[Function].wrap* This can be quite useful in combination with functions like *setTimeout*, for example `setTimeout(console.log.wrap("Hello!"), 50)`. Also sets the *this* object inside the function to *arguments*, in case you want to access the calling arguments as well!
+**utils.mkEl(t,p,c,s,i) / utils.mkDiv(p,c,s,i)**: Generate DOM elements programmatically with ease! To use these quickly and efficiently, just remember PCSI: Parent Node, Class List, Style Object, and InnerHTML. Set any to *null* to skip it.
 
-### Custom Classes
+**[Array].each / [Array].eachAsync**: Works similar to *[Array].forEach*, but allows a custom start and end index (including negative for relative-to-end), enables deleting elements during iteration by returning a '!', and if any other value besides *null* is returned, *each()* breaks the loop and returns the value in question, enabling slick one-liners that search an array for a specific condition.
+
+**UtilRect**: Getting the bounds/position of an element used to be a complete mess with incompatibilities across every browser. **Not anymore!** Use UtilRects to keep track of your object positions! Simply access the *boundingRect* property of any Element and you can access it's *top*, *bottom*, *left*, *right*, *width*, and *height* on the client's screen! If you need this relative to the top of the page, it's as simple as `Element.boundingRect.top + window.scrollY`.
+
+**utils.center(obj[,only[,type]])**: Does what it says on the tin! Input an Element, choose whether you want X, Y, or by default, both, and change the centering type.
+
+**[Function].wrap**: This can be quite useful in combination with functions like *setTimeout*, for example `setTimeout(console.log.wrap("Hello!"), 50)`. Also sets the *this* object inside the function to *arguments*, in case you want to access the calling arguments as well!
+
+## Also Included
+
+*Documentation on UUID, Router.js, and ChuSchema coming soon!*
+
+## Custom Classes
 - `UtilRect` Better class for working with element bounds.
 - `Easing` Easing functions for use with *utils.map*.
 
-### Prototype Extensions
+## Prototype Extensions
 - `[Function].wrap(...) returns Function` Wrap a function so that it always has a preset argument list when called.
 - `String.trim() polyfill`
 - `[String].startsWith(s) returns Boolean` Like Java.
@@ -38,7 +53,7 @@ Note: For production code, the minified version *utils.min.js* should be used. T
 - `Uint8Array.fromBase64(str[, opts]) returns Uint8Array` Polyfill; See MDN docs.
 - `RegExp.escape(string) return String` Polyfill; See MDN docs.
 
-### Main *utils* Class
+## Main Class
 - `String utils.VER` Current library version.
 - `Number utils.w` and `Number utils.h` Cross-platform window width and height.
 - `Boolean utils.mobile` Will be **true** if running on a mobile device, based on the UserAgent.
@@ -80,14 +95,10 @@ Note: For production code, the minified version *utils.min.js* should be used. T
 - `utils.dCutLast(data,startString,endString[,index[,searchStart]]) returns String` Same as *utils.dCut* but using lastIndexOf for start search.
 - `utils.parseCSS(prop) returns Object` Given css property value 'prop', returns object with space-separated values from the property string.
 - `utils.buildCSS(obj) returns String` Rebuilds css string from a *parseCSS* object.
-- `utils.addClass(class,propList)` Create a css class and append it to the current document. Fill 'propList' object with key/value pairs repersenting the properties you want to add to the class.
+- `utils.addClass(class,propList)` Create a css class and append it to the current document. Fill 'propList' object with key/value pairs representing the properties you want to add to the class.
 - `utils.addId(id,propList)` Create a css selector and append it to the current document.
 - `utils.addKeyframe(name,content)` Create a css keyframe and append it to the current document.
 - `utils.removeSelector(name)` Remove a specific css selector (including the '.' or '#') from all stylesheets in the current document.
-- `utils.getId(id[,parent]) returns Element` Shorthand way to get element by id. Parent defaults to document.
-- `utils.getClassList(class[,parent]) returns Array` Shorthand way to get list of elements with class name. Parent defaults to document.
-- `utils.getClassFirst(class[,parent]) returns Element` Get first element with class, otherwise return null. Parent defaults to document.
-- `utils.getClassOnly(class[,parent]) returns Element` Get element with class if there's only one, otherwise return null. Parent defaults to document.
 - `utils.hexToRgb(hex) returns Number` Converts HEX color to 24-bit RGB.
 - `utils.rand(min,max[,res[,ease]]) returns Number` Generates random from min to max, optionally with a decimal resolution (10, 100, 1000, etc.) or custom ease, changing the probability of various numbers being generated.
 - `utils.fromQuery(str) returns Object` Parses a url query string into an Object.

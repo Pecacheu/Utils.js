@@ -1,7 +1,8 @@
-//https://github.com/Pecacheu/Utils.js; MIT License
+//https://github.com/Pecacheu/Utils.js; GNU GPL v3
 
 'use strict';
-const utils = {VER:'v8.6.6'};
+const utils = {VER:'v8.7'},
+_uNJS = typeof global!='undefined';
 
 //Node.js compat
 let UtilRect, P=(typeof window=='undefined')?
@@ -33,13 +34,16 @@ utils.setCookie = (name,value,exp,secure) => {
 		if(!(exp instanceof Date)) exp = new Date(exp);
 		c+=';expires='+exp.toUTCString();
 	}
-	if(secure) c+=';secure'; document.cookie=c;
+	if(secure) c+=';secure';
+	if(_uNJS) return c;
+	document.cookie=c;
 }
 utils.remCookie = name => {
 	document.cookie = encodeURIComponent(name)+'=;expires='+new Date(0).toUTCString();
 }
-utils.getCookie = name => {
-	const n1 = encodeURIComponent(name), n2 = ' '+n1, cl = document.cookie.split(';');
+utils.getCookie = (name, cookies) => {
+	if(cookies == null) cookies = document.cookie;
+	const n1 = encodeURIComponent(name), n2 = ' '+n1, cl = cookies.split(';');
 	for(let i=0,l=cl.length,c,eq,sub; i<l; ++i) {
 		c = cl[i]; eq = c.indexOf('='); sub = c.substr(0,eq);
 		if(sub == n1 || sub == n2) return decodeURIComponent(c.substr(eq+1));
@@ -557,7 +561,7 @@ utils.dCutLast = (d, ss, es, sd, st) => {
 //Given CSS property value 'prop', returns object with
 //space-separated values from the property string
 utils.parseCSS = prop => {
-	const pArr={}, pKey="", keyNum=0; prop=prop.trim();
+	let pArr={}, pKey="", keyNum=0; prop=prop.trim();
 	function parseInner(str) {
 		if(str.indexOf(',') !== -1) {
 			const arr = utils.clean(str.split(','));
@@ -630,13 +634,6 @@ utils.removeSelector = name => {
 	}
 }
 
-//Shorthand way to get element by id/class name, within a parent element (defaults to document)
-//(class[,parent])
-utils.getId = (c,p) => (p?p:document)['getElementById'](c);
-utils.getClassList = (c,p) => (p?p:document)['getElementsByClassName'](c);
-utils.getClassFirst = (c,p) => (c=utils.getClassList(c,p),c.length>0?c[0]:0);
-utils.getClassOnly = (c,p) => (c=utils.getClassList(c,p),c.length==1?c[0]:0);
-
 //Converts HEX color to 24-bit RGB
 utils.hexToRgb = hex => {
 	const c = parseInt(hex.substr(1), 16);
@@ -650,13 +647,12 @@ utils.rand = (min, max, res, ease) => {
 }
 
 //Parses a url query string into an Object
-//Function by: Pecacheu (From Pecacheu's Apache Test Server)
 utils.fromQuery = str => {
 	if(str.startsWith('?')) str = str.substr(1);
 	function parse(params, pairs) {
 		const pair = pairs[0], spl = pair.indexOf('='),
-		key = decodeURIComponent(pair.substr(0,spl)),
-		value = decodeURIComponent(pair.substr(spl+1));
+			key = decodeURIComponent(pair.substr(0,spl)),
+			value = decodeURIComponent(pair.substr(spl+1));
 		//Handle multiple parameters of the same name
 		if(params[key] == null) params[key] = value;
 		else if(typeof params[key] == 'array') params[key].push(value);
@@ -829,7 +825,7 @@ utils.proto(UtilRect, 'expand', function(by) {
 	this.right += by; return this;
 })
 
-})(); //End of Utils Library
+})();
 
 //JavaScript Easing Library by: https://github.com/gre & https://gizma.com/easing
 //t should be between 0 and 1
@@ -863,6 +859,38 @@ const Easing = {
 }
 
 //Node.js compat
-if(typeof global!='undefined') {
-	global.utils=utils, global.UtilRect=UtilRect, global.Easing=Easing;
+if(_uNJS && !global.utils) {
+	let os = import('os').then(m => os=m);
+
+	//Get list of system IPs
+	utils.getIPs = () => {
+		const ip=[], fl=os.networkInterfaces();
+		for(let k in fl) fl[k].forEach(f => {
+			if(!f.internal && f.family == 'IPv4' && f.mac != '00:00:00:00:00:00' && f.address) ip.push(f.address);
+		});
+		return ip.length?ip:0;
+	}
+
+	//Get system OS, arch, and CPU info
+	utils.getOS = () => {
+		let sysOS, arch, cpu;
+		switch(os.platform()) {
+			case 'win32': sysOS="Windows"; break;
+			case 'darwin': sysOS="MacOS"; break;
+			case 'linux': sysOS="Linux"; break;
+			default: sysOS=os.platform();
+		}
+		switch(os.arch()) {
+			case 'ia32': arch="32-bit"; break;
+			case 'x64': arch="64-bit"; break;
+			case 'arm': arch="ARM"; break;
+			default: arch=os.arch();
+		}
+		cpu=os.cpus()[0].model;
+		return [sysOS, arch, cpu];
+	}
+
+	global.utils=utils;
+	global.UtilRect=UtilRect;
+	global.Easing=Easing;
 }
