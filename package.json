@@ -1,6 +1,6 @@
 {
 	"name": "raiutils",
-	"version": "8.7.1",
+	"version": "8.7.2",
 	"type": "module",
 	"description": "The ultimate JavaScript companion library. You'll never need jQuery again!",
 	"repository": "https://github.com/Pecacheu/Utils.js",

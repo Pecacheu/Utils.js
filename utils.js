@@ -1,7 +1,7 @@
 //https://github.com/Pecacheu/Utils.js; GNU GPL v3
 
 'use strict';
-const utils = {VER:'v8.7.1'},
+const utils = {VER:'v8.7.2'},
 _uNJS = typeof global!='undefined';
 
 //Node.js compat
@@ -97,8 +97,10 @@ utils.deviceInfo = ua => {
 	d.mobile = !!ua.match(/Mobi/i); return d;
 }
 
-utils.device = utils.deviceInfo();
-utils.mobile = utils.device.mobile;
+if(!_uNJS) {
+	utils.device = utils.deviceInfo();
+	utils.mobile = utils.device.mobile;
+}
 
 //Get touch by id, returns null if none found
 if(window.TouchList) utils.proto(TouchList, 'get', function(id) {

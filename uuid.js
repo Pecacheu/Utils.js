@@ -46,14 +46,14 @@ async function loadId() {
 
 UUID.randBytes = promisify(crypto.randomBytes);
 
-UUID.genUUID = async () => {
+UUID.genUUID = async dateMs => {
 	if(IDCount==null) await loadId();
 	let rb=await UUID.randBytes(2);
 	const u=Buffer.allocUnsafe(8);
 	u.writeUInt8(os.uptime()&255);
 	u.writeUInt16LE(rb.readUInt16LE(),1);
 	u.writeUInt8(IDCount,3);
-	u.writeUInt32LE(Date.now()/10000,4);
+	u.writeUInt32LE((dateMs||Date.now())/10000,4);
 	if(++IDCount > 255) IDCount=0;
 	if(UT) clearTimeout(UT);
 	UT = setTimeout(() => {

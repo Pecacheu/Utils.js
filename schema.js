@@ -47,6 +47,8 @@ function checkType(d,s) {
 	}
 }
 
+const R_FN=/\W+|(\w+)/g;
+
 function checkSchema(data, schema) {
 	if(!isDict(data)) throw "Data must be dict";
 	if(!isDict(schema)) throw "Schema must be dict";
