@@ -1,4 +1,4 @@
-//ChuSchema v1.1, Pecacheu 2025. GNU GPL v3
+//ChuSchema v1.2, Pecacheu 2025. GNU GPL v3
 
 function errAt(k,e,l) {
 	let es=e.message||e;
@@ -8,40 +8,52 @@ function errAt(k,e,l) {
 }
 
 function isDict(d) {return typeof d==='object' && !Array.isArray(d)}
-function checkType(d,s) {
-	if(typeof s.t!=='string') throw "Missing type";
-	let tl=s.t.split('|'),el=[],f;
+function oobStr(s) {return ` out-of-bounds (${s.min||'*'}-${s.max||'*'})`}
+function checkType(d,sr) {
+	if(typeof sr.t!=='string') throw "Missing type";
+	let tl=sr.t.split('|'),el=[],s,l,k,n,dt;
 	tl.forEach((t,i) => {
-		f=Array.isArray(s.f)?s.f[i]:s.f;
+		//Get prop cache
+		if(!(s=sr[k='$'+i])) {
+			s=sr[k]={};
+			for(k in sr) s[k]=Array.isArray(sr[k])?sr[k][i]:sr[k];
+		}
+		//Check type
 		try {switch(t) {
 		case 'str':
 			if(typeof d!=='string') throw -1;
-			if(!(f instanceof RegExp)) {
-				if(typeof f!=='string') throw "Str schema lacks format";
-				//TODO max as alt for format
-				f=new RegExp(`^(?:${f})$`); Array.isArray(s.f)?(s.f[i]=f):(s.f=f);
-			}
-			if(!f.test(d)) throw `Str '${d}' does not match format`;
+			l=d.length;
+			if(l<s.min || l>s.max) throw "Str len "+l+oobStr(s);
+			if(typeof s.f==='string') s.f=new RegExp(`^(?:${f})$`);
+			if(s.f instanceof RegExp && !s.f.test(d)) throw `Str '${d}' does not match format`;
 		break; case 'int': case 'float':
 			if(typeof d!=='number' || !(t==='int'?Number.isSafeInteger(d):Number.isFinite(d))) throw -1;
-			if(d<s.min || d>s.max) throw `Num ${d} out-of-bounds`;
+			if(d<s.min || d>s.max) throw "Num "+d+oobStr(s);
 		break; case 'bool':
 			if(typeof d!=='boolean') throw -1;
 		break; case 'list':
 			if(!Array.isArray(d)) throw -1;
-			let l=d.length; if(!l) throw "Empty list";
+			l=d.length; if(!l) throw "Empty list";
 			if(s.len && l!==s.len) throw "Array size must be "+s.len;
-			let n=0, dType=isDict(f)?2:isDict(s.c)?1:0;
-			if(!dType) throw "List schema lacks format or childType";
-			for(; n<l; ++n) try {dType===2?checkSchema(d[n],f):checkType(d[n],s.c)}
+			if(l<s.min || l>s.max) throw "Array size "+l+oobStr(s);
+			if(typeof s.c==='string') s.c={t:s.c};
+			n=0, dt=isDict(s.f)?2:isDict(s.c)?1:0;
+			if(!dt) throw "List schema lacks format or childType";
+			for(; n<l; ++n) try {dt===2?checkSchema(d[n],s.f):checkType(d[n],s.c)}
 				catch(e) {throw errAt(n,e,1)}
-		//TODO 'dict' type for unstructured dict
+		break; case 'dict':
+			if(!isDict(d)) throw -1;
+			k=Object.keys(d), l=k.length; if(!l) throw "Empty dict";
+			if(s.f) throw "Dict schema does not support format (use childType instead)";
+			if(typeof s.c==='string') s.c={t:s.c};
+			if(!isDict(s.c)) throw "Dict schema lacks childType";
+			for(n of k) try {checkType(d[n],s.c)} catch(e) {throw errAt(n,e,1)}
 		break; default:
 			throw `Unknown type ${s.t} in schema`;
 		}} catch(e) {el.push(e)}
 	});
 	if(el.length >= tl.length) {
-		let e,m="Must be of type "+s.t;
+		let e,m="Must be of type "+sr.t;
 		for(e of el) if(e!==-1) m=e;
 		throw m;
 	}

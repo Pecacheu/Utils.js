@@ -1,7 +1,7 @@
 //https://github.com/Pecacheu/Utils.js; GNU GPL v3
 
 'use strict';
-const utils = {VER:'v8.7.2'},
+const utils = {VER:'v8.7.3'},
 _uNJS = typeof global!='undefined';
 
 //Node.js compat
@@ -213,6 +213,32 @@ utils.numField=(f, min, max, decMax, sym) => {
 	f.addEventListener('input',() => f.set(f.value));
 	f.addEventListener('paste',e => {f.set(e.clipboardData.getData('text')); e.preventDefault()});
 	return f;
+}
+
+//Auto-resizing textarea, dynamically scales lineHeight based on input
+//Use `el.set(value)` to set value & update size
+//By Rick Kukiela @ StackOverflow
+utils.autosize = (el, maxRows=5, minRows=1) => {
+	el.set=v => {el.value=v,cb()};
+	let s=el.style;
+	s.maxHeight=s.resize='none', s.minHeight=0, s.height='auto';
+	el.setAttribute('rows',minRows);
+	function cb() {
+		if(el.scrollHeight===0) return setTimeout(cb,1); //Still loading
+		el.setAttribute('rows',1);
+		//Override style
+		let cs=getComputedStyle(el);
+		s.setProperty('overflow','hidden','important');
+		s.width=el.innerRect.w+'px', s.boxSizing='content-box', s.borderWidth=s.paddingInline=0;
+		//Calc scroll height
+		let pad=parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom),
+		lh=cs.lineHeight==='normal' ? parseFloat(cs.height) : parseFloat(cs.lineHeight),
+		rows=Math.round((Math.round(el.scrollHeight) - pad)/lh);
+		//Undo overrides & apply
+		s.overflow=s.width=s.boxSizing=s.borderWidth=s.paddingInline='';
+		el.setAttribute('rows',utils.bounds(rows, minRows, maxRows));
+	}
+	el.addEventListener('input',cb);
 }
 
 //Format Number as currency. Uses '$' by default

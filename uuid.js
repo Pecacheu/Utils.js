@@ -1,4 +1,4 @@
-//Chu ID v1.3, Pecacheu 2025. GNU GPL v3
+//Chu ID v1.4, Pecacheu 2025. GNU GPL v3
 
 import os from 'os';
 import fs from 'fs/promises';
@@ -26,6 +26,7 @@ class UUID {
 	toString(f) {return this.id.toString(f||'base64url')}
 	toHexLE() {return swapHex(this.id.toString('hex'))}
 	toLong() {return mdb.Long.fromString(this.id.toString('hex'),16)}
+	getMagic() {return this.id.readUInt8(1)}
 	getDate() {
 		let d=this.id.readUInt32LE(4)*10000;
 		return new Date(d<1621543800000?0:d);
@@ -46,12 +47,15 @@ async function loadId() {
 
 UUID.randBytes = promisify(crypto.randomBytes);
 
-UUID.genUUID = async dateMs => {
+UUID.genUUID = async (dateMs, magic) => {
 	if(IDCount==null) await loadId();
-	let rb=await UUID.randBytes(2);
-	const u=Buffer.allocUnsafe(8);
-	u.writeUInt8(os.uptime()&255);
-	u.writeUInt16LE(rb.readUInt16LE(),1);
+	const rb=await UUID.randBytes(magic!=null?1:2),
+	u=Buffer.allocUnsafe(8);
+	u.writeUInt8((os.uptime()*10)&255);
+	if(magic != null) {
+		u.writeUInt8(magic&255,1);
+		u.writeUInt8(rb.readUInt8(),2);
+	} else u.writeUInt16LE(rb.readUInt16LE(),1);
 	u.writeUInt8(IDCount,3);
 	u.writeUInt32LE((dateMs||Date.now())/10000,4);
 	if(++IDCount > 255) IDCount=0;

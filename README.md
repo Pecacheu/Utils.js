@@ -65,6 +65,7 @@ For client-side use, the minified *utils.min.js* is recommended (Minified with h
 - `utils.copy(o[,sub]) returns Object` Deep (recursive) Object.create. Copies down to given sub levels, all levels if undefined.
 - `utils.skinnedInput(el)` Fallback for when css *'appearance:none'* doesn't work. Generates container for input field for css skinning on unsupported browsers.
 - `utils.numField(field[,min[,max[,decMax[,sym]]]])` Turns your boring input field into a mobile-friendly integer, decimal, or financial entry field with max/min & negative support!
+- `utils.autosize(el, maxRows=5, minRows=1)` Auto-resizing textarea, dynamically scales lineHeight based on input.
 - `utils.formatCost(n[,sym]) returns String` Format Number as currency. Uses '$' by default.
 - `utils.fromDateTimeBox(el) returns Date` Convert value from 'datetime-local' input to Date object.
 - `utils.toDateTimeBox(d[,sec]) returns String` Convert Date object into format to set 'datetime-local' optionally including seconds if 'sec' is **true**.
