@@ -1,4 +1,4 @@
-//Node Webserver v3.4.1, Pecacheu 2025. GNU GPL v3
+//Node Webserver v3.4.2, Pecacheu 2025. GNU GPL v3
 
 import path from 'path';
 import fs from 'fs/promises';
@@ -19,17 +19,15 @@ const types = {
 	'.webm': "video/webm"
 };
 
-let MAX_ETAG=1048576, //1MB
-FAST_ETAG=true;
-
-async function handle(dir, req, res, virtualDirs) {
+//etag: If number, max file size to calc hash, else if true, use fast etag mode (modified date)
+async function handle(dir, req, res, virtualDirs, etag=true) {
 	let f;
 	try {
 		let fn=await resolve(dir, new URL(req.url,'http://a').pathname, virtualDirs),
 			hdr={}, stat=200, ext=path.extname(fn), ct=types[ext], rng=req.headers.range, str;
 		if(ct) hdr["content-type"] = ct;
 		f=await fs.open(fn);
-		let dl=(await f.stat()).size;
+		let st=await f.stat(), dl=st.size;
 		if(rng) { //Range
 			if(!rng.startsWith('bytes=') || (rng=rng.slice(6).split('-'))
 				.length !== 2 || !rng[0]) return await rngErr(f,dl,rng,res);
@@ -40,12 +38,12 @@ async function handle(dir, req, res, virtualDirs) {
 			hdr["accept-ranges"] = 'bytes';
 			hdr["content-range"] = `bytes ${rs}-${re}/${dl}`;
 			stat=206;
-		} else if(!FAST_ETAG && dl <= MAX_ETAG) {
+		} else if(typeof etag==='number') {if(dl <= MAX_ETAG) {
 			str=await f.readFile();
 			let h=crypto.createHash('sha1');
 			h.update(str);
 			hdr.etag=h.digest('base64url');
-		} else if(FAST_ETAG) hdr.etag=dl.toString();
+		}} else if(etag) hdr.etag=st.mtime.toISOString();
 
 		if(hdr.etag && hdr.etag === req.headers['if-none-match'])
 			return res.writeHead(304,''),res.end(),f.close();
@@ -61,6 +59,11 @@ async function handle(dir, req, res, virtualDirs) {
 		sendCode(res, nf?404:500, nf?"Resource Not Found":e);
 		if(f) f.close();
 	}
+}
+
+async function serve(fn, req, res, etag=true) {
+	let u=req.url; req.url='/';
+	return handle(fn, req, res, null, etag).finally(() => req.url=u);
 }
 
 async function rngErr(f,fl,rng,res) {
@@ -80,6 +83,7 @@ function log(name, ct) {console.log(chalk.dim("-- Served "+name+(ct?" with type 
 async function resolve(dir, uri, vDir) {
 	if(uri.indexOf('..') !== -1) throw "Bad path";
 	let fn = parseUri(dir, uri, vDir);
+	if(fn.endsWith('/')) fn=fn.slice(0,-1);
 	try {
 		let stat = await fs.stat(fn);
 		if(stat.isDirectory()) return path.join(fn,'/index.html'); //Try index
@@ -100,6 +104,6 @@ function parseUri(root, uri, vDir) {
 	return root+uri;
 }
 
-const ex={handle, types};
+const ex={handle, serve, types};
 Object.defineProperty(ex, 'debug', {set:d => debug=d});
 export default ex;

@@ -1,7 +1,7 @@
 //https://github.com/Pecacheu/Utils.js; GNU GPL v3
 
 'use strict';
-const utils = {VER:'v8.7.3'},
+const utils = {VER:'v8.7.4'},
 _uNJS = typeof global!='undefined';
 
 //Node.js compat
@@ -27,27 +27,39 @@ utils.proto = (obj, name, val, st) => {
 	else Object.defineProperty(obj,name,t);
 }
 
-//Cookie Parsing
-utils.setCookie = (name,value,exp,secure) => {
-	let c=encodeURIComponent(name)+'='+(value==null?'':encodeURIComponent(value))+';path=/';
+//Cookies! (Yum)
+utils.setCookie = (key,value,exp,secure) => {
+	let c=`${encodeURIComponent(key)}=${value==null?'':encodeURIComponent(value)};path=/`;
 	if(exp != null) {
-		if(!(exp instanceof Date)) exp = new Date(exp);
-		c+=';expires='+exp.toUTCString();
+		if(exp === -1) exp=new Date(Number.MAX_SAFE_INTEGER/10);
+		if(exp instanceof Date) c+=';expires='+exp.toUTCString();
+		else c+=';max-age='+exp;
 	}
 	if(secure) c+=';secure';
 	if(_uNJS) return c;
 	document.cookie=c;
 }
-utils.remCookie = name => {
-	document.cookie = encodeURIComponent(name)+'=;expires='+new Date(0).toUTCString();
+utils.remCookie = key => {
+	let c=encodeURIComponent(key)+'=;max-age=0';
+	if(_uNJS) return c;
+	document.cookie=c;
 }
-utils.getCookie = (name, cookies) => {
-	if(cookies == null) cookies = document.cookie;
-	const n1 = encodeURIComponent(name), n2 = ' '+n1, cl = cookies.split(';');
-	for(let i=0,l=cl.length,c,eq,sub; i<l; ++i) {
-		c = cl[i]; eq = c.indexOf('='); sub = c.substr(0,eq);
-		if(sub == n1 || sub == n2) return decodeURIComponent(c.substr(eq+1));
+utils.getCookies = ckStr => {
+	if(ckStr == null) ckStr=document.cookie;
+	if(!ckStr) return {};
+	let l=ckStr.split('; '),c,e,d={};
+	for(c of l) {
+		e=c.indexOf('=');
+		d[decodeURIComponent(c.slice(0,e))]=decodeURIComponent(c.slice(e+1));
 	}
+	return d;
+}
+utils.getCookie = (key, ckStr) => {
+	if(ckStr == null) ckStr=document.cookie;
+	key=encodeURIComponent(key)+'=';
+	let l=ckStr.split('; '),c;
+	for(c of l) if(c.startsWith(key))
+		return decodeURIComponent(c.slice(key.length));
 }
 
 //Wrap a function so that it always has a preset argument list when called
@@ -71,29 +83,29 @@ utils.copy = (o, sub) => {
 utils.deviceInfo = ua => {
 	const d={}; if(!ua) ua=navigator.userAgent;
 	if(!ua.startsWith("Mozilla/5.0 ")) return d;
-	let o=ua.indexOf(')'), os=d.rawOS=ua.substring(13,o), o2,o3;
+	let o=ua.indexOf(')'), os=d.rawOS=ua.slice(13,o), o2,o3;
 	if(os.startsWith("Windows")) {
 		o2=os.split('; '), d.os = "Windows";
 		d.type = o2.indexOf('WOW64')!=-1?'x64 PC; x86 Browser':o2.indexOf('x64')!=-1?'x64 PC':'x86 PC';
-		o2=os.indexOf("Windows NT "), d.version = os.substring(o2+11,os.indexOf(';',o2+12));
+		o2=os.indexOf("Windows NT "), d.version = os.slice(o2+11,os.indexOf(';',o2+12));
 	} else if(os.startsWith("iP")) {
-		o2=os.indexOf("OS"), d.os = "iOS", d.type = os.substr(0,os.indexOf(';'));
-		d.version = os.substring(o2+3, os.indexOf(' ',o2+4)).replace(/_/g,'.');
+		o2=os.indexOf("OS"), d.os = "iOS", d.type = os.slice(0,os.indexOf(';'));
+		d.version = os.slice(o2+3, os.indexOf(' ',o2+4)).replace(/_/g,'.');
 	} else if(os.startsWith("Macintosh;")) {
-		o2=os.indexOf(" Mac OS X"), d.os = "MacOS", d.type = os.substring(11,o2)+" Mac";
-		d.version = os.substr(o2+10).replace(/_/g,'.');
+		o2=os.indexOf(" Mac OS X"), d.os = "MacOS", d.type = os.slice(11,o2)+" Mac";
+		d.version = os.slice(o2+10).replace(/_/g,'.');
 	} else if((o2=os.indexOf("Android"))!=-1) {
-		d.os = "Android", d.version = os.substring(o2+8, os.indexOf(';',o2+9));
+		d.os = "Android", d.version = os.slice(o2+8, os.indexOf(';',o2+9));
 		o2=os.lastIndexOf(';'), o3=os.indexOf(" Build",o2+2);
-		d.type = os.substring(o2+2, o3==-1?undefined:o3);
+		d.type = os.slice(o2+2, o3==-1?undefined:o3);
 	} else if(os.startsWith("X11;")) {
-		os=os.substr(5).split(/[;\s]+/), o2=os.length;
+		os=os.slice(5).split(/[;\s]+/), o2=os.length;
 		d.os = (os[0]=="Linux"?'':"Linux ")+os[0];
 		d.type = os[o2-2], d.version = os[o2-1];
 	}
 	if(o2=Number(d.version)) d.version=o2;
 	o2=ua.indexOf(' ',o+2), o3=ua.indexOf(')',o2+1), o3=o3==-1?o2+1:o3+2;
-	d.engine = ua.substring(o+2,o2), d.browser = ua.substring(o3);
+	d.engine = ua.slice(o+2,o2), d.browser = ua.slice(o3);
 	d.mobile = !!ua.match(/Mobi/i); return d;
 }
 
@@ -287,7 +299,7 @@ utils.formatDate = (d,opt={}) => {
 	if(opt.time==null||opt.time) {
 		let h=d.getHours(),pm=''; if(!opt.h24) {pm=' AM'; if(h>=12) pm=' PM',h-=12; if(!h) h=12}
 		t=h+':'+fixed2(d.getMinutes())+(opt.sec?':'+fixed2(d.getSeconds())
-			+(opt.ms?(d.getMilliseconds()/1000).toFixed(Number.isFinite(opt.ms)?opt.ms:3).substr(1):''):'');
+			+(opt.ms?(d.getMilliseconds()/1000).toFixed(Number.isFinite(opt.ms)?opt.ms:3).slice(1):''):'');
 		t+=pm; if(opt.time) return t;
 	}
 	dd=d.getDate();
@@ -575,15 +587,15 @@ utils.cutStr = (s, rem) => {
 //index: Optional object. index.s and index.t will be set to start and end indexes
 utils.dCut = (d, ss, es, sd, st) => {
 	let is = d.indexOf(ss,st?st:undefined)+ss.length, it = d.indexOf(es,is);
-	if(sd) sd.s=is,sd.t=it; return (is < ss.length || it <= is)?'':d.substring(is,it);
+	if(sd) sd.s=is,sd.t=it; return (is < ss.length || it <= is)?'':d.slice(is,it);
 }
 utils.dCutToLast = (d, ss, es, sd, st) => {
 	let is = d.indexOf(ss,st?st:undefined)+ss.length, it = d.lastIndexOf(es);
-	if(sd) sd.s=is,sd.t=it; return (is < ss.length || it <= is)?'':d.substring(is,it);
+	if(sd) sd.s=is,sd.t=it; return (is < ss.length || it <= is)?'':d.slice(is,it);
 }
 utils.dCutLast = (d, ss, es, sd, st) => {
 	let is = d.lastIndexOf(ss,st?st:undefined)+ss.length, it = d.indexOf(es,is);
-	if(sd) sd.s=is,sd.t=it; return (is < ss.length || it <= is)?'':d.substring(is,it);
+	if(sd) sd.s=is,sd.t=it; return (is < ss.length || it <= is)?'':d.slice(is,it);
 }
 
 //Given CSS property value 'prop', returns object with
@@ -600,16 +612,14 @@ utils.parseCSS = prop => {
 	}
 	while(prop.length > 0) {
 		if(prop[0] == '(' && prop.indexOf(')') !== -1 && pKey) {
-			let end=prop.indexOf(')'), pStr=prop.substring(1, end);
+			let end=prop.indexOf(')'), pStr=prop.slice(1,end);
 			pArr[pKey] = parseInner(pStr);
-			pKey = ""; prop = prop.substring(end+1);
+			pKey = ""; prop = prop.slice(end+1);
 		} else if(prop.search(/[#!\w]/) == 0) {
 			if(pKey) pArr[keyNum++] = pKey;
 			let end=prop.search(/[^#!\w-%]/); if(end==-1) end=prop.length;
-			pKey = prop.substring(0, end); prop = prop.substring(end);
-		} else {
-			prop = prop.substring(1);
-		}
+			pKey = prop.slice(0,end); prop = prop.slice(end);
+		} else prop = prop.slice(1);
 	}
 	if(pKey) pArr[keyNum] = pKey; return pArr;
 }
@@ -621,7 +631,7 @@ utils.buildCSS = propArr => {
 		const k=keyArr[i], v=propArr[keyArr[i]]; ++i;
 		if(0<=Number(k)) pStr+=v+' '; else pStr+=`${k}(${v}) `;
 	}
-	return pStr.substring(0, pStr.length-1);
+	return pStr.slice(0,-1);
 }
 
 function defaultStyle() {
@@ -664,8 +674,26 @@ utils.removeSelector = name => {
 
 //Converts HEX color to 24-bit RGB
 utils.hexToRgb = hex => {
-	const c = parseInt(hex.substr(1), 16);
+	const c = parseInt(hex.slice(1),16);
 	return [(c >> 16) & 255, (c >> 8) & 255, c & 255];
+}
+
+//By mjackson @ GitHub
+utils.rgbToHsl = (r,g,b) => {
+	r /= 255, g /= 255, b /= 255;
+	let max=Math.max(r,g,b), min=Math.min(r,g,b), h,s,l=(max+min)/2;
+	if(max===min) h=s=0; //Achromatic
+	else {
+		let d=max-min;
+		s=l>.5 ? d/(2-max-min) : d/(max+min);
+		switch(max) {
+			case r: h=(g-b)/d + (g<b?6:0); break;
+			case g: h=(b-r)/d + 2; break;
+			case b: h=(r-g)/d + 4;
+		}
+		h /= 6;
+	}
+	return [h*360, s*100, l*100];
 }
 
 //Generates random integer from min to max
@@ -676,26 +704,30 @@ utils.rand = (min, max, res, ease) => {
 
 //Parses a url query string into an Object
 utils.fromQuery = str => {
-	if(str.startsWith('?')) str = str.substr(1);
-	function parse(params, pairs) {
-		const pair = pairs[0], spl = pair.indexOf('='),
-			key = decodeURIComponent(pair.substr(0,spl)),
-			value = decodeURIComponent(pair.substr(spl+1));
-		//Handle multiple parameters of the same name
-		if(params[key] == null) params[key] = value;
-		else if(typeof params[key] == 'array') params[key].push(value);
-		else params[key] = [params[key],value];
-		return pairs.length == 1 ? params : parse(params, pairs.slice(1));
-	} return str.length == 0 ? {} : parse({}, str.split('&'));
+	if(str.startsWith('?')) str=str.slice(1);
+	function parse(pl, pairs) {
+		const pair=pairs[0], spl=pair.indexOf('='),
+			key=decodeURIComponent(pair.slice(0,spl)),
+			val=decodeURIComponent(pair.slice(spl+1));
+		//Handle multiple params of the same name
+		if(pl[key] == null) pl[key] = val;
+		else if(Array.isArray(pl[key])) pl[key].push(val);
+		else pl[key] = [pl[key],val];
+		return pairs.length===1 ? pl : parse(pl, pairs.slice(1));
+	}
+	return str ? parse({}, str.split('&')) : {};
 }
 
 //Converts an object into a url query string
 utils.toQuery = obj => {
-	let str = ''; if(typeof obj != 'object') return encodeURIComponent(obj);
-	for(let key in obj) {
-		let val = obj[key]; if(typeof val == 'object') val = JSON.stringify(val);
+	let str='',key,val;
+	if(typeof obj !== 'object') return encodeURIComponent(obj);
+	for(key in obj) {
+		val = obj[key];
+		if(typeof val === 'object' && val != null) val = JSON.stringify(val);
 		str += '&'+key+'='+encodeURIComponent(val);
-	} return str.slice(1);
+	}
+	return str.slice(1);
 }
 
 //Various methods of centering objects using JavaScript

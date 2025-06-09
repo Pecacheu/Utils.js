@@ -1,4 +1,4 @@
-//ChuSchema v1.2, Pecacheu 2025. GNU GPL v3
+//ChuSchema v1.2.1, Pecacheu 2025. GNU GPL v3
 
 function errAt(k,e,l) {
 	let es=e.message||e;
@@ -7,7 +7,7 @@ function errAt(k,e,l) {
 	return e;
 }
 
-function isDict(d) {return typeof d==='object' && !Array.isArray(d)}
+function isDict(d) {return typeof d==='object' && d!==null && !Array.isArray(d)}
 function oobStr(s) {return ` out-of-bounds (${s.min||'*'}-${s.max||'*'})`}
 function checkType(d,sr) {
 	if(typeof sr.t!=='string') throw "Missing type";
@@ -24,7 +24,7 @@ function checkType(d,sr) {
 			if(typeof d!=='string') throw -1;
 			l=d.length;
 			if(l<s.min || l>s.max) throw "Str len "+l+oobStr(s);
-			if(typeof s.f==='string') s.f=new RegExp(`^(?:${f})$`);
+			if(typeof s.f==='string') s.f=new RegExp(`^(?:${s.f})$`);
 			if(s.f instanceof RegExp && !s.f.test(d)) throw `Str '${d}' does not match format`;
 		break; case 'int': case 'float':
 			if(typeof d!=='number' || !(t==='int'?Number.isSafeInteger(d):Number.isFinite(d))) throw -1;
@@ -39,6 +39,7 @@ function checkType(d,sr) {
 			if(typeof s.c==='string') s.c={t:s.c};
 			n=0, dt=isDict(s.f)?2:isDict(s.c)?1:0;
 			if(!dt) throw "List schema lacks format or childType";
+			if(dt===2 && s.c) throw "Cannot require both format and childType";
 			for(; n<l; ++n) try {dt===2?checkSchema(d[n],s.f):checkType(d[n],s.c)}
 				catch(e) {throw errAt(n,e,1)}
 		break; case 'dict':
@@ -46,8 +47,11 @@ function checkType(d,sr) {
 			k=Object.keys(d), l=k.length; if(!l) throw "Empty dict";
 			if(s.f) throw "Dict schema does not support format (use childType instead)";
 			if(typeof s.c==='string') s.c={t:s.c};
-			if(!isDict(s.c)) throw "Dict schema lacks childType";
-			for(n of k) try {checkType(d[n],s.c)} catch(e) {throw errAt(n,e,1)}
+			dt=isDict(s.f)?2:isDict(s.c)?1:0;
+			if(!dt) throw "Dict schema lacks format or childType";
+			if(dt===2 && s.c) throw "Cannot require both format and childType";
+			for(n of k) try {dt===2?checkSchema(d[n],s.f):checkType(d[n],s.c)}
+				catch(e) {throw errAt(n,e,1)}
 		break; default:
 			throw `Unknown type ${s.t} in schema`;
 		}} catch(e) {el.push(e)}
@@ -61,7 +65,7 @@ function checkType(d,sr) {
 
 const R_FN=/\W+|(\w+)/g;
 
-function checkSchema(data, schema) {
+function checkSchema(data, schema, ignoreReq) {
 	if(!isDict(data)) throw "Data must be dict";
 	if(!isDict(schema)) throw "Schema must be dict";
 	let k,d,s,r,n,m;
@@ -71,6 +75,7 @@ function checkSchema(data, schema) {
 		if(k.startsWith('$')) throw "Key cannot start with $";
 		checkType(d,s);
 	} catch(e) {throw errAt(k,e)}
+	if(ignoreReq) return;
 	for(k in schema) if(!(k in data)) { //Check missing
 		s=schema[k], r=typeof s.req==='string';
 		if(r) { //Conditional req
