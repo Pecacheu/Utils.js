@@ -1,7 +1,7 @@
 //https://github.com/Pecacheu/Utils.js; GNU GPL v3
 
 'use strict';
-const utils = {VER:'v8.7.4'},
+const utils = {VER:'v8.7.5'},
 _uNJS = typeof global!='undefined';
 
 //Node.js compat
@@ -65,7 +65,7 @@ utils.getCookie = (key, ckStr) => {
 //Wrap a function so that it always has a preset argument list when called
 //In the called function, 'this' is set to the caller's arguments, granting access to both
 utils.proto(Function, 'wrap', function(/*...*/) {
-	const f=this, a=arguments; return function() {f.apply(arguments,a)}
+	const f=this, a=arguments; return function() {return f.apply(arguments,a)}
 })
 
 //Deep (recursive) Object.create
@@ -733,29 +733,22 @@ utils.toQuery = obj => {
 //Various methods of centering objects using JavaScript
 //obj: Object to center
 //only: 'x' for only x axis centering, 'y' for only y axis, null for both
-//type: 'calc', 'trans', 'move', or null, modes explained below
+//type: 'trans' or null, modes explained below
 utils.center = (obj, only, type) => {
 	let os=obj.style;
-	if(!os.position) os.position="absolute";
-	if(type == 'calc') { //Responsive, but only if object size is static
-		if(!only || only == "x") os.left=`calc(50% - ${obj.clientWidth/2}px)`;
-		if(!only || only == "y") os.top=`calc(50% - ${obj.clientHeight/2}px)`;
-	} else if(type == 'move') { //Not responsive
-		if(!only || only == "x") os.left=`${utils.w/2 - obj.clientWidth/2}px`;
-		if(!only || only == "y") os.top=`${utils.h/2 - obj.clientHeight/2}px`;
-	} else if(type == 'trans') { //Responsive, doesn't create container
-		let trans = utils.cutStr(os.transform, "translateX(-50%)");
-		trans = utils.cutStr(trans, "translateY(-50%)");
-		if(!only || only == "x") os.left="50%", trans+="translateX(-50%)";
-		if(!only || only == "y") os.top="50%", trans+="translateY(-50%)";
+	if(type == 'trans') { //Responsive, doesn't create container
+		if(!os.position) os.position='absolute';
+		let trans=utils.cutStr(os.transform, 'translateX(-50%)');
+		trans=utils.cutStr(trans, 'translateY(-50%)');
+		if(!only || only == 'x') os.left='50%', trans+='translateX(-50%)';
+		if(!only || only == 'y') os.top='50%', trans+='translateY(-50%)';
 		if(trans) os.transform=trans;
-	} else { //Responsive, largest browser support
-		let cont=utils.mkEl("div", obj.parentNode, null, {display:'table',
-			position:'absolute', top:0, left:0, width:'100%', height:'100%'});
-		cont.appendChild(obj); os.display="table-cell";
-		if(!only || only == "x") os.textAlign="center";
-		if(!only || only == "y") os.verticalAlign="middle";
-		os.position="relative";
+	} else { //New flexbox method
+		let cont=utils.mkDiv(obj.parentNode, null, {display:'flex',
+			top:0, left:0, width:'100%', height:'100%'});
+		cont.appendChild(obj), cont=cont.style;
+		if(!only || only == 'x') cont.justifyContent='center';
+		if(!only || only == 'y') cont.alignItems='center', cont.position='absolute';
 	}
 }
 
