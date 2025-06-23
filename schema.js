@@ -1,4 +1,4 @@
-//ChuSchema v1.2.1, Pecacheu 2025. GNU GPL v3
+//ChuSchema v1.2.2, Pecacheu 2025. GNU GPL v3
 
 function errAt(k,e,l) {
 	let es=e.message||e;
@@ -24,6 +24,7 @@ function checkType(d,sr) {
 			if(typeof d!=='string') throw -1;
 			l=d.length;
 			if(l<s.min || l>s.max) throw "Str len "+l+oobStr(s);
+			if(s.len && l!==s.len) throw "Str len must be "+s.len;
 			if(typeof s.f==='string') s.f=new RegExp(`^(?:${s.f})$`);
 			if(s.f instanceof RegExp && !s.f.test(d)) throw `Str '${d}' does not match format`;
 		break; case 'int': case 'float':
@@ -33,7 +34,7 @@ function checkType(d,sr) {
 			if(typeof d!=='boolean') throw -1;
 		break; case 'list':
 			if(!Array.isArray(d)) throw -1;
-			l=d.length; if(!l) throw "Empty list";
+			l=d.length; if(!l && s.min!==0) throw "Empty list";
 			if(s.len && l!==s.len) throw "Array size must be "+s.len;
 			if(l<s.min || l>s.max) throw "Array size "+l+oobStr(s);
 			if(typeof s.c==='string') s.c={t:s.c};

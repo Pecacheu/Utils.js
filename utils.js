@@ -1,7 +1,7 @@
 //https://github.com/Pecacheu/Utils.js; GNU GPL v3
 
 'use strict';
-const utils = {VER:'v8.7.5'},
+const utils = {VER:'v8.7.6'},
 _uNJS = typeof global!='undefined';
 
 //Node.js compat
@@ -744,11 +744,11 @@ utils.center = (obj, only, type) => {
 		if(!only || only == 'y') os.top='50%', trans+='translateY(-50%)';
 		if(trans) os.transform=trans;
 	} else { //New flexbox method
-		let cont=utils.mkDiv(obj.parentNode, null, {display:'flex',
-			top:0, left:0, width:'100%', height:'100%'});
+		let cont=utils.mkDiv(obj.parentNode, null, {display:'flex', top:0, left:0});
 		cont.appendChild(obj), cont=cont.style;
-		if(!only || only == 'x') cont.justifyContent='center';
-		if(!only || only == 'y') cont.alignItems='center', cont.position='absolute';
+		if(!only || only == 'x') cont.justifyContent='center', cont.width='100%';
+		if(!only || only == 'y') cont.alignItems='center',
+			cont.height='100%', cont.position='absolute';
 	}
 }
 
