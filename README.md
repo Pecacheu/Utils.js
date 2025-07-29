@@ -3,7 +3,7 @@
 
 ### Now includes Node.js support!
 
-Importing in Node works slightly different due to automatic browser/Node.js compatibility. Install via `npm i raiutils` and import as follows:
+Importing in Node works slightly different to most packages, due to the browser/Node.js auto-detection. Install via `npm i raiutils` and import as follows:
 ```js
 import 'utils.js';
 
@@ -63,13 +63,12 @@ For client-side use, the minified *utils.min.js* is recommended (Minified with h
 - `utils.setPropSafe(obj, path, val, onlyNull=false)` Set a nested property, even if higher levels don't exist. Useful for defining settings in a complex config object.
 - `utils.getPropSafe(obj, path) returns Object` Gets a nested property, returns undefined if any level doesn't exist.
 - `utils.copy(o[,sub]) returns Object` Deep (recursive) Object.create. Copies down to given sub levels, all levels if undefined.
-- `utils.skinnedInput(el)` Fallback for when css *'appearance:none'* doesn't work. Generates container for input field for css skinning on unsupported browsers.
 - `utils.numField(field[,min[,max[,decMax[,sym]]]])` Turns your boring input field into a mobile-friendly integer, decimal, or financial entry field with max/min & negative support!
 - `utils.autosize(el, maxRows=5, minRows=1)` Auto-resizing textarea, dynamically scales lineHeight based on input.
 - `utils.formatCost(n[,sym]) returns String` Format Number as currency. Uses '$' by default.
-- `utils.fromDateTimeBox(el) returns Date` Convert value from 'datetime-local' input to Date object.
-- `utils.toDateTimeBox(d[,sec]) returns String` Convert Date object into format to set 'datetime-local' optionally including seconds if 'sec' is **true**.
-- `utils.formatDate(d[,opts]) returns String` Format Date object into a pretty string, with various options.
+- `utils.setDateTime(el, date)` Set 'datetime-local' or 'date' input from JS Date, adjusting for local timezone.
+- `utils.getDateTime(el) returns Date` Get value of 'datetime-local' or 'date' input as JS Date.
+- `utils.formatDate(date[,opts]) returns String` Format Date object into a pretty string, with various options.
 - `utils.months` Array of months from Jan to Dec.
 - `utils.suffix(n) returns String` Add appropriate suffix to number. (ex. 31st, 12th, 22nd)
 - `utils.fixedNum(n,len[,radix=10]) returns String` Fix number to a given minimum length with padded 0's. Adds '0b' for binary *(radix=2)* and '0x' for hex *(radix=16)*

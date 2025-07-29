@@ -1,4 +1,4 @@
-//ChuSchema v1.2.2, Pecacheu 2025. GNU GPL v3
+//ChuSchema v1.2.3, Pecacheu 2025. GNU GPL v3
 
 function errAt(k,e,l) {
 	let es=e.message||e;
@@ -8,7 +8,7 @@ function errAt(k,e,l) {
 }
 
 function isDict(d) {return typeof d==='object' && d!==null && !Array.isArray(d)}
-function oobStr(s) {return ` out-of-bounds (${s.min||'*'}-${s.max||'*'})`}
+function oobStr(s) {return ` out-of-bounds (${s.min==null?'*':s.min}-${s.max==null?'*':s.max})`}
 function checkType(d,sr) {
 	if(typeof sr.t!=='string') throw "Missing type";
 	let tl=sr.t.split('|'),el=[],s,l,k,n,dt;
@@ -24,7 +24,7 @@ function checkType(d,sr) {
 			if(typeof d!=='string') throw -1;
 			l=d.length;
 			if(l<s.min || l>s.max) throw "Str len "+l+oobStr(s);
-			if(s.len && l!==s.len) throw "Str len must be "+s.len;
+			if(s.len!=null && l!==s.len) throw "Str len must be "+s.len;
 			if(typeof s.f==='string') s.f=new RegExp(`^(?:${s.f})$`);
 			if(s.f instanceof RegExp && !s.f.test(d)) throw `Str '${d}' does not match format`;
 		break; case 'int': case 'float':
@@ -35,7 +35,7 @@ function checkType(d,sr) {
 		break; case 'list':
 			if(!Array.isArray(d)) throw -1;
 			l=d.length; if(!l && s.min!==0) throw "Empty list";
-			if(s.len && l!==s.len) throw "Array size must be "+s.len;
+			if(s.len!=null && l!==s.len) throw "Array size must be "+s.len;
 			if(l<s.min || l>s.max) throw "Array size "+l+oobStr(s);
 			if(typeof s.c==='string') s.c={t:s.c};
 			n=0, dt=isDict(s.f)?2:isDict(s.c)?1:0;
@@ -48,11 +48,12 @@ function checkType(d,sr) {
 			k=Object.keys(d), l=k.length; if(!l) throw "Empty dict";
 			if(s.f) throw "Dict schema does not support format (use childType instead)";
 			if(typeof s.c==='string') s.c={t:s.c};
-			dt=isDict(s.f)?2:isDict(s.c)?1:0;
-			if(!dt) throw "Dict schema lacks format or childType";
-			if(dt===2 && s.c) throw "Cannot require both format and childType";
-			for(n of k) try {dt===2?checkSchema(d[n],s.f):checkType(d[n],s.c)}
-				catch(e) {throw errAt(n,e,1)}
+			if(typeof s.kf==='string') s.kf=new RegExp(`^(?:${s.kf})$`);
+			for(n of k) try {
+				if(n.startsWith('$')) throw "Key cannot start with $";
+				if(s.kf instanceof RegExp && !s.kf.test(n)) throw `Key '${n}' does not match format`;
+				checkType(d[n],s.c);
+			} catch(e) {throw errAt(n,e,1)}
 		break; default:
 			throw `Unknown type ${s.t} in schema`;
 		}} catch(e) {el.push(e)}

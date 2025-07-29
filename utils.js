@@ -1,7 +1,7 @@
 //https://github.com/Pecacheu/Utils.js; GNU GPL v3
 
 'use strict';
-const utils = {VER:'v8.7.6'},
+const utils = {VER:'v8.7.7'},
 _uNJS = typeof global!='undefined';
 
 //Node.js compat
@@ -119,47 +119,6 @@ if(window.TouchList) utils.proto(TouchList, 'get', function(id) {
 	for(let k in this) if(this[k].identifier == id) return this[k]; return 0;
 })
 
-//Generates modified input field for css skinning on unsupported browsers. This is a JavaScript
-//fallback for when css 'appearance:none' doesn't work. For Mobile Safari, this is usually
-//needed with 'datetime-local', 'select-one', and 'select-multiple' input types
-utils.skinnedInput = el => {
-	const cont = utils.mkDiv(null,el.className), is = el.style, type = el.type; el.className += ' isSub';
-	if(type == 'datetime-local' || type == 'select-one' || type == 'select-multiple') { //Datetime or Select
-		is.opacity = 0; is.top = '-100%'; el.siT = utils.mkEl('span',cont,'isText');
-		utils.mkEl('span',cont,'isArrow',{borderTopColor:getComputedStyle(el).color});
-		let si=siChange.bind(el); el.addEventListener('change',si); el.forceUpdate=si; si();
-	}
-	el.replaceWith(cont); cont.appendChild(el);
-	//Append StyleSheet
-	if(!document.isStyles) document.isStyles=true, utils.mkEl('style',document.body,null,null,'.isSub {'+
-		'width:100% !important; height:100% !important; border:none !important; display:inline-block !important;'+
-		'position:relative !important; box-shadow:none !important; margin:0 !important; padding:initial !important;'+
-	'} .isText {'+
-		'display:inline-block; height:100%; max-width:95%;'+
-		'overflow:hidden; text-overflow:ellipsis; white-space:nowrap;'+
-	'} .isArrow {'+
-		'width:0; height:0; display:inline-block; float:right; top:38%; position:relative;'+
-		'border-left:3px solid transparent; border-right:3px solid transparent;'+
-		'border-top:6px solid #000; vertical-align:middle;'+
-	'}');
-}
-function siChange() {
-	switch(this.type) {
-		case 'datetime-local': this.siT.textContent = utils.formatDate(utils.fromDateTimeBox(this)); break;
-		case 'select-one': this.siT.textContent = selBoxLabel(this); break;
-		case 'select-multiple': this.siT.textContent = mulBoxLabel(this);
-	}
-}
-
-function selBoxLabel(sb) {
-	const op = sb.options; if(op.selectedIndex != -1) return op[op.selectedIndex].label;
-	return "No Options Selected";
-}
-function mulBoxLabel(sb) {
-	const op = sb.options; let str = ''; for(let i=0,l=op.length; i<l; ++i)
-	if(op[i].selected) str += (str?', ':'')+op[i].label; return str||"No Options Selected";
-}
-
 /*Turns your boring <input> into a mobile-friendly number entry field with max/min & negative support!
 min: Min value, default min safe int
 max: Max value, default max safe int
@@ -261,12 +220,6 @@ utils.formatCost = (n, sym='$') => {
 		n=='-'?n+a:n+(i&&!(i%3)?',':'')+a,'')+'.'+p[1];
 }
 
-//Convert value from 'datetime-local' input to Date object
-utils.fromDateTimeBox = el => {
-	const v=el.value; if(!v) return new Date();
-	return new Date(v.replace(/-/g,'/').replace(/T/g,' '));
-}
-
 //Convert Number to fixed-length
 //Set radix to 16 for HEX
 utils.fixedNum = function(n,len,radix=10) {
@@ -277,12 +230,14 @@ utils.fixedNum = function(n,len,radix=10) {
 utils.months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 function fixed2(n) {return n<=9?'0'+n:n}
 
-//Convert Date object into format to set 'datetime-local'
-//input value, optionally including seconds if 'sec' is true
-utils.toDateTimeBox = (d, sec) => {
-	return d.getFullYear()+'-'+fixed2(d.getMonth()+1)+'-'+fixed2(d.getDate())+'T'+
-	fixed2(d.getHours())+':'+fixed2(d.getMinutes())+(sec?':'+fixed2(d.getSeconds()):'');
+//Set 'datetime-local' or 'date' input from JS Date object or string, adjusting for local timezone
+utils.setDateTime = (el, date) => {
+	if(!(date instanceof Date)) date=new Date(date);
+	el.value = new Date(date.getTime() - date.getTimezoneOffset()*60000).
+		toISOString().slice(0, el.type==='date'?10:19);
 }
+//Get value of 'datetime-local' or 'date' input as JS Date
+utils.getDateTime = el => new Date(el.value+(el.type==='date'?'T00:00':''));
 
 //Format Date object into human-readable string
 //opt:
@@ -293,7 +248,7 @@ utils.toDateTimeBox = (d, sec) => {
 //	suf: False to drop date suffix (1st, 2nd, etc.)
 //	year: False to hide year, or a number to show year only if it differs from given year
 //	df: True to put date first instead of time
-utils.formatDate = (d,opt={}) => {
+utils.formatDate = (d, opt={}) => {
 	let t='',yy,dd;
 	if(d==null || !d.getDate || !((yy=d.getFullYear())>1969)) return "[Invalid Date]";
 	if(opt.time==null||opt.time) {
