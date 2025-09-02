@@ -1,7 +1,7 @@
 //https://github.com/Pecacheu/Utils.js; GNU GPL v3
 
 'use strict';
-const utils = {VER:'v8.7.7'},
+const utils = {VER:'v8.7.8'},
 _uNJS = typeof global!='undefined';
 
 //Node.js compat
@@ -119,6 +119,8 @@ if(window.TouchList) utils.proto(TouchList, 'get', function(id) {
 	for(let k in this) if(this[k].identifier == id) return this[k]; return 0;
 })
 
+const R_NFZ=/\.0*$/;
+
 /*Turns your boring <input> into a mobile-friendly number entry field with max/min & negative support!
 min: Min value, default min safe int
 max: Max value, default max safe int
@@ -133,56 +135,60 @@ utils.numField=(f, min, max, decMax, sym) => {
 	const RM=RegExp(`[,${sym?RegExp.escape(sym):''}]`,'g');
 	f.type=(utils.mobile||decMax||sym)?'tel':'number';
 	f.setAttribute('pattern',"\\d*");
-	if(min==null) min=Number.MIN_SAFE_INTEGER;
-	if(max==null) max=Number.MAX_SAFE_INTEGER;
-	if(decMax==null) decMax=sym?2:0;
 	if(!f.step) f.step=1;
-	f.num=Math.max(0,min), f.ns='';
-	f.value=sym?utils.formatCost(f.num,sym):f.num.toString();
 	f.addEventListener('keydown',e => {
 		if(e.ctrlKey) return;
-		let k=e.key, kn=k.length==1&&Number.isFinite(Number(k)),
+		let k=e.key, kn=k.length===1&&Number.isFinite(Number(k)),
 			ns=f.ns, len=ns.length, dec=ns.indexOf('.');
 
-		if(k=='Tab' || k=='Enter') return;
-		else if(kn) {if(dec==-1 || len-dec < decMax+1) ns+=k} //Number
-		else if(k=='.' || k=='*') {if(decMax && dec==-1
+		if(k==='Tab' || k==='Enter') return;
+		else if(kn) {if(dec===-1 || len-dec < decMax+1) ns+=k} //Number
+		else if(k==='.' || k==='*') {if(decMax && dec==-1
 				&& f.num!=max && (min>=0 || f.num!=min)) { //Decimal
 			if(!len && min>0) ns=Math.floor(min)+'.';
 			else ns+='.';
-		}} else if(k=='Backspace' || k=='Delete') { //Backspace
-			if(min>0 && f.num==min && ns.endsWith('.')) ns='';
+		}} else if(k==='Backspace' || k==='Delete') { //Backspace
+			if(min>0 && f.num===min && ns.endsWith('.')) ns='';
 			else ns=ns.slice(0,-1);
-		} else if(k=='-' || k=='#') {if(min<0 && !len) ns='-'} //Negative
-		else if(k=='ArrowUp') ns=null, f.set(f.num+Number(f.step)); //Up
-		else if(k=='ArrowDown') ns=null, f.set(f.num-Number(f.step)); //Down
+		} else if(k==='-' || k==='#') {if(min<0 && !len) ns='-'} //Negative
+		else if(k==='ArrowUp') ns=null, f.set(f.num+Number(f.step)); //Up
+		else if(k==='ArrowDown') ns=null, f.set(f.num-Number(f.step)); //Down
 
 		if(ns !== null && ns !== f.ns) {
-			let neg=ns=='-'||ns=='-.', s=neg?'0':ns+(ns.endsWith('.')?'0':''),
+			len=ns.length, dec=ns.indexOf('.');
+			let neg=ns==='-'||ns==='-.', s=neg?'0':ns+(ns.endsWith('.')?'0':''),
 				nr=Number(s), n=Math.min(max,Math.max(min,nr));
-			if(!kn || f.num !== n || nr === min) {
+			if(!kn || !ns || f.num !== n || (dec!==-1 && len-dec < decMax+1)) {
 				f.ns=ns, f.num=n;
-				f.value = sym ? (neg?sym+'-0.00':utils.formatCost(n,sym)):
-					((neg?'-':'')+n+(ns.endsWith('.')&&(min<=0||n!=min)?'.0':''));
+				f.value = sym ? neg?sym+'-0.00':utils.formatCost(n,sym):
+					(ns[0]==='-'?'-':'')+Math.floor(Math.abs(n))
+					+(dec!==-1?ns.slice(dec)+(R_NFZ.test(ns)?'0':''):'');
 				if(f.onnuminput) f.onnuminput.call(f);
 			}
 		}
 		e.preventDefault();
 	});
-	f.set=n => {
-		if(typeof n=='string') n=n.replace(RM,'');
+	function numRng(n) {
+		if(typeof n==='string') n=n.replace(RM,'');
 		n=Math.min(max,Math.max(min,Number(n)||0));
-		f.num = decMax?Number(n.toFixed(decMax)):Math.round(n);
+		return decMax?Number(n.toFixed(decMax)):Math.round(n);
+	}
+	f.set=n => {
+		f.num = numRng(n);
 		f.ns = f.num.toString();
 		f.value = sym?utils.formatCost(f.num,sym):f.ns;
 		f.ns=f.ns.replace(/^(-?)0+/,'$1');
 		if(f.onnuminput) f.onnuminput.call(f);
 	}
 	f.setRange=(nMin, nMax, nDecMax) => {
-		min=nMin, max=nMax, decMax=nDecMax;
+		min=nMin==null ? Number.MIN_SAFE_INTEGER : nMin;
+		max=nMax==null ? Number.MAX_SAFE_INTEGER : nMax;
+		decMax=nDecMax==null ? sym?2:0 : nDecMax;
+		if(numRng(f.num) !== f.num) f.set(f.num);
 	}
 	f.addEventListener('input',() => f.set(f.value));
 	f.addEventListener('paste',e => {f.set(e.clipboardData.getData('text')); e.preventDefault()});
+	f.setRange(min, max, decMax);
 	return f;
 }
 
