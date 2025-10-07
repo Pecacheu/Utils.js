@@ -47,7 +47,6 @@ For client-side use, the minified *utils.min.js* is recommended (Minified with h
 - `[Element].insertChildAt(el,i)` Inserts child at index. Appends child to end if index exceeds child count.
 - `UtilRect [Element].boundingRect` Element's bounding rect as a `UtilRect` object.
 - `UtilRect [Element].innerRect` Element's inner rect (excluding margin, padding, and border)
-- `Math.cot(x) returns Number` No idea why this isn't built-in, but it's not.
 - `[TouchList].get(id) returns Touch` Gets touch by id, returns null if none found.
 - `[Uint8Array].toBase64([opts]) returns String` Polyfill; See MDN docs.
 - `Uint8Array.fromBase64(str[, opts]) returns Uint8Array` Polyfill; See MDN docs.
@@ -69,9 +68,8 @@ For client-side use, the minified *utils.min.js* is recommended (Minified with h
 - `utils.setDateTime(el, date)` Set 'datetime-local' or 'date' input from JS Date, adjusting for local timezone.
 - `utils.getDateTime(el) returns Date` Get value of 'datetime-local' or 'date' input as JS Date.
 - `utils.formatDate(date[,opts]) returns String` Format Date object into a pretty string, with various options.
-- `utils.months` Array of months from Jan to Dec.
+- `utils.months` Array of 3-letter month names from Jan to Dec.
 - `utils.suffix(n) returns String` Add appropriate suffix to number. (ex. 31st, 12th, 22nd)
-- `utils.fixedNum(n,len[,radix=10]) returns String` Fix number to a given minimum length with padded 0's. Adds '0b' for binary *(radix=2)* and '0x' for hex *(radix=16)*
 - `utils.goBack()` For AJAX navigation. Presses back button.
 - `utils.goForward()` For AJAX navigation. Presses forward button.
 - `utils.go(url, data)` Push new history state for AJAX navigation. You can provide additional data to access later.
@@ -87,8 +85,6 @@ For client-side use, the minified *utils.min.js* is recommended (Minified with h
 - `utils.firstEmptyChar(obj) returns String` Like *firstEmpty*, but uses letters from `utils.numToChar` instead.
 - `utils.numToChar(n) returns String` Converts a number into letters (upper and lower) from a to Z.
 - `utils.merge(target,source[,source2...]) returns target` Merges two (or more) objects, giving the last precedence. If both objects contain a property at the same index, and both are Arrays/Objects, they are merged.
-- `utils.bounds(n,min=0,max=1) returns Number` Keeps value within max/min bounds. Also handles NaN or null.
-- `utils.norm` *OR* `utils.normalize(n,min=0,max=1) returns Number` 'Normalizes' a value so that it ranges from min to max, but unlike `utils.bounds`, this function retains input's offset. This can be used to normalize angles.
 - `utils.cutStr(s,rem) returns String` Finds and removes all instances of 'rem' contained within String 's'
 - `utils.dCut(data,startString,endString[,index[,searchStart]]) returns String` Cuts text out of 'data' from first instance of 'startString' to next instance of 'endString'.
 - `utils.dCutToLast(data,startString,endString[,index[,searchStart]]) returns String` Same as *utils.dCut* but using lastIndexOf for end search.
@@ -99,8 +95,6 @@ For client-side use, the minified *utils.min.js* is recommended (Minified with h
 - `utils.addId(id,propList)` Create a css selector and append it to the current document.
 - `utils.addKeyframe(name,content)` Create a css keyframe and append it to the current document.
 - `utils.removeSelector(name)` Remove a specific css selector (including the '.' or '#') from all stylesheets in the current document.
-- `utils.hexToRgb(hex) returns Number` Converts HEX color to 24-bit RGB.
-- `utils.rand(min,max[,res[,ease]]) returns Number` Generates random from min to max, optionally with a decimal resolution (10, 100, 1000, etc.) or custom ease, changing the probability of various numbers being generated.
 - `utils.fromQuery(str) returns Object` Parses a url query string into an Object.
 - `utils.toQuery(obj) returns String` Converts an object into a url query string.
 - `utils.center(obj[,only[,type]])` Center objects with JavaScript, using a variety of methods. *See utils.js for details.*
@@ -109,6 +103,21 @@ For client-side use, the minified *utils.min.js* is recommended (Minified with h
 - `utils.loadFile(path,callback,timeout)` Good fallback for `utils.loadAjax`. Loads a file at the address via HTML object tag. Callback is fired with either received data, or **false** if unsuccessful.
 - `utils.dlFile(filename,uri) returns Promise` Downloads a file from a link.
 - `utils.dlData(filename,data)` Downloads a file generated from a Blob or ArrayBuffer.
+
+- `utils.delay(ms) returns Promise` setTimeout but async.
+
+## Math & Numbers
+Math operations that work with both `Number` and `BigInt`.
+
+- `utils.abs(x)` / `utils.min(x)` / `utils.max(x)` Work like their **Math** equivalents.
+- `utils.fixedNum(n,len[,radix=10]) returns String` Fix number to a given minimum length with padded 0's. Adds '0b' for binary *(radix=2)* and '0x' for hex *(radix=16)*
+- `utils.bounds(n,min=0,max=1) returns Number` Truncate n to range [min,max]. Also handles NaN or null.
+- `utils.norm` *OR* `utils.normalize(n,min=0,max=1) returns Number` Normalize n to the range [min,max). This can be used to normalize angles.
+
+### Number Only
+- `Math.cot(x) returns Number` No idea why this isn't built-in, but it's not.
 - `utils.rad(deg)` / `utils.deg(rad)` Convert between radians and degrees.
 - `utils.map(input,minIn,maxIn,minOut,maxOut,ease) returns Number` For unit translation and JS animation! See ease functions in *untils.js*.
-- `utils.delay(ms) returns Promise` setTimeout but async.
+- `utils.hexToRgb(hex) returns Number` Converts HEX color to 24-bit RGB.
+- `utils.rgbToHsl(r,g,b) returns [Number, Number, Number]` Converts R,G,B to H,S,L values.
+- `utils.rand(min,max[,res[,ease]]) returns Number` Generates random from min to max, optionally with a decimal resolution (10, 100, 1000, etc.) or custom ease, changing the probability of various numbers being generated

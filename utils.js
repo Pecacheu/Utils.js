@@ -1,7 +1,7 @@
 //https://github.com/Pecacheu/Utils.js; GNU GPL v3
 
 'use strict';
-const utils = {VER:'v8.7.8'},
+const utils = {VER:'v8.7.9'},
 _uNJS = typeof global!='undefined';
 
 //Node.js compat
@@ -226,11 +226,71 @@ utils.formatCost = (n, sym='$') => {
 		n=='-'?n+a:n+(i&&!(i%3)?',':'')+a,'')+'.'+p[1];
 }
 
+//======== Number Methods ========
+
+//JS Math w/ BigInt support
+const BI=typeof BigInt==='undefined'?n=>n:BigInt, B0=BI(0);
+utils.abs=x => typeof x==='bigint'?(x<B0?-x:x):Math.abs(x);
+utils.min=function() {let v,m; for(v of arguments) v>m||(m=v); return m}
+utils.max=function() {let v,m; for(v of arguments) v<m||(m=v); return m}
+
+//Degrees <-> Radians
+utils.deg = rad => rad*180/Math.PI;
+utils.rad = deg => deg*Math.PI/180;
+Math.cot = x => 1/Math.tan(x);
+
 //Convert Number to fixed-length
-//Set radix to 16 for HEX
-utils.fixedNum = function(n,len,radix=10) {
-	let s=Math.abs(n).toString(radix).toUpperCase();
+//Set radix to 16 for HEX or 2 for Binary
+utils.fixedNum = (n,len,radix=10) => {
+	if(typeof len==='bigint') len=Number(len);
+	let s=utils.abs(n).toString(radix).toUpperCase();
 	return (n<0?'-':'')+(radix==16?'0x':radix==2?'0b':'')+'0'.repeat(Math.max(len-s.length,0))+s;
+}
+
+//Truncate n to range [min,max]. Also handles NaN or null
+utils.bounds = (n, min=0, max=1) => n>=min?n<=max?n:max:min;
+
+//Normalize n to the range [min,max), keeping offset
+//Behaves similar to modulus operator, but min doesn't have to be 0
+utils.norm = utils.normalize = (n, min=0, max=1) => {
+	let r=max-min;
+	return ((n+utils.abs(min))%r+r)%r+min;
+}
+
+//Pecacheu's ultimate unit translation formula!
+//This Version -- Bounds Checking: NO, Rounding: NO, Max/Min Switching: NO, Easing: YES
+utils.map = (input, minIn, maxIn, minOut, maxOut, ease) => {
+	let i=(input-minIn)/(maxIn-minIn); return ((ease?ease(i):i)*(maxOut-minOut))+minOut;
+}
+
+//Converts HEX color to 24-bit RGB
+utils.hexToRgb = hex => {
+	const c = parseInt(hex.slice(1),16);
+	return [(c >> 16) & 255, (c >> 8) & 255, c & 255];
+}
+
+//By mjackson @ GitHub
+utils.rgbToHsl = (r,g,b) => {
+	r /= 255, g /= 255, b /= 255;
+	let max=Math.max(r,g,b), min=Math.min(r,g,b), h,s,l=(max+min)/2;
+	if(max===min) h=s=0; //Achromatic
+	else {
+		let d=max-min;
+		s=l>.5 ? d/(2-max-min) : d/(max+min);
+		switch(max) {
+			case r: h=(g-b)/d + (g<b?6:0); break;
+			case g: h=(b-r)/d + 2; break;
+			case b: h=(r-g)/d + 4;
+		}
+		h /= 6;
+	}
+	return [h*360, s*100, l*100];
+}
+
+//Generates random integer from min to max
+utils.rand = (min, max, res, ease) => {
+	res=res||1; max*=res,min*=res; let r=Math.random();
+	return Math.round((ease?ease(r):r)*(max-min)+min)/res;
 }
 
 utils.months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -461,9 +521,6 @@ utils.innerRect=e => {
 utils.define(Element.prototype,'boundingRect',function() {return utils.boundingRect(this)});
 utils.define(Element.prototype,'innerRect',function() {return utils.innerRect(this)});
 
-//No idea why this isn't built-in, but it's not
-Math.cot = x => 1/Math.tan(x);
-
 //Check if string, array, or other object is empty
 utils.isBlank = s => {
 	if(s == null) return true;
@@ -520,19 +577,6 @@ utils.merge = function(o/*, src1, src2...*/) {
 		}
 	}
 	return o;
-}
-
-//Keeps value within max/min bounds. Also handles NaN or null
-utils.bounds = (n, min=0, max=1) => {
-	if(!(n>=min)) return min; if(!(n<=max)) return max; return n;
-}
-
-//'Normalizes' a value so that it ranges from min to max, but unlike utils.bounds,
-//this function retains input's offset. This can be used to normalize angles
-utils.norm = utils.normalize = (n, min=0, max=1) => {
-	const c = Math.abs(max-min);
-	if(n < min) while(n < min) n += c; else while(n >= max) n -= c;
-	return n;
 }
 
 //Finds and removes all instances of 'rem' contained within s
@@ -631,36 +675,6 @@ utils.removeSelector = name => {
 		for(let key in rList) if(rList[key].constructor.name == "CSSStyleRule"
 			&& rList[key].selectorText == name) style.deleteRule(key);
 	}
-}
-
-//Converts HEX color to 24-bit RGB
-utils.hexToRgb = hex => {
-	const c = parseInt(hex.slice(1),16);
-	return [(c >> 16) & 255, (c >> 8) & 255, c & 255];
-}
-
-//By mjackson @ GitHub
-utils.rgbToHsl = (r,g,b) => {
-	r /= 255, g /= 255, b /= 255;
-	let max=Math.max(r,g,b), min=Math.min(r,g,b), h,s,l=(max+min)/2;
-	if(max===min) h=s=0; //Achromatic
-	else {
-		let d=max-min;
-		s=l>.5 ? d/(2-max-min) : d/(max+min);
-		switch(max) {
-			case r: h=(g-b)/d + (g<b?6:0); break;
-			case g: h=(b-r)/d + 2; break;
-			case b: h=(r-g)/d + 4;
-		}
-		h /= 6;
-	}
-	return [h*360, s*100, l*100];
-}
-
-//Generates random integer from min to max
-utils.rand = (min, max, res, ease) => {
-	res=res||1; max*=res,min*=res; let r=Math.random();
-	return Math.round((ease?ease(r):r)*(max-min)+min)/res;
 }
 
 //Parses a url query string into an Object
@@ -771,20 +785,6 @@ utils.dlData = (fn,d) => {
 		if(!(d instanceof Blob)) d=Blob(d); o=URL.createObjectURL(d);
 	}
 	e.href=o,e.download=fn; e.click(); e.remove(); URL.revokeObjectURL(o);
-}
-
-//Converts from radians to degrees, so you can work in degrees
-//Function by: The a**hole who invented radians
-utils.deg = rad => rad*180/Math.PI;
-
-//Converts from degrees to radians, so you can convert back for given stupid library
-//Function by: The a**hole who invented radians
-utils.rad = deg => deg*Math.PI/180;
-
-//Pecacheu's ultimate unit translation formula!
-//This Version -- Bounds Checking: NO, Rounding: NO, Max/Min Switching: NO, Easing: YES
-utils.map = (input, minIn, maxIn, minOut, maxOut, ease) => {
-	let i=(input-minIn)/(maxIn-minIn); return ((ease?ease(i):i)*(maxOut-minOut))+minOut;
 }
 
 //setTimeout but async
