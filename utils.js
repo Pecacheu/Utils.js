@@ -1,7 +1,7 @@
 //https://github.com/Pecacheu/Utils.js; GNU GPL v3
 
 'use strict';
-const utils = {VER:'v8.7.9'},
+const utils = {VER:'v8.7.10'},
 _uNJS = typeof global!='undefined';
 
 //Node.js compat
@@ -874,7 +874,8 @@ const Easing = {
 
 //Node.js compat
 if(_uNJS && !global.utils) {
-	let os = import('os').then(m => os=m);
+	let os;
+	utils.waitInit = () => import('os').then(m => os=m);
 
 	//Get list of system IPs
 	utils.getIPs = () => {
@@ -882,7 +883,7 @@ if(_uNJS && !global.utils) {
 		for(let k in fl) fl[k].forEach(f => {
 			if(!f.internal && f.family == 'IPv4' && f.mac != '00:00:00:00:00:00' && f.address) ip.push(f.address);
 		});
-		return ip.length?ip:0;
+		return ip.length?ip:null;
 	}
 
 	//Get system OS, arch, and CPU info

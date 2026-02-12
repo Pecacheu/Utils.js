@@ -121,3 +121,8 @@ Math operations that work with both `Number` and `BigInt`.
 - `utils.hexToRgb(hex) returns Number` Converts HEX color to 24-bit RGB.
 - `utils.rgbToHsl(r,g,b) returns [Number, Number, Number]` Converts R,G,B to H,S,L values.
 - `utils.rand(min,max[,res[,ease]]) returns Number` Generates random from min to max, optionally with a decimal resolution (10, 100, 1000, etc.) or custom ease, changing the probability of various numbers being generated
+
+## Node.js Only
+- `utils.waitInit() returns Promise` You must await this before you can use any of the Node.js methods below.
+- `utils.getIPs() returns List[String] or null` Get list of system IPs, or null if no network found.
+- `utils.getOS() returns [String, String, String]` Get system OS, arch, and CPU info.
