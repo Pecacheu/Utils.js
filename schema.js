@@ -1,4 +1,4 @@
-//ChuSchema v1.3, Pecacheu 2025. GNU GPL v3
+//ChuSchema v1.3.1, Pecacheu 2025. GNU GPL v3
 
 class SubError extends Error {}
 
@@ -70,6 +70,9 @@ function checkType(d,sr) {
 				if(s.kf instanceof RegExp && !s.kf.test(n)) throw `Key '${n}' does not match format ${s.kf}`;
 				dt?checkSchema(d[n],ds.f):checkType(d[n],ds.c);
 			} catch(e) {throw errAt(n,e,1)}
+		break; case 'obj':
+			if(typeof s.c !== 'function') throw "Obj schema requires class";
+			if(!(d instanceof s.c)) throw `Obj must be of type ${s.c.name}`;
 		break; default:
 			throw `Unknown type ${s.t} in schema`;
 		}} catch(e) {el.push(e)}
