@@ -3,7 +3,7 @@
 import path from 'path';
 import fs from 'fs/promises';
 import crypto from 'crypto';
-import chalk from 'chalk';
+import C from 'chalk';
 let debug;
 
 const types = {
@@ -77,8 +77,8 @@ function sendCode(res, code, msg) {
 	res.writeHead(code,''), res.write(`<pre style='font-size:16pt'>${msg}</pre>`), res.end();
 }
 
-function err(m,e) {console.error(chalk.red(m,e))}
-function log(name, ct) {console.log(chalk.dim("-- Served "+name+(ct?" with type "+ct:'')))}
+function err(m,e) {console.error(C.red(m,e))}
+function log(name, ct) {console.log(C.dim("-- Served "+name+(ct?" with type "+ct:'')))}
 
 async function resolve(dir, uri, vDir) {
 	if(uri.indexOf('..') !== -1) throw "Bad path";
