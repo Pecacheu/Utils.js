@@ -1,12 +1,17 @@
-//Node Webserver v3.4.2, Pecacheu 2025. GNU GPL v3
+//Node Webserver v3.5, Pecacheu 2025. GNU GPL v3
 
 import path from 'path';
 import fs from 'fs/promises';
 import crypto from 'crypto';
 import C from 'chalk';
-let debug;
+import http from 'http';
+import { StringMap } from 'raiutils';
+import { ReadStream } from 'fs';
 
-const types = {
+let debug = 0;
+
+/** Map of file extensions to MIME types */
+const types: StringMap = {
 	'.html': "text/html",
 	'.php':  "text/html",
 	'.css':  "text/css",
@@ -19,12 +24,17 @@ const types = {
 	'.webm': "video/webm"
 };
 
-//etag: If number, max file size to calc hash, else if true, use fast etag mode (modified date)
-async function handle(dir, req, res, virtualDirs, etag=true) {
-	let f;
+let etagMode: boolean | number = true;
+
+/** Serve files from a directory
+@param root Root dir to serve web files from
+@param vDir Virtual override paths in the form `{webPath: pathOnDisk}` */
+async function handle(root: string, req: http.IncomingMessage, res: http.ServerResponse, vDir?: StringMap) {
+	let f: fs.FileHandle;
 	try {
-		let fn=await resolve(dir, new URL(req.url,'http://a').pathname, virtualDirs),
-			hdr={}, stat=200, ext=path.extname(fn), ct=types[ext], rng=req.headers.range, str;
+		let fn=await resolve(root, new URL(req.url!,'http://a').pathname, vDir),
+			hdr: http.OutgoingHttpHeaders={}, stat=200, ext=path.extname(fn),
+			ct=types[ext], rng: any=req.headers.range, str;
 		if(ct) hdr["content-type"] = ct;
 		f=await fs.open(fn);
 		let st=await f.stat(), dl=st.size;
@@ -38,49 +48,52 @@ async function handle(dir, req, res, virtualDirs, etag=true) {
 			hdr["accept-ranges"] = 'bytes';
 			hdr["content-range"] = `bytes ${rs}-${re}/${dl}`;
 			stat=206;
-		} else if(typeof etag==='number') {if(dl <= MAX_ETAG) {
+		} else if(typeof etagMode==='number') {if(dl <= etagMode) {
 			str=await f.readFile();
 			let h=crypto.createHash('sha1');
 			h.update(str);
-			hdr.etag=h.digest('base64url');
-		}} else if(etag) hdr.etag=st.mtime.toISOString();
+			hdr.etag = h.digest('base64url');
+		}} else if(etagMode) hdr.etag = st.mtime.toISOString();
 
 		if(hdr.etag && hdr.etag === req.headers['if-none-match'])
 			return res.writeHead(304,''),res.end(),f.close();
 		if(!str) str=f.createReadStream();
 
 		res.writeHead(stat,'',hdr);
-		if(str instanceof Buffer) res.write(str),res.end(); else str.pipe(res);
+		if(str instanceof Buffer) res.write(str),res.end();
+		else (str as ReadStream).pipe(res);
 		res.on('close', () => f.close());
-		if(debug) log(fn.startsWith(dir)?fn.slice(dir.length):fn, ct);
-	} catch(e) {
+		if(debug) log(fn.startsWith(root)?fn.slice(root.length):fn, ct);
+	} catch(e: any) {
 		let nf=e.code==='ENOENT';
 		if(debug||!nf) nf?err("-- Not found"):err("-- Read",e);
 		sendCode(res, nf?404:500, nf?"Resource Not Found":e);
-		if(f) f.close();
+		if(f!) f.close();
 	}
 }
 
-async function serve(fn, req, res, etag=true) {
+/** Serve a single file from `path` to the client */
+async function serve(path: string, req: http.IncomingMessage, res: http.ServerResponse) {
 	let u=req.url; req.url='/';
-	return handle(fn, req, res, null, etag).finally(() => req.url=u);
+	return handle(path, req, res).finally(() => req.url=u);
 }
 
-async function rngErr(f,fl,rng,res) {
+async function rngErr(f: fs.FileHandle, fl: number, rng: string, res: http.ServerResponse) {
 	if(debug) err("-- Bad Range",rng);
 	let h={"content-range": 'bytes */'+fl};
 	res.writeHead(416,'',h); res.end();
 	f.close();
 }
 
-function sendCode(res, code, msg) {
-	res.writeHead(code,''), res.write(`<pre style='font-size:16pt'>${msg}</pre>`), res.end();
+/** Convenience method for sending an error page to the client */
+function sendCode(res: http.ServerResponse, code: number, msg: string) {
+	res.writeHead(code,''), res.write(`<pre style='font-size:16pt'>Error ${code}: ${msg}</pre>`), res.end();
 }
 
-function err(m,e) {console.error(C.red(m,e))}
-function log(name, ct) {console.log(C.dim("-- Served "+name+(ct?" with type "+ct:'')))}
+function err(m: string, e?: string) {console.error(C.red(m,e))}
+function log(name: string, ct?: string) {console.log(C.dim("-- Served "+name+(ct?" with type "+ct:'')))}
 
-async function resolve(dir, uri, vDir) {
+async function resolve(dir: string, uri: string, vDir?: StringMap) {
 	if(uri.indexOf('..') !== -1) throw "Bad path";
 	let fn = parseUri(dir, uri, vDir);
 	if(fn.endsWith('/')) fn=fn.slice(0,-1);
@@ -94,16 +107,25 @@ async function resolve(dir, uri, vDir) {
 	}
 }
 
-function parseUri(root, uri, vDir) {
+function parseUri(root: string, uri: string, vDir?: StringMap) {
 	if(vDir) {
 		let v,vs; for(v in vDir) {
 			vs=v.startsWith('/')?v:'/'+v;
-			if(uri.startsWith(vs)) return path.join(vDir[v], uri.slice(vs.length));
+			if(uri.startsWith(vs)) return path.join(vDir[v]!, uri.slice(vs.length));
 		}
 	}
 	return root+uri;
 }
 
-const ex={handle, serve, types};
-Object.defineProperty(ex, 'debug', {set:d => debug=d});
-export default ex;
+export default {
+	/** Debug mode. `>= 1` = Enabled */
+	get debug() {return debug},
+	set debug(v: number) {debug=v},
+	/** Etag mode for client-side caching
+	- `0` or `false` = Disable
+	- `> 0` Max file size to calc etag hash
+	- `true` Fast mode; use modified date instead of hash */
+	get etagMode() {return etagMode},
+	set etagMode(v: number | boolean) {etagMode=v},
+	handle, serve, sendCode, types
+};

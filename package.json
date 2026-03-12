@@ -3,7 +3,10 @@
 	"version": "9.0.0",
 	"type": "module",
 	"description": "The ultimate JavaScript & TypeScript companion library. You'll never need jQuery again!",
-	"repository": "https://github.com/Pecacheu/Utils.js",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/Pecacheu/Utils.js.git"
+	},
 	"homepage": "https://github.com/Pecacheu/Utils.js",
 	"author": "Pecacheu",
 	"license": "GPL-3.0",
