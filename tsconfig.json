@@ -1,0 +1,28 @@
+{
+	"include": [ "src/**/*" ],
+	"compilerOptions": {
+		"rootDir": "src",
+		"outDir": "dist",
+		"sourceMap": true,
+		"declaration": true,
+		"declarationMap": true,
+		//Module
+		"module": "nodenext",
+		"target": "es2018",
+		"lib": ["es2018", "dom"],
+		"isolatedModules": true,
+		"allowSyntheticDefaultImports": true,
+		"noUncheckedSideEffectImports": true,
+		"moduleDetection": "force",
+		"moduleResolution": "nodenext",
+		"skipLibCheck": true,
+		//Typecheck
+		"strict": true,
+		"noUncheckedIndexedAccess": true,
+		"noImplicitOverride": true,
+		"noUnusedLocals": true,
+		"noUnusedParameters": true,
+		"noFallthroughCasesInSwitch": true,
+		"noPropertyAccessFromIndexSignature": true
+	}
+}

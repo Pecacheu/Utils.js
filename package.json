@@ -1,8 +1,8 @@
 {
 	"name": "raiutils",
-	"version": "8.7.11",
+	"version": "9.0.0",
 	"type": "module",
-	"description": "The ultimate JavaScript companion library. You'll never need jQuery again!",
+	"description": "The ultimate JavaScript & TypeScript companion library. You'll never need jQuery again!",
 	"repository": "https://github.com/Pecacheu/Utils.js",
 	"homepage": "https://github.com/Pecacheu/Utils.js",
 	"author": "Pecacheu",
@@ -23,13 +23,25 @@
 		"mini",
 		"compact"
 	],
+	"files": [
+		"src",
+		"dist"
+	],
+	"scripts": {
+		"prepack": "node build"
+	},
 	"exports": {
-		".": "./utils.js",
-		"./router": "./router.js",
-		"./schema": "./schema.js",
-		"./uuid": "./uuid.js"
+		".": "./dist/utils.js",
+		"./router": "./dist/router.js",
+		"./schema": "./dist/schema.js",
+		"./uuid": "./dist/uuid.js"
 	},
 	"dependencies": {
 		"chalk": "^5.4.1"
+	},
+	"devDependencies": {
+		"@types/node": "^25.4.0",
+		"terser": "^5.46.0",
+		"typescript": "^5.9.3"
 	}
 }
