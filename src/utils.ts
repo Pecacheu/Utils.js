@@ -73,6 +73,17 @@ export interface TouchList {
 	get(id: number): Touch | undefined;
 }
 
+interface Base64Opts {
+	alphabet?: 'base64'|'base64url';
+	omitPadding?: boolean;
+}
+export interface Uint8ArrayConstructor {
+	fromBase64(str: string, opts: Base64Opts): Uint8Array;
+}
+export interface Uint8Array {
+	toBase64(opts: Base64Opts): string;
+}
+
 export interface Element {
 	/** Get an element's index in its parent. Returns -1 if the element has no parent */
 	index: number;
@@ -97,7 +108,10 @@ const [window, history, DOMRect, HTMLCollection,
 	Element, NodeList, addEventListener] = P;
 
 /** Current library version */
-export const VER = "v9.0";
+export const VER = "v9.0.1";
+
+/** Whether the environment is Node.js or Browser */
+export const isNode = IsNode;
 
 //==== Objects ====
 

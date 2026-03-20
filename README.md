@@ -71,6 +71,8 @@ This module provides **ChuID**, a 64-bit UUID format that outputs as a compact, 
 
 Format: `<U8 Uptime><U8 Magic><U8 CryptoRand><U8 Counter><U32 Date>`
 
+*Note: For browser use, UUID requires `npm i buffer`.*
+
 ```js
 import UUID from 'raiutils/uuid';
 

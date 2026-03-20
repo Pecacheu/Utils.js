@@ -1,8 +1,8 @@
-'use strict';
+//https://github.com/Pecacheu/Utils.js; GNU GPL v3
 
 import path from 'path';
 import fs from 'fs/promises';
-import { execSync } from 'child_process';
+import { spawn } from 'child_process';
 import { minify as mJS } from 'terser';
 import C from 'chalk';
 
@@ -58,10 +58,10 @@ async function getSrc(map) {
 async function mkdir(p) {try {await fs.mkdir(p)} catch(e) {if(e.code!=='EEXIST') throw e}}
 async function rm(p) {try {await fs.rm(p, {recursive:true})} catch(e) {if(e.code!=='ENOENT') throw e}}
 
-function exec(cmd) {
-	try {return execSync(cmd, {cwd:dir, encoding:'utf8', timeout:30000})}
-	catch(e) {log(C.red(e.stdout+e.stderr)); throw e.message}
-}
+const run = cmd => new Promise((res, rej) => {
+	cmd=spawn(cmd, {shell:true, stdio:'inherit'});
+	cmd.on('error', rej), cmd.on('exit', c => c?rej(`Exit Code ${c}`):res());
+});
 
 async function recurse(func, pin, pout) {
 	let pl=[], d=await fs.readdir(pin, {withFileTypes:true});
@@ -80,7 +80,7 @@ log(C.bgYellow("Clean"));
 await rm(dist);
 
 log(C.bgYellow("Build TS"));
-log(exec("npx tsc"));
+await run("npx tsc");
 
 log(C.bgYellow("Minify"));
 await recurse(minify, dist);

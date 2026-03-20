@@ -1,22 +1,23 @@
-//Chu ID v1.5.1, Pecacheu 2026. GNU GPL v3
+//Chu ID v1.5.2, Pecacheu 2026. GNU GPL v3
 
-import os from 'os';
-import fs from 'fs/promises';
-import crypto from 'crypto';
-import { promisify } from 'util';
+import { Buffer } from 'buffer';
 import utils from 'raiutils';
+
+const [os, fs, cRand] = utils.isNode ? [
+	await import('os'),
+	await import('fs/promises'),
+	(await import('util')).promisify((await import('crypto')).randomBytes)
+] : [];
+
+let mdb: any;
+//@ts-expect-error
+try {mdb = await import('mongodb')} catch(e) {}
 
 const ID_FN = import.meta.dirname+'/uuid';
 let Cnt: number, CLT: number, LT: number,
 LD: number, UT: NodeJS.Timeout | boolean;
 
-let mdb: any;
-//@ts-ignore
-try {mdb=await import('mongodb')} catch(e) {}
-
-namespace mdb {export interface Long {
-	unsigned: boolean; toString(r: number): string;
-}}
+interface Long {unsigned: boolean; toString(r: number): string}
 
 //64-bit UUID Format
 //<U8 Uptime><U8 Magic><U8 CryptoRand><U8 Counter><U32 Date>
@@ -24,6 +25,7 @@ namespace mdb {export interface Long {
 function swapHex(h: string) {return h.match(/.{2}/g)!.reverse().join('')}
 
 async function loadId() {
+	if(!fs) return Cnt = utils.rand(0,255);
 	//Prevent race condition
 	if(UT === true) {
 		while(UT === true) await utils.delay(10);
@@ -42,16 +44,21 @@ export default class UUID {
 	static ID_Delay = 10000;
 	id: Buffer;
 
-	constructor(id: string | Buffer | mdb.Long) {
-		if(id instanceof Buffer && id.length === UUID.BYTES) {}
-		else if(typeof id === 'string' && id.length === UUID.LEN) id=Buffer.from(id,'base64');
-		else if(mdb && id instanceof mdb.Long) {
-			(id as mdb.Long).unsigned=true;
-			id=Buffer.from((id as mdb.Long).toString(16),'hex');
+	constructor(id: string | Buffer | Uint8Array | Long) {
+		if(id instanceof Uint8Array && id.length === UUID.BYTES) {}
+		else if(typeof id === 'string' && id.length === UUID.LEN) {
+			if(utils.isNode) id=Buffer.from(id, 'base64');
+			else id=Uint8Array.fromBase64(id, {alphabet:'base64url'});
+		} else if(mdb && id instanceof mdb.Long) {
+			(id as Long).unsigned=true;
+			id=Buffer.from((id as Long).toString(16),'hex');
 		} else throw `Unknown UUID format ${id}`;
-		this.id = id;
+		this.id = id instanceof Buffer?id:Buffer.from(id.buffer);
 	}
-	toString(f?: BufferEncoding) {return this.id.toString(f||'base64url')}
+	toString(f?: BufferEncoding) {
+		if(utils.isNode || f) return this.id.toString(f||'base64url');
+		return this.id.toBase64({alphabet:'base64url', omitPadding:true});
+	}
 	toHexLE() {return swapHex(this.id.toString('hex'))}
 	toLong() {return mdb.Long.fromString(this.id.toString('hex'),16)}
 	getMagic() {return this.id.readUInt8(1)}
@@ -60,15 +67,16 @@ export default class UUID {
 		return new Date(d<1621543800000?0:d);
 	}
 
-	/** Convenience method for async `crypto.randomBytes` */
-	static randBytes = promisify(crypto.randomBytes);
+	/** Async `crypto.randomBytes` with browser fallback */
+	static randBytes = async (size: number) => cRand ? cRand(size)
+		: crypto.getRandomValues(Buffer.allocUnsafe(size));
 
 	/** Generate new random UUID
 	@param date Optional Date or Unix ms timestamp; default is current time
 	@param magic User-defined 8-bit value that can be retrieved later; default is random
 	*/
 	static genUUID = async (date?: Date | number, magic?: number) => {
-		let ts = (os.uptime()*10)&255;
+		let ts = (os ? os.uptime()*10 : performance.now()/100)&255;
 		const ds = (date instanceof Date?
 			date.getTime() : date||Date.now())/10000,
 		rb = await UUID.randBytes(magic!=null?1:2),
@@ -94,7 +102,7 @@ export default class UUID {
 		u.writeUInt8(ct, 3);
 		u.writeUInt32LE(ds, 4);
 
-		if(!UT) UT = setTimeout(() => {
+		if(fs && !UT) UT = setTimeout(() => {
 			UT=false, fs.writeFile(ID_FN, Cnt.toString());
 		}, UUID.ID_Delay);
 		return new UUID(u);
