@@ -11,7 +11,7 @@ const [os, fs, cRand] = utils.isNode ? [
 
 let Long: any;
 //@ts-expect-error
-try {Long = await import('mongodb').Long} catch(e) {}
+try {Long = (await import('mongodb')).Long} catch(e) {}
 interface Long {unsigned: boolean; toString(r: number): string}
 
 const ID_FN = import.meta.dirname+'/uuid';
