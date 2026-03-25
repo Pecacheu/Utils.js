@@ -1,4 +1,4 @@
-//Chu ID v1.5.2, Pecacheu 2026. GNU GPL v3
+//Chu ID v1.5.3, Pecacheu 2026. GNU GPL v3
 
 import { Buffer } from 'buffer';
 import utils from 'raiutils';
@@ -9,15 +9,14 @@ const [os, fs, cRand] = utils.isNode ? [
 	(await import('util')).promisify((await import('crypto')).randomBytes)
 ] : [];
 
-let mdb: any;
+let Long: any;
 //@ts-expect-error
-try {mdb = await import('mongodb')} catch(e) {}
+try {Long = await import('mongodb').Long} catch(e) {}
+interface Long {unsigned: boolean; toString(r: number): string}
 
 const ID_FN = import.meta.dirname+'/uuid';
 let Cnt: number, CLT: number, LT: number,
 LD: number, UT: NodeJS.Timeout | boolean;
-
-interface Long {unsigned: boolean; toString(r: number): string}
 
 //64-bit UUID Format
 //<U8 Uptime><U8 Magic><U8 CryptoRand><U8 Counter><U32 Date>
@@ -37,6 +36,9 @@ async function loadId() {
 	UT=false;
 }
 
+const B0 = BigInt(0),
+	B64 = BigInt('18446744073709551615');
+
 export default class UUID {
 	static readonly LEN = 11;
 	static readonly BYTES = 8;
@@ -44,12 +46,15 @@ export default class UUID {
 	static ID_Delay = 10000;
 	id: Buffer;
 
-	constructor(id: string | Buffer | Uint8Array | Long) {
+	constructor(id: string | Buffer | Uint8Array | bigint | Long) {
 		if(id instanceof Uint8Array && id.length === UUID.BYTES) {}
 		else if(typeof id === 'string' && id.length === UUID.LEN) {
 			if(utils.isNode) id=Buffer.from(id, 'base64');
 			else id=Uint8Array.fromBase64(id, {alphabet:'base64url'});
-		} else if(mdb && id instanceof mdb.Long) {
+		} else if(typeof id === 'bigint' && id > B0 && id <= B64) {
+			const n=id;
+			(id=Buffer.allocUnsafe(8)).writeBigUInt64LE(n);
+		} else if(Long && id instanceof Long) {
 			(id as Long).unsigned=true;
 			id=Buffer.from((id as Long).toString(16),'hex');
 		} else throw `Unknown UUID format ${id}`;
@@ -60,7 +65,8 @@ export default class UUID {
 		return this.id.toBase64({alphabet:'base64url', omitPadding:true});
 	}
 	toHexLE() {return swapHex(this.id.toString('hex'))}
-	toLong() {return mdb.Long.fromString(this.id.toString('hex'),16)}
+	toBigInt() {return this.id.readBigUInt64LE()}
+	toLong() {return Long.fromString(this.id.toString('hex'),16)}
 	getMagic() {return this.id.readUInt8(1)}
 	getDate() {
 		let d=this.id.readUInt32LE(4)*10000;

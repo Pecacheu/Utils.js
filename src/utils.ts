@@ -108,7 +108,7 @@ const [window, history, DOMRect, HTMLCollection,
 	Element, NodeList, addEventListener] = P;
 
 /** Current library version */
-export const VER = "v9.0.1";
+export const VER = "v9.0.2";
 
 /** Whether the environment is Node.js or Browser */
 export const isNode = IsNode;
