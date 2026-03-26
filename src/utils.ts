@@ -108,7 +108,7 @@ const [window, history, DOMRect, HTMLCollection,
 	Element, NodeList, addEventListener] = P;
 
 /** Current library version */
-export const VER = "v9.0.3";
+export const VER = "v9.0.4";
 
 /** Whether the environment is Node.js or Browser */
 export const isNode = IsNode;
@@ -896,6 +896,8 @@ export interface DateFormatOpts {
 	year?: boolean | number;
 	/** Put date first instead of time */
 	df?: boolean;
+	/** Date & time separator; defaults to `' '` */
+	sep?: string;
 }
 
 /** Format Date object into human-readable string */
@@ -911,7 +913,7 @@ export function formatDate(d?: Date, opt: DateFormatOpts={}) {
 	dd=d.getDate();
 	dd=months[d.getMonth()]+' '+((opt.suf==null||opt.suf)?suffix(dd):dd);
 	if((opt.year==null||opt.year) && opt.year!==yy) dd=dd+', '+yy;
-	return opt.df?dd+(t&&' '+t):(t&&t+' ')+dd;
+	return opt.df?dd+(t&&(opt.sep||' ')+t):(t&&t+(opt.sep||' '))+dd;
 }
 
 /** Add suffix to number (eg. 31st, 12th, 22nd) */

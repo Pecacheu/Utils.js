@@ -5,6 +5,7 @@ import fs from 'fs/promises';
 import crypto from 'crypto';
 import C from 'chalk';
 import http from 'http';
+import UUID from './uuid.js';
 import { StringMap } from 'raiutils';
 import { ReadStream } from 'fs';
 
@@ -53,7 +54,7 @@ async function handle(root: string, req: http.IncomingMessage, res: http.ServerR
 			let h=crypto.createHash('sha1');
 			h.update(str);
 			hdr.etag = h.digest('base64url');
-		}} else if(etagMode) hdr.etag = st.mtime.toISOString();
+		}} else if(etagMode) hdr.etag = new UUID(BigInt(st.mtime.getTime())).toString();
 
 		if(hdr.etag && hdr.etag === req.headers['if-none-match'])
 			return res.writeHead(304,''),res.end(),f.close();
