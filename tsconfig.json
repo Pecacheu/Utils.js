@@ -9,7 +9,8 @@
 		//Module
 		"module": "nodenext",
 		"target": "es2018",
-		"lib": ["es2018", "dom"],
+		"lib": ["es2018", "DOM", "DOM.Iterable"],
+		"types": ["node"],
 		"isolatedModules": true,
 		"allowSyntheticDefaultImports": true,
 		"noUncheckedSideEffectImports": true,

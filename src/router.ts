@@ -1,4 +1,4 @@
-//Node Webserver v3.5, Pecacheu 2025. GNU GPL v3
+//Node Webserver v3.5.1, Pecacheu 2025. GNU GPL v3
 
 import path from 'path';
 import fs from 'fs/promises';
@@ -29,8 +29,10 @@ let etagMode: boolean | number = true;
 
 /** Serve files from a directory
 @param root Root dir to serve web files from
-@param vDir Virtual override paths in the form `{webPath: pathOnDisk}` */
-async function handle(root: string, req: http.IncomingMessage, res: http.ServerResponse, vDir?: StringMap) {
+@param vDir Virtual override paths in the form `{webPath: pathOnDisk}`
+@param headers Custom headers to add */
+async function handle(root: string, req: http.IncomingMessage, res: http.ServerResponse,
+		vDir?: StringMap, headers?: http.OutgoingHttpHeaders) {
 	let f: fs.FileHandle;
 	try {
 		let fn=await resolve(root, new URL(req.url!,'http://a').pathname, vDir),
@@ -56,10 +58,13 @@ async function handle(root: string, req: http.IncomingMessage, res: http.ServerR
 			hdr.etag = h.digest('base64url');
 		}} else if(etagMode) hdr.etag = new UUID(BigInt(st.mtime.getTime())).toString();
 
-		if(hdr.etag && hdr.etag === req.headers['if-none-match'])
-			return res.writeHead(304,''),res.end(),f.close();
+		if(hdr.etag && hdr.etag === req.headers['if-none-match']) {
+			res.sendDate=false, res.writeHead(304,'',headers);
+			return res.end(),f.close();
+		}
 		if(!str) str=f.createReadStream();
 
+		if(headers) for(const k in headers) hdr[k] = headers[k];
 		res.writeHead(stat,'',hdr);
 		if(str instanceof Buffer) res.write(str),res.end();
 		else (str as ReadStream).pipe(res);
@@ -74,9 +79,9 @@ async function handle(root: string, req: http.IncomingMessage, res: http.ServerR
 }
 
 /** Serve a single file from `path` to the client */
-async function serve(path: string, req: http.IncomingMessage, res: http.ServerResponse) {
+async function serve(path: string, req: http.IncomingMessage, res: http.ServerResponse, headers?: http.OutgoingHttpHeaders) {
 	let u=req.url; req.url='/';
-	return handle(path, req, res).finally(() => req.url=u);
+	return handle(path, req, res, undefined, headers).finally(() => req.url=u);
 }
 
 async function rngErr(f: fs.FileHandle, fl: number, rng: string, res: http.ServerResponse) {

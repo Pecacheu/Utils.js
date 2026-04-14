@@ -1,6 +1,6 @@
 {
 	"name": "raiutils",
-	"version": "9.0.4",
+	"version": "9.0.6",
 	"type": "module",
 	"description": "The ultimate JavaScript & TypeScript companion library. You'll never need jQuery again!",
 	"repository": {
@@ -43,7 +43,7 @@
 		"chalk": "^5.4.1"
 	},
 	"devDependencies": {
-		"@types/node": "^25.4.0",
+		"@types/node": "^25.5.2",
 		"terser": "^5.46.0",
 		"typescript": "^5.9.3"
 	}
