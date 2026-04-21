@@ -22,26 +22,25 @@ async function minify(pin, _, fn) {
 	try {
 		let fin=pin+'/'+fn, ext=path.extname(fn), out, f;
 		if(fin.indexOf('.min') !== -1) return;
-		switch(ext) {
-		case '.js':
-			let map=fin+'.map';
+		if(ext === '.js') {
+			const map = fin + '.map';
 			f=await fs.readFile(fin, UTF);
 			await getSrc(map);
 			out=await mJS(f, jsOpts), f=out.code;
 			f=f.replace(R_SC,'$1');
 			await fs.writeFile(fin, f);
-			log(C.cyan("- "+fn));
+			log(C.cyan(`- ${fn}`));
 			if(out.map) {
 				await fs.writeFile(map, out.map);
-				log(C.cyan("- "+fn+'.map'));
+				log(C.cyan(`- ${fn}.map`));
 			}
-		break; default:
-			log(C.dim("- "+fn));
+		} else if(ext !== '.map') {
+			log(C.dim(`- ${fn}`));
 		}
 	} catch(e) {
-		log(C.red("- "+fn));
+		log(C.red(`- ${fn}`));
 		throw e;
-	}
+	} finally {delete jsOpts.sourceMap}
 }
 
 async function getSrc(map) {
@@ -50,7 +49,26 @@ async function getSrc(map) {
 			content: await fs.readFile(map, UTF),
 			url: path.basename(map)
 		};
-	} catch(e) {delete jsOpts.sourceMap}
+	} catch(e) {}
+}
+
+//==== Codegen ====
+
+const LibDel = '(ext || (ext = {}))', LibRep = '(U)';
+async function libGen(pin, _, fn) {
+	try {
+		let ext=path.extname(fn);
+		if(ext !== '.js') return;
+		let fin=pin+'/'+fn, f=await fs.readFile(fin, UTF), li=f.indexOf(LibDel);
+		if(li !== -1) {
+			f=f.slice(0,li) + LibRep + f.slice(li+LibDel.length);
+			await fs.writeFile(fin, f);
+			log(C.cyan(`- ${fn}`));
+		}
+	} catch(e) {
+		log(C.red(`- ${fn}`));
+		throw e;
+	}
 }
 
 //==== Support ====
@@ -81,6 +99,9 @@ await rm(dist);
 
 log(C.bgYellow("Build TS"));
 await run("npx tsc");
+
+log(C.bgYellow("Codegen"));
+await recurse(libGen, dist);
 
 log(C.bgYellow("Minify"));
 await recurse(minify, dist);

@@ -11,7 +11,6 @@ import { ReadStream } from 'fs';
 
 let debug = 0;
 
-/** Map of file extensions to MIME types */
 const types: StringMap = {
 	'.html': "text/html",
 	'.php':  "text/html",
@@ -133,5 +132,7 @@ export default {
 	- `true` Fast mode; use modified date instead of hash */
 	get etagMode() {return etagMode},
 	set etagMode(v: number | boolean) {etagMode=v},
-	handle, serve, sendCode, types
+	handle, serve, sendCode,
+	/** Map of file extensions to MIME types */
+	types
 };

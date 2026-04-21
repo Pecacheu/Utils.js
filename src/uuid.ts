@@ -3,16 +3,15 @@
 import { Buffer } from 'buffer';
 import utils from 'raiutils';
 
-const [os, fs, cRand] = utils.isNode ? [
-	await import('os'),
-	await import('fs/promises'),
-	(await import('util')).promisify((await import('crypto')).randomBytes)
-] : [];
+declare type os = typeof import('os');
+declare type fs = typeof import('fs/promises');
+interface Long {unsigned: boolean; toString(r: number): string}
+
+const [os, fs, U, C] = await utils.importNode('os', 'fs/promises', 'util', 'crypto');
+const cRand = utils.isNode ? U.promisify(C.randomBytes) : null;
 
 let Long: any;
-//@ts-expect-error
-try {Long = (await import('mongodb')).Long} catch(e) {}
-interface Long {unsigned: boolean; toString(r: number): string}
+try {Long = (await utils.importNode('mongodb'))[0].Long} catch(e) {}
 
 const ID_FN = import.meta.dirname+'/uuid';
 let Cnt: number, CLT: number, LT: number,
@@ -21,7 +20,7 @@ LD: number, UT: NodeJS.Timeout | boolean;
 //64-bit UUID Format
 //<U8 Uptime><U8 Magic><U8 CryptoRand><U8 Counter><U32 Date>
 
-function swapHex(h: string) {return h.match(/.{2}/g)!.reverse().join('')}
+const swapHex = (h: string) => h.match(/.{2}/g)!.reverse().join('');
 
 async function loadId() {
 	if(!fs) return Cnt = utils.rand(0,255);
@@ -74,8 +73,8 @@ export default class UUID {
 	}
 
 	/** Async `crypto.randomBytes` with browser fallback */
-	static randBytes = async (size: number) => cRand ? cRand(size)
-		: crypto.getRandomValues(Buffer.allocUnsafe(size));
+	static randBytes = async (size: number) => (cRand ? cRand(size)
+		: crypto.getRandomValues(Buffer.allocUnsafe(size))) as Promise<Buffer>;
 
 	/** Generate new random UUID
 	@param date Optional Date or Unix ms timestamp; default is current time
