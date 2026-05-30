@@ -13,6 +13,7 @@ dist=dir+'/dist',
 jsOpts={
 	ecma:2018, module:true,
 	format:{inline_script:false, comments:false},
+	mangle: {properties: {regex: /^[_#]/}},
 	compress:{passes:2, arguments:true, keep_fargs:false, keep_infinity:true, unsafe:true}
 };
 

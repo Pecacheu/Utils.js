@@ -1,6 +1,6 @@
 {
 	"name": "raiutils",
-	"version": "9.1.0",
+	"version": "9.1.1",
 	"type": "module",
 	"description": "The ultimate JavaScript & TypeScript companion library. You'll never need jQuery again!",
 	"repository": {
@@ -40,6 +40,7 @@
 			"default": "./dist/utils-dom.js"
 		},
 		"./dom": "./dist/utils-dom.js",
+		"./node": "./dist/utils-node.js",
 		"./router": "./dist/router.js",
 		"./schema": "./dist/schema.js",
 		"./uuid": "./dist/uuid.js"

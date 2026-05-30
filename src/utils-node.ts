@@ -5,6 +5,9 @@ import { utils as U } from './utils.js';
 export type * from './utils.js';
 
 namespace ext {
+/** Import modules only in Node.js, otherwise return empty list */
+export const importNode = async (...mods: string[]) => Promise.all(mods.map(i => import(i)));
+
 /** Get list of system IPs */
 export function getIPs() {
 	const ip: string[]=[], fl=os.networkInterfaces();

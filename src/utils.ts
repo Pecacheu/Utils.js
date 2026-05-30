@@ -75,13 +75,10 @@ export namespace utils {
 const [document, HTMLCollection] = P;
 
 /** Current library version */
-export const VER = "v9.1.0";
+export const VER = "v9.1.1";
 
 /** Whether the environment is Node.js or Browser */
 export const isNode = IsNode;
-
-/** Import modules only in Node.js, otherwise return empty list */
-export const importNode = async (...mods: string[]) => (IsNode ? Promise.all(mods.map(i => import(i))) : []) as any[];
 
 //==== Objects ====
 
