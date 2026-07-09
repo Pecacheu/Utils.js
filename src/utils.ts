@@ -68,6 +68,36 @@ export interface Uint8Array {
 export interface AnyMap {[k: string]: any};
 export interface StringMap {[k: string]: string};
 export interface QueryMap {[k: string]: true | string | string[]};
+export type Ease = (t: number) => number;
+
+export interface UserAgentInfo {
+	os?: string;
+	rawOS?: string;
+	type?: string;
+	version?: string;
+	browser?: string;
+	engine?: string;
+	mobile?: boolean;
+}
+
+export interface DateFormatOpts {
+	/** Include seconds */
+	sec?: boolean;
+	/** True or `3` to include milliseconds (requires sec), `2` or `1` to limit precision */
+	ms?: boolean | number;
+	/** Use 24-hour time */
+	h24?: boolean;
+	/** Show time only, false to show date only, null to show both */
+	time?: boolean;
+	/** Add date suffix (1st, 2nd, etc.), default true */
+	suf?: boolean;
+	/** Show year (default true), or a number to show year only if it differs from given year */
+	year?: boolean | number;
+	/** Put date first instead of time */
+	df?: boolean;
+	/** Date & time separator; defaults to `' '` */
+	sep?: string;
+}
 
 //-------------------------------------------- Extensions --------------------------------------------
 
@@ -297,35 +327,35 @@ export function formatCost(num: number, sym='$') {
 
 //JavaScript Easing Library by: https://github.com/gre & https://gizma.com/easing
 //t should be between 0 and 1
-export type Ease = (t: number) => number;
-export const Easing: {[k: string]: Ease} = {
-	//no easing, no acceleration
-	linear:t => t,
-	//accelerating from zero velocity
-	easeInQuad:t => t*t,
-	//decelerating to zero velocity
-	easeOutQuad:t => t*(2-t),
-	//acceleration until halfway, then deceleration
-	easeInOutQuad:t => t<.5 ? 2*t*t : -1+(4-2*t)*t,
-	//accelerating from zero velocity
-	easeInCubic:t => t*t*t,
-	//decelerating to zero velocity
-	easeOutCubic:t => (--t)*t*t+1,
-	//acceleration until halfway, then deceleration
-	easeInOutCubic:t => t<.5 ? 4*t*t*t : (t-1)*(2*t-2)*(2*t-2)+1,
-	//accelerating from zero velocity
-	easeInQuart:t => t*t*t*t,
-	//decelerating to zero velocity
-	easeOutQuart:t => 1-(--t)*t*t*t,
-	//acceleration until halfway, then deceleration
-	easeInOutQuart:t => t<.5 ? 8*t*t*t*t : 1-8*(--t)*t*t*t,
-	//accelerating from zero velocity
-	easeInQuint:t => t*t*t*t*t,
-	//decelerating to zero velocity
-	easeOutQuint:t => 1+(--t)*t*t*t*t,
-	//acceleration until halfway, then deceleration
-	easeInOutQuint:t => t<.5 ? 16*t*t*t*t*t : 1+16*(--t)*t*t*t*t
-}
+const _ease = {
+	/** No easing, no acceleration */
+	linear:(t: number) => t,
+	/** Accelerating from zero velocity */
+	easeInQuad:(t: number) => t*t,
+	/** Decelerating to zero velocity */
+	easeOutQuad:(t: number) => t*(2-t),
+	/** Acceleration until halfway, then deceleration */
+	easeInOutQuad:(t: number) => t<.5 ? 2*t*t : -1+(4-2*t)*t,
+	/** Accelerating from zero velocity */
+	easeInCubic:(t: number) => t*t*t,
+	/** Decelerating to zero velocity */
+	easeOutCubic:(t: number) => (--t)*t*t+1,
+	/** Acceleration until halfway, then deceleration */
+	easeInOutCubic:(t: number) => t<.5 ? 4*t*t*t : (t-1)*(2*t-2)*(2*t-2)+1,
+	/** Accelerating from zero velocity */
+	easeInQuart:(t: number) => t*t*t*t,
+	/** Decelerating to zero velocity */
+	easeOutQuart:(t: number) => 1-(--t)*t*t*t,
+	/** Acceleration until halfway, then deceleration */
+	easeInOutQuart:(t: number) => t<.5 ? 8*t*t*t*t : 1-8*(--t)*t*t*t,
+	/** Accelerating from zero velocity */
+	easeInQuint:(t: number) => t*t*t*t*t,
+	/** Decelerating to zero velocity */
+	easeOutQuint:(t: number) => 1+(--t)*t*t*t*t,
+	/** Acceleration until halfway, then deceleration */
+	easeInOutQuint:(t: number) => t<.5 ? 16*t*t*t*t*t : 1+16*(--t)*t*t*t*t
+};
+export const Easing = _ease as {[k in keyof typeof _ease]: Ease};
 
 //==== Polyfills ====
 
@@ -415,16 +445,6 @@ export function isBlank(s: any) {
 export const delay = (ms: number): Promise<void> => new Promise(r => setTimeout(r,ms));
 
 //-------------------------------------------- DOM Model --------------------------------------------
-
-export interface UserAgentInfo {
-	os?: string;
-	rawOS?: string;
-	type?: string;
-	version?: string;
-	browser?: string;
-	engine?: string;
-	mobile?: boolean;
-}
 
 /** UserAgent-based Mobile device detection
 @param ua User Agent string; defaults to navigator.userAgent */
@@ -555,25 +575,6 @@ export function toQuery(data: QueryMap, sep='&') {
 
 export const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 function fixed2(n: number) {return n<=9?'0'+n:n}
-
-export interface DateFormatOpts {
-	/** Include seconds */
-	sec?: boolean;
-	/** True or `3` to include milliseconds (requires sec), `2` or `1` to limit precision */
-	ms?: boolean | number;
-	/** Use 24-hour time */
-	h24?: boolean;
-	/** Show time only, false to show date only, null to show both */
-	time?: boolean;
-	/** Add date suffix (1st, 2nd, etc.), default true */
-	suf?: boolean;
-	/** Show year (default true), or a number to show year only if it differs from given year */
-	year?: boolean | number;
-	/** Put date first instead of time */
-	df?: boolean;
-	/** Date & time separator; defaults to `' '` */
-	sep?: string;
-}
 
 /** Format Date object into human-readable string */
 export function formatDate(d?: Date, opt: DateFormatOpts={}) {

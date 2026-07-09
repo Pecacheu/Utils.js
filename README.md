@@ -1,5 +1,5 @@
-# Utils.js
-###### If you prefer native JS to jQuery or using bloated web frameworks, but can't live without those one or two essential features, then you need Utils.js!
+# RaiUtils
+###### If you prefer native JS to jQuery or using bloated web frameworks, but can't live without those one or two essential features, then you need RaiUtils!
 
 Also check out [C-Utils](https://github.com/Pecacheu/C-Utils) and [PyColorUtils](https://github.com/Pecacheu/PyColor).
 
@@ -7,7 +7,7 @@ Also check out [C-Utils](https://github.com/Pecacheu/C-Utils) and [PyColorUtils]
 
 Install via `npm i raiutils`. You can also use raiutils in the browser without a package manager! Simply bundle the minified `dist/utils.min.js`. The package is built to work down to **es2018**, so any vaguely modern browser should work. *(Warning: BigInt won't work before `es2020`, but BigInt functions in this library fallback silently to Numbers.)*
 
-# RaiUtils
+# Utils
 The base package contains a ton of useful features and language extensions, which work in both NodeJS and the browser, whether you use a package manager or not! It also bundles in some polyfills for newly available features
 
 ```js
@@ -27,6 +27,58 @@ For a complete list of functions, please check `src/utils.ts` or use an IDE that
 - `utils.center` Does what it says on the tin! Input an Element, choose whether you want X, Y, or by default, both, and change the centering type.
 - `utils.rand` Generate random numbers from min to max, with optional decimal resolution and bias curve.
 - `utils.abs` / `utils.min` / `utils.max` Like their **Math** equivalents, but they work with **BigInt** too!
+
+# Build
+A lightweight, preconfigured build system for libraries and apps. It's also what builds RaiUtils itself!
+
+Add this to your `package.json`:
+```json
+{
+	"scripts": {
+		"build": "node build",
+		"dev": "node build dev"
+	},
+	"dependencies": {
+		"@minify-html/node": "^0.18.1",
+		"@types/node": "^26.1.1",
+		"terser": "^5.46.0",
+		"typescript": "^6.0.3"
+	}
+}
+```
+
+And if you plan to use [esbuild](https://esbuild.github.io):
+```json
+"dependencies": {
+	"@pecacheu/esbuild-plugin-html": "^0.10.0",
+	"esbuild": "^0.28.1"
+}
+```
+
+Then create a `build.js` file:
+```js
+import build from 'raiutils/build';
+
+//Define custom options
+build.setOpts({
+	src: './myCustomPath',
+	jsMin: {...build.defaults.jsMin, ecma: 2018},
+	onPostBuild: async () => {
+		console.log("Build complete!");
+	}
+});
+
+//Run the build
+await build.run();
+```
+
+Running build script:
+- `node build` Run build in production mode
+- `node build dev` Run build in dev mode
+
+If esbuild is installed:
+- `node build meta` Build & export metafile
+- `node build watch` Use file watch mode
 
 # Router
 A super-lightweight minimal web server engine for Node.js. Easy to use, but safe from naughty tricks like directory traversal, built-in support for common MIME types, client caching via the `etag` header, and even streaming media download via `content-range`.

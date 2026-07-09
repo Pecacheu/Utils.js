@@ -395,5 +395,8 @@ export async function download(data: string | URL | Blob | ArrayBuffer, name?: s
 export const importNode = async (..._: string[]) => [] as any[];
 }
 
+//Export types
+export type UtilRect = InstanceType<typeof ext.UtilRect>;
+
 export const utils = <typeof U & typeof ext>U;
 export default utils;
