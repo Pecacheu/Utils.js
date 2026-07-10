@@ -4,6 +4,7 @@ import os from 'os';
 import { utils as U } from './utils.js';
 export type * from './utils.js';
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 namespace ext {
 /** Import modules only in Node.js, otherwise return empty list */
 export const importNode = async (...mods: string[]) => Promise.all(mods.map(i => import(i)));
@@ -11,7 +12,7 @@ export const importNode = async (...mods: string[]) => Promise.all(mods.map(i =>
 /** Get list of system IPs */
 export function getIPs() {
 	const ip: string[]=[], fl=os.networkInterfaces();
-	for(let k in fl) fl[k]!.forEach(f => {
+	for(const k in fl) fl[k]!.forEach(f => {
 		if(!f.internal && f.family == 'IPv4' && f.mac != '00:00:00:00:00:00' && f.address) ip.push(f.address);
 	});
 	return ip;

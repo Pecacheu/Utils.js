@@ -1,9 +1,8 @@
 //https://github.com/Pecacheu/Utils.js; GNU GPL v3
 
 //Node.js compat
-//@ts-ignore
 type P = [typeof document, typeof HTMLCollection];
-//@ts-expect-error
+//@ts-expect-error DOM check
 const IsNode=typeof window==='undefined', P:P=IsNode?[{}, class{}]:[document, HTMLCollection];
 
 //-------------------------------------------- Types --------------------------------------------
@@ -105,7 +104,7 @@ export namespace utils {
 const [document, HTMLCollection] = P;
 
 /** Current library version */
-export const VER = "v9.1.1";
+export const VER = "v9.2.1";
 
 /** Whether the environment is Node.js or Browser */
 export const isNode = IsNode;
@@ -113,7 +112,7 @@ export const isNode = IsNode;
 //==== Objects ====
 
 /** Add getter and/or setter for `name` to `obj` */
-export function define(obj: Object, name: string | string[],
+export function define(obj: object, name: string | string[],
 get?: () => any | null, set?: (v: any) => void | null) {
 	const t = {get: get||undefined, set: set||undefined};
 	if(Array.isArray(name)) for(const n of name) Object.defineProperty(obj,n,t);
@@ -123,7 +122,7 @@ get?: () => any | null, set?: (v: any) => void | null) {
 /** Define immutable, non-enumerable property or method in object prototype
 @param isStat Define static property directly on object
 @param isWrite Make property writable */
-export function proto(obj: Object, name: string, val: any, isStat?: boolean, isWrite?: boolean) {
+export function proto(obj: object, name: string, val: any, isStat?: boolean, isWrite?: boolean) {
 	const t = {value: val, writable: !!isWrite};
 	if(!isStat) obj = (obj as any).prototype;
 	if(Array.isArray(name)) for(const n of name) Object.defineProperty(obj,n,t);
@@ -141,7 +140,7 @@ export function copy<T>(obj: T, sub?: number) {
 		obj.forEach((v,i) => o2[i] = copy(v,sub));
 	} else {
 		o2 = {};
-		for(let k in obj) o2[k] = copy(obj[k],sub);
+		for(const k in obj) o2[k] = copy(obj[k],sub);
 	}
 	return o2 as T;
 }
@@ -173,7 +172,8 @@ Useful for defining settings in a complex config object
 @returns True if successful */
 export function setProp(obj: AnyMap, path: string | string[], val: any, onlyNull=false) {
 	if(typeof path === 'string') path = path.split('.');
-	let i=0, l=path.length-1, o=obj;
+	const l=path.length-1;
+	let i=0, o=obj;
 	for(; i<l; ++i) {
 		o = o[path[i]!];
 		if(!o || typeof o !== 'object') {
@@ -262,7 +262,7 @@ Math.cot = x => 1/Math.tan(x);
 @param radix Set to `16` for Hex or `2` for Binary */
 export function fixedNum(n: Num, len: Num, radix=10) {
 	if(typeof len==='bigint') len=Number(len);
-	let s=abs(n).toString(radix).toUpperCase();
+	const s=abs(n).toString(radix).toUpperCase();
 	return (n<0?'-':'')+(radix==16?'0x':radix==2?'0b':'')+'0'.repeat(Math.max(len-s.length,0))+s;
 }
 
@@ -272,15 +272,15 @@ export const bounds = <T extends Num>(n: T, min: T=0 as T, max: T=1 as T) => n>=
 /** Normalize n to the range `[min,max)`, keeping offset.
 Behaves similar to modulus operator, but min doesn't have to be 0 */
 export function norm<T extends Num>(n: T, min: T=0 as T, max: T=1 as T): T {
-	let r = max-min;
-	//@ts-expect-error
+	const r = max-min;
+	//@ts-expect-error Bigint check
 	return ((n + abs(min))%r+r)%r+min;
 }
 
 /** Pecacheu's ultimate unit translation formula! */
 export function map(input: number, minIn: number,
 maxIn: number, minOut: number, maxOut: number, ease?: Ease) {
-	let i = (input-minIn)/(maxIn-minIn);
+	const i = (input-minIn)/(maxIn-minIn);
 	return ((ease?ease(i):i)*(maxOut-minOut))+minOut;
 }
 
@@ -294,10 +294,11 @@ export function hexToRgb(hex: string) {
 /** Convert R,G,B to H,S,L values */
 export function rgbToHsl(r: number, g: number, b: number) {
 	r /= 255, g /= 255, b /= 255;
-	let max=Math.max(r,g,b), min=Math.min(r,g,b), h,s,l=(max+min)/2;
+	const max=Math.max(r,g,b), min=Math.min(r,g,b), l=(max+min)/2;
+	let h,s;
 	if(max===min) h=s=0; //Achromatic
 	else {
-		let d=max-min;
+		const d=max-min;
 		s=l>.5 ? d/(2-max-min) : d/(max+min);
 		switch(max) {
 			case r: h=(g-b)/d + (g<b?6:0); break;
@@ -313,7 +314,7 @@ export function rgbToHsl(r: number, g: number, b: number) {
 @param res Minimum step between min and max (1 by default for ints)
 @param bias Bias the results using an Ease function */
 export function rand(min: number, max: number, res=1, bias?: Ease) {
-	max*=res,min*=res; let r=Math.random();
+	max*=res,min*=res; const r=Math.random();
 	return Math.round((bias?bias(r):r)*(max-min)+min)/res;
 }
 
@@ -329,31 +330,31 @@ export function formatCost(num: number, sym='$') {
 //t should be between 0 and 1
 const _ease = {
 	/** No easing, no acceleration */
-	linear:(t: number) => t,
+	linear: (t: number) => t,
 	/** Accelerating from zero velocity */
-	easeInQuad:(t: number) => t*t,
+	easeInQuad: (t: number) => t * t,
 	/** Decelerating to zero velocity */
-	easeOutQuad:(t: number) => t*(2-t),
+	easeOutQuad: (t: number) => t * (2 - t),
 	/** Acceleration until halfway, then deceleration */
-	easeInOutQuad:(t: number) => t<.5 ? 2*t*t : -1+(4-2*t)*t,
+	easeInOutQuad: (t: number) => t < .5 ? 2 * t * t : -1 + (4 - 2 * t) * t,
 	/** Accelerating from zero velocity */
-	easeInCubic:(t: number) => t*t*t,
+	easeInCubic: (t: number) => t ** 3,
 	/** Decelerating to zero velocity */
-	easeOutCubic:(t: number) => (--t)*t*t+1,
+	easeOutCubic: (t: number) => --t * t * t + 1,
 	/** Acceleration until halfway, then deceleration */
-	easeInOutCubic:(t: number) => t<.5 ? 4*t*t*t : (t-1)*(2*t-2)*(2*t-2)+1,
+	easeInOutCubic: (t: number) => t < .5 ? 4 * t ** 3 : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1,
 	/** Accelerating from zero velocity */
-	easeInQuart:(t: number) => t*t*t*t,
+	easeInQuart: (t: number) => t ** 4,
 	/** Decelerating to zero velocity */
-	easeOutQuart:(t: number) => 1-(--t)*t*t*t,
+	easeOutQuart: (t: number) => 1 - --t * t ** 3,
 	/** Acceleration until halfway, then deceleration */
-	easeInOutQuart:(t: number) => t<.5 ? 8*t*t*t*t : 1-8*(--t)*t*t*t,
+	easeInOutQuart: (t: number) => t < .5 ? 8 * t ** 4 : 1 - 8 * --t * t ** 3,
 	/** Accelerating from zero velocity */
-	easeInQuint:(t: number) => t*t*t*t*t,
+	easeInQuint: (t: number) => t ** 5,
 	/** Decelerating to zero velocity */
-	easeOutQuint:(t: number) => 1+(--t)*t*t*t*t,
+	easeOutQuint: (t: number) => 1 + --t * t ** 4,
 	/** Acceleration until halfway, then deceleration */
-	easeInOutQuint:(t: number) => t<.5 ? 16*t*t*t*t*t : 1+16*(--t)*t*t*t*t
+	easeInOutQuint: (t: number) => t < .5 ? 16 * t ** 5 : 1 + 16 * --t * t ** 4
 };
 export const Easing = _ease as {[k in keyof typeof _ease]: Ease};
 
@@ -373,9 +374,9 @@ B64F={43:62,47:63,48:52,49:53,50:54,51:55,52:56,53:57,54:58,55:59,56:60,57:61,65
 
 //Polyfill for Uint8Array.toBase64
 if(!('toBase64' in Uint8Array.prototype)) proto(Uint8Array, 'toBase64', function(this: Uint8Array, opt: any) {
-	let l=this.byteLength, br=l%3, b=opt&&opt.alphabet==='base64url'?B64URL:B64,
-	i=0,str='',chk: number; l-=br;
-	for(; i<l; i+=3) {
+	let l=this.byteLength, i=0, str='', chk: number;
+	const br=l%3, b=opt&&opt.alphabet==='base64url'?B64URL:B64;
+	for(l-=br; i<l; i+=3) {
 		chk = (this[i]!<<16) | (this[i+1]!<<8) | this[i+2]!;
 		str += b[(chk&16515072)>>18]! + b[(chk&258048)>>12] + b[(chk&4032)>>6] + b[chk&63];
 	}
@@ -401,17 +402,18 @@ function b64Char(s: string, i: number) {
 if(!('fromBase64' in Uint8Array)) proto(Uint8Array, 'fromBase64', (str: string) => {
 	let l=str.length, i=l-1;
 	for(; i>=0; --i) if(str.charCodeAt(i)!==61) break;
-	l=i+1,i=0; let br=l%4; l-=br; if(br==1) throw "Bad b64 len";
-	let arr=new Uint8Array(l*3/4+(br?br-1:0)), b=-1,chk;
+	l=i+1,i=0; const br=l%4; l-=br; if(br==1) throw "Bad b64 len";
+	const arr=new Uint8Array(l*3/4+(br?br-1:0));
+	let b=-1, chk;
 	for(; i<l; i+=4) {
 		chk = (b64Char(str,i)<<18)|(b64Char(str,i+1)<<12)|(b64Char(str,i+2)<<6)|b64Char(str,i+3);
 		arr[++b]=chk>>16, arr[++b]=chk>>8, arr[++b]=chk;
 	}
 	if(br==2) {
-		arr[++b] = (b64Char(str,i)<<2)|(b64Char(str,i+1)>>4);
+		arr[b+1] = (b64Char(str,i)<<2)|(b64Char(str,i+1)>>4);
 	} else if(br==3) {
 		chk = (b64Char(str,i)<<10)|(b64Char(str,i+1)<<4)|(b64Char(str,i+2)>>2);
-		arr[++b]=chk>>8, arr[++b]=chk;
+		arr[++b]=chk>>8, arr[b+1]=chk;
 	}
 	return arr;
 }, true);
@@ -424,7 +426,7 @@ if(!('at' in Array.prototype)) proto(Array, 'at', function(this: any[], idx: num
 //==== Utility ====
 
 proto(Function, 'wrap', function(this: any, ...args: any[]) {
-	const f=this; return function() {return f.apply(arguments, args)}
+	return (...a: any[]) => this.apply(a, args);
 }, false, true);
 
 const R_ES = /\S/;
@@ -452,7 +454,8 @@ export function deviceInfo(ua?: string) {
 	if(!ua) ua = navigator.userAgent;
 	const d: UserAgentInfo = {};
 	if(!ua.startsWith("Mozilla/5.0 ")) return d;
-	let o = ua.indexOf(')'), os: any = d.rawOS=ua.slice(13,o), o2: any, o3: any;
+	const o = ua.indexOf(')');
+	let os: any = d.rawOS=ua.slice(13,o), o2: any, o3: any;
 	if(os.startsWith("Windows")) {
 		o2=os.split('; '), d.os = "Windows";
 		d.type = o2.indexOf('WOW64')!==-1?'x64 PC; x86 Browser':o2.indexOf('x64')!==-1?'x64 PC':'x86 PC';
@@ -472,7 +475,8 @@ export function deviceInfo(ua?: string) {
 		d.os = (os[0]==="Linux"?'':"Linux ")+os[0];
 		d.type = os[o2-2], d.version = os[o2-1];
 	}
-	if(o2=Number(d.version)) d.version=o2;
+	o2=Number(d.version);
+	if(o2) d.version=o2;
 	o2=ua.indexOf(' ',o+2), o3=ua.indexOf(')',o2+1), o3=o3===-1?o2+1:o3+2;
 	d.engine = ua.slice(o+2,o2), d.browser = ua.slice(o3);
 	d.mobile = !!ua.match(/Mobi/i);
@@ -504,14 +508,14 @@ export function setCookie(key: string, val?: string, exp?: Date | number, secure
 export function getCookie(key: string, ckStr?: string) {
 	if(ckStr == null) ckStr=document.cookie;
 	key=encodeURIComponent(key)+'=';
-	let l=ckStr!.split('; '), c: string;
-	for(c of l) if(c.startsWith(key))
+	let c: string;
+	for(c of ckStr!.split('; ')) if(c.startsWith(key))
 		return decodeURIComponent(c.slice(key.length));
 }
 
 /** Delete a cookie */
 export function remCookie(key: string) {
-	let c=encodeURIComponent(key)+'=;max-age=0';
+	const c=encodeURIComponent(key)+'=;max-age=0';
 	if(!IsNode) document.cookie = c;
 	return c;
 }
@@ -539,7 +543,8 @@ If multiple keys with the same name are found, they are combined into an array
 @param sep Key separator, defaults to `&` */
 export function fromQuery(query: string, sep='&') {
 	if(query.startsWith('?')) query=query.slice(1);
-	let data: QueryMap = {}, q: string, p: any, k: string, v: any;
+	const data: QueryMap = {};
+	let q: string, p: any, k: string, v: any;
 	for(q of query.split(sep)) {
 		p=q.indexOf('=');
 		if(p===-1) k=q, v=true;
@@ -562,7 +567,8 @@ function valToQs(k: string, v: any) {
 /** Convert Object into a URL query string
 @param sep Key separator, defaults to `&` */
 export function toQuery(data: QueryMap, sep='&') {
-	let q=[], k: string, v: any;
+	const q=[];
+	let k: string, v: any;
 	for(k in data) {
 		v=data[k], k=encodeURIComponent(k);
 		if(Array.isArray(v)) for(const n of v) q.push(valToQs(k,n));
@@ -594,7 +600,7 @@ export function formatDate(d?: Date, opt: DateFormatOpts={}) {
 
 /** Add suffix to number (eg. 31st, 12th, 22nd) */
 export function suffix(n: number) {
-	let j=n%10, k=n%100;
+	const j=n%10, k=n%100;
 	if(j==1 && k!=11) return n+"st";
 	if(j==2 && k!=12) return n+"nd";
 	if(j==3 && k!=13) return n+"rd";

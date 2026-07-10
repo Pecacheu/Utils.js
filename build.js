@@ -11,8 +11,6 @@ const log = console.log,
 	LibRep = '(U)';
 
 build.setOpts({
-	srcCli: '',
-	srcSrv: '',
 	esbuild: false,
 	jsMin: {...build.defaults.jsMin, ecma: 2018},
 	onPreMin: async () => {

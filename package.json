@@ -1,6 +1,6 @@
 {
 	"name": "raiutils",
-	"version": "9.2.0",
+	"version": "9.2.1",
 	"type": "module",
 	"description": "The ultimate JavaScript & TypeScript companion library. You'll never need jQuery again!",
 	"repository": {
@@ -50,11 +50,17 @@
 		"chalk": "^5.4.1"
 	},
 	"devDependencies": {
+		"@eslint/js": "^10.0.1",
 		"@minify-html/node": "^0.18.1",
 		"@pecacheu/esbuild-plugin-html": "^0.10.0",
+		"@stylistic/eslint-plugin": "^5.10.0",
 		"@types/node": "^26.1.1",
 		"esbuild": "^0.28.1",
+		"eslint": "^10.6.0",
+		"eslint-plugin-import-x": "^4.16.2",
+		"globals": "^17.7.0",
 		"terser": "^5.46.0",
-		"typescript": "^6.0.3"
+		"typescript": "^6.0.3",
+		"typescript-eslint": "^8.57.1"
 	}
 }

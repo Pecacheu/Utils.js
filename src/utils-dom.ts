@@ -56,15 +56,15 @@ if(window.TouchList) U.proto(TouchList, 'get', function(this: any, id: number) {
 	for(const t of this) if(t.identifier === id) return t;
 });
 
-U.define(Element.prototype, 'index', function(this: any) {
+U.define(Element.prototype, 'index', function(this: HTMLElement) {
 	const p=this.parentElement; if(!p) return -1;
 	return Array.prototype.indexOf.call(p.children, this);
 });
 
-
-U.proto(Element, 'insertChildAt', function(this: any, el: Element, i: number) {
-	if(i<0) i=0; if(i >= this.children.length) this.appendChild(el);
-	else this.insertBefore(el, this.children[i]);
+U.proto(Element, 'insertChildAt', function(this: HTMLElement, el: Element, i: number) {
+	const c = this.children;
+	if(i<0) i=0; if(i >= c.length) this.appendChild(el);
+	else this.insertBefore(el, c[i]!);
 });
 
 /** Get element bounding rect as UtilRect object */
@@ -72,7 +72,7 @@ export const boundingRect = (e: Element) => new UtilRect(e.getBoundingClientRect
 
 /** Get element inner rect (excluding border and padding) as UtilRect object */
 export function innerRect(e: Element) {
-	let r=e.getBoundingClientRect(), s=getComputedStyle(e);
+	const r=e.getBoundingClientRect(), s=getComputedStyle(e);
 	return new UtilRect(r.top+parseFloat(s.paddingTop)+parseFloat(s.borderTopWidth),
 		r.bottom-parseFloat(s.paddingBottom)-parseFloat(s.borderBottomWidth),
 		r.left+parseFloat(s.paddingLeft)+parseFloat(s.borderLeftWidth),
@@ -186,6 +186,7 @@ export function center(el: HTMLElement, only?: "x" | "y", mode?: "trans") {
 //==== Navigation ====
 
 /** Called when a virtual navigation event occurs, including on page load */
+// eslint-disable-next-line no-unassigned-vars
 export let onNav: (state: any) => void;
 
 /** Generate a virtual navigation event, updating the URL bar
@@ -241,7 +242,8 @@ function defSty() {
 /** Create a CSS rule and append it to the current document
 @param sel CSS selector, eg. `.class` or `#id` */
 export function addCSS(sel: string, style: CSSStyleDeclaration | UT.AnyMap, sheet?: CSSStyleSheet) {
-	if(!sheet) sheet=defSty(); let k,s=[];
+	if(!sheet) sheet=defSty();
+	const s=[]; let k;
 	for(k in style) s.push(`${k.replace(R_SK, R_SR)}:${(style as UT.AnyMap)[k]}`);
 	sheet!.insertRule(`${sel}{${s.join(';')}}`);
 }
@@ -276,12 +278,11 @@ export function numField(field: HTMLInputElement, min?: number, max?: number, de
 	const f = field as NumField, RM = RegExp(`[,${sym?RegExp.escape(sym):''}]`, 'g');
 	f.type = (mobile||decMax||sym)?'tel':'number';
 	f.setAttribute('pattern', "\\d*");
-	//@ts-expect-error
-	if(!f.step) f.step = 1;
+	if(!f.step) (f as any).step = 1;
 	f.addEventListener('keydown', e => {
 		if(e.ctrlKey) return;
-		let k=e.key, kn=k.length===1&&Number.isFinite(Number(k)),
-			ns=f.ns, len=ns!.length, dec=ns!.indexOf('.');
+		const k=e.key, kn=k.length===1&&Number.isFinite(Number(k));
+		let ns=f.ns, len=ns!.length, dec=ns!.indexOf('.');
 
 		if(k==='Tab' || k==='Enter') return;
 		else if(kn) {if(dec===-1 || len-dec < decMax!+1) ns+=k} //Number
@@ -298,7 +299,7 @@ export function numField(field: HTMLInputElement, min?: number, max?: number, de
 
 		if(ns !== null && ns !== f.ns) {
 			len=ns.length, dec=ns.indexOf('.');
-			let neg=ns==='-'||ns==='-.', s=neg?'0':ns+(ns.endsWith('.')?'0':''),
+			const neg=ns==='-'||ns==='-.', s=neg?'0':ns+(ns.endsWith('.')?'0':''),
 				nr=Number(s), n=U.bounds(nr, min, max);
 			if(!kn || !ns || f.num !== n || (dec!==-1 && len-dec < decMax!+1)) {
 				f.ns=ns, f.num=n;
@@ -340,18 +341,18 @@ Use `el.set(value)` to set value & update size */
 export function autosize(el: HTMLTextAreaElement, maxRows=5, minRows=1) {
 	const e = el as TextArea;
 	e.set = v => {e.value=v,cb()};
-	let s=e.style;
+	const s=e.style;
 	s.maxHeight=s.resize='none', s.minHeight='0', s.height='auto';
 	e.setAttribute('rows', minRows as any);
 	function cb() {
 		if(e.scrollHeight===0) return setTimeout(cb,1); //Still loading
 		e.setAttribute('rows', 1 as any);
 		//Override style
-		let cs=getComputedStyle(e);
+		const cs=getComputedStyle(e);
 		s.setProperty('overflow', 'hidden', 'important');
 		s.width=e.innerRect.w+'px', s.boxSizing='content-box', s.borderWidth=s.paddingInline='0';
 		//Calc scroll height
-		let pad=parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom),
+		const pad=parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom),
 		lh=cs.lineHeight==='normal' ? parseFloat(cs.height) : parseFloat(cs.lineHeight),
 		rows=Math.round((Math.round(e.scrollHeight) - pad)/lh);
 		//Undo overrides & apply
@@ -392,6 +393,7 @@ export async function download(data: string | URL | Blob | ArrayBuffer, name?: s
 }
 
 /** Import modules only in Node.js, otherwise return empty list */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 export const importNode = async (..._: string[]) => [] as any[];
 }
 

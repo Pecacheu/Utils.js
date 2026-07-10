@@ -1,19 +1,21 @@
-//Auto Build v2.3, Pecacheu 2026. GNU GPL v3
+//Auto Build, Pecacheu 2026. GNU GPL v3
 
 import { spawn } from 'child_process';
 import fs from 'fs/promises';
 import path from 'path';
-import mHTML from '@minify-html/node';
+import { type minify as htmlMin } from '@minify-html/node';
 import type { HtmlFileConfiguration } from '@pecacheu/esbuild-plugin-html';
 import C from 'chalk';
 import type { BuildContext, BuildOptions, Plugin } from 'esbuild';
 import { type MinifyOptions, minify as mJS } from 'terser';
 
 let esbuild: typeof import('esbuild') | undefined,
-	pHTML: typeof import('@pecacheu/esbuild-plugin-html') | undefined;
+	pHTML: typeof import('@pecacheu/esbuild-plugin-html') | undefined,
+	mHTML: typeof import('@minify-html/node') | undefined;
 
 try {esbuild = await import('esbuild')} catch(e) {}
 if(esbuild) pHTML = await import('@pecacheu/esbuild-plugin-html');
+try {mHTML = await import('@minify-html/node')} catch(e) {}
 
 const Mode = process.argv[2],
 	Watch = Mode === 'watch',
@@ -22,7 +24,7 @@ const Mode = process.argv[2],
 	log = console.log,
 	UTF = {encoding: 'utf8' as BufferEncoding},
 	R_SC = /;\n?(\/\/#.+)?$/,
-	_hFD: HtmlFileConfiguration[] = [];
+	HFD: HtmlFileConfiguration[] = [];
 
 /** Default build options */
 const defaults = {
@@ -36,15 +38,17 @@ const defaults = {
 	/** Build output directory */
 	dist: 'dist',
 	/** Client source dir, relative to `src` */
-	srcCli: 'web',
-	/** Client build output, relative to `dist` */
-	distCli: 'web',
+	srcCli: '',
+	/** Client build output, relative to `dist`.
+	Defaults to matching srcCli */
+	distCli: '',
 	/** Server source dir, relative to `src`.
 	Set to `''` to disable server build */
-	srcSrv: 'srv',
+	srcSrv: '',
 
 	//Hooks
-	//TODO Make them work in watch mode
+	/** Runs before client build */
+	onPreBuild: null as ((ctx?: BuildContext) => Promise<void>) | null,
 	/** Runs after build but before minify */
 	onPreMin: null as (() => Promise<void>) | null,
 	/** Runs after build completes
@@ -88,7 +92,17 @@ const defaults = {
 		module: true,
 		format: {inline_script: false, comments: false},
 		mangle: {properties: {regex: /^[_#]/}},
-		compress: {passes: 2, arguments: true, keep_fargs: false, keep_infinity: true, unsafe: true}
+		compress: {
+			passes: 2,
+			arguments: true,
+			keep_fargs: false,
+			keep_infinity: true,
+			drop_console: ['debug'],
+			unsafe: true,
+			unsafe_arrows: true,
+			unsafe_math: true,
+			unsafe_methods: true
+		}
 	} as MinifyOptions,
 	/** HTML minify options */
 	htmlMin: {
@@ -96,19 +110,20 @@ const defaults = {
 		allow_removing_spaces_between_attributes: true,
 		minify_css: true,
 		minify_js: true
-	} as Parameters<typeof mHTML.minify>[1]
+	} as Parameters<typeof htmlMin>[1]
 };
 
 export type Options = typeof defaults;
-let opts!: Options, _hPl: Plugin;
+let opts!: Options, Ctx: BuildContext | undefined;
 
 //==== Minify ====
 
 async function minify(pin: string, _: any, fn: string) {
-	let fin = `${pin}/${fn}`, ext = path.extname(fn), f;
+	const fin = `${pin}/${fn}`;
 	if(fin.indexOf('.min') !== -1) return;
-	const fls = fin.slice(opts.dist.length + 1);
+	const ext = path.extname(fn), fls = fin.slice(opts.dist.length + 1);
 	try {
+		let f;
 		if(opts.jsMinExt.includes(ext)) { //Minify JS
 			const map = `${fin}.map`;
 			f = await fs.readFile(fin, UTF);
@@ -123,7 +138,7 @@ async function minify(pin: string, _: any, fn: string) {
 			} finally {delete opts.jsMin.sourceMap}
 			await fs.writeFile(fin, f);
 			log(C.cyan(`- ${fls}`));
-		} else if(opts.htmlMinExt.includes(ext)) { //Minify HTML
+		} else if(mHTML && opts.htmlMinExt.includes(ext)) { //Minify HTML
 			f = mHTML.minify(await fs.readFile(fin), opts.htmlMin);
 			await fs.writeFile(fin, f);
 			log(C.cyan(`- ${fls}`));
@@ -150,28 +165,46 @@ async function getSrc(map: string) {
 }
 
 function addHTML(pin: string, _: any, fn: string) {
-	if(fn.endsWith('.html') && fn[0] !== '+') _hFD.push({
+	if(fn.endsWith('.html') && fn[0] !== '+') HFD.push({
 		filename: fn, htmlFile: `${pin}/${fn}`, ...opts.htmlLoadOpts
 	});
 }
 
+const buildPlugin: Plugin = {
+	name: 'build',
+	setup(build) {
+		build.onStart(_preBuild);
+		build.onEnd(() => opts.onPostBuild?.(Ctx));
+	}
+};
+
 /** Set overrides for build options */
 function setOpts(o?: Partial<Options>) {
-	const oo = opts ? [opts.srcCli, opts.distCli, opts.srcSrv, opts.app] : [];
+	const oo = opts ? [opts.srcCli,
+		opts.distCli,
+		opts.srcSrv,
+		opts.app,
+		opts.esOpts.plugins] : [];
 	opts = o ? {...defaults, ...o} : defaults;
 
-	if(opts.srcCli !== oo[0]) opts.srcCli = path.join(opts.src, opts.srcCli);
-	if(opts.distCli !== oo[1]) opts.distCli = path.join(opts.dist, opts.distCli);
+	const scChg = opts.srcCli !== oo[0], dcChg = opts.distCli !== oo[1];
+	if(scChg) opts.srcCli = path.join(opts.src, opts.srcCli);
+	if(scChg || dcChg) opts.distCli = opts.distCli ? dcChg ?
+		path.join(opts.dist, opts.distCli) : opts.distCli : opts.srcCli;
 	if(opts.srcSrv !== oo[2]) opts.srcSrv = opts.srcSrv ? path.join(opts.src, opts.srcSrv) : '';
 	if(opts.app !== oo[3]) opts.app = opts.app ? path.join(opts.srcCli, opts.app) : '';
 
 	if(opts.app) opts.esOpts.entryPoints = [opts.app];
 	opts.esOpts.target = `es${opts.jsMin.ecma}`;
 	opts.esOpts.outdir = opts.distCli;
+
+	if(esbuild && opts.esOpts.plugins !== oo[4])
+		(opts.esOpts.plugins ?? (opts.esOpts.plugins = [])).push(buildPlugin, pHTML!.htmlPlugin({files: HFD}));
 };
 
 /** Default build pipeline */
 async function run() {
+	if(Ctx) return;
 	if(!opts) setOpts();
 
 	if(!Dev) {
@@ -188,39 +221,35 @@ async function run() {
 
 	log(C.bgYellow('Build'));
 	if(esbuild && opts.esbuild) {
-		await recurse(addHTML, opts.srcCli);
-		if(opts.esOpts.plugins) opts.esOpts.plugins = [];
-		else if(_hPl) opts.esOpts.plugins!.remove(_hPl);
-		_hPl = pHTML!.htmlPlugin({files: _hFD});
-		opts.esOpts.plugins!.push(_hPl);
-		const ctx = await esbuild.context(opts.esOpts);
-
+		Ctx = await esbuild.context(opts.esOpts);
 		if(Watch) {
-			await ctx.watch();
-			log('Watching for changes...');
+			await Ctx.watch();
+			return log('Watching for changes...');
 		} else {
-			const build = await ctx.rebuild();
+			const build = await Ctx.rebuild();
 			if(Meta) await fs.writeFile('meta.json', JSON.stringify(build.metafile));
-			_minify();
-			await ctx.dispose();
-
-			await opts.onPostBuild?.(ctx);
-			log(C.green('Done!'));
+			await _minify();
+			await Ctx.dispose();
+			Ctx = undefined;
 		}
 	} else {
-		await exec('npx tsc');
-		_minify();
-
+		await _preBuild();
+		await exec('npx tsc' + (Dev ? ' --sourceMap' : ''));
+		await _minify();
 		await opts.onPostBuild?.();
-		log(C.green('Done!'));
 	}
+	log(C.green('Done!'));
 };
 
 //==== Support ====
 
+const _preBuild = async () => {
+	await opts.onPreBuild?.(Ctx);
+	await recurse(addHTML, opts.srcCli);
+};
+
 const _minify = async () => {
 	await opts.onPreMin?.();
-
 	if(!Dev) {
 		log(C.bgYellow('Minify'));
 		await recurse(minify, opts.dist);
@@ -274,6 +303,8 @@ export default {
 	rm,
 	exec,
 	recurse,
+	addHTML,
+	minify,
 	Watch,
 	Dev,
 	Meta
