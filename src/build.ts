@@ -8,6 +8,7 @@ import type { HtmlFileConfiguration } from '@pecacheu/esbuild-plugin-html';
 import C from 'chalk';
 import type { BuildContext, BuildOptions, Plugin } from 'esbuild';
 import { type MinifyOptions, minify as mJS } from 'terser';
+import utils from 'raiutils';
 
 let esbuild: typeof import('esbuild') | undefined,
 	pHTML: typeof import('@pecacheu/esbuild-plugin-html') | undefined,
@@ -15,9 +16,11 @@ let esbuild: typeof import('esbuild') | undefined,
 
 try {esbuild = await import('esbuild')} catch(e) {}
 if(esbuild) pHTML = await import('@pecacheu/esbuild-plugin-html');
-try {mHTML = await import('@minify-html/node')} catch(e) {}
+try {mHTML = (await import('@minify-html/node')).default} catch(e) {}
 
-const Mode = process.argv[2],
+const WatchPoll = 50,
+	WatchDelay = 500,
+	Mode = process.argv[2],
 	Watch = Mode === 'watch',
 	Dev = Watch || Mode === 'dev',
 	Meta = Mode === 'meta',
@@ -30,8 +33,7 @@ const Mode = process.argv[2],
 const defaults = {
 	//Paths
 	/** Entrypoint of app for esbuild, relative to `srcCli`.
-	You can also set `opts.esOpts.entryPoints` manually
-	*/
+	You can also set `opts.esOpts.entryPoints` manually */
 	app: 'app.ts',
 	/** Source directory */
 	src: 'src',
@@ -45,15 +47,22 @@ const defaults = {
 	/** Server source dir, relative to `src`.
 	Set to `''` to disable server build */
 	srcSrv: '',
+	/** Custom server build command, for projects not using TypeScript */
+	srvCmd: '',
 
 	//Hooks
-	/** Runs before client build */
+	/** Runs before client build
+	@param ctx Only defined if using esbuild */
 	onPreBuild: null as ((ctx?: BuildContext) => Promise<void>) | null,
+	/** Runs before server build */
+	onPreBuildSrv: null as (() => Promise<void>) | null,
 	/** Runs after build but before minify */
 	onPreMin: null as (() => Promise<void>) | null,
-	/** Runs after build completes
-	@param ctx Only defined if esbuild is installed */
+	/** Runs after client build completes
+	@param ctx Only defined if using esbuild */
 	onPostBuild: null as ((ctx?: BuildContext) => Promise<void>) | null,
+	/** Runs after client build completes */
+	onPostBuildSrv: null as (() => Promise<void>) | null,
 
 	//Build
 	/** JS extensions to minify */
@@ -174,7 +183,7 @@ const buildPlugin: Plugin = {
 	name: 'build',
 	setup(build) {
 		build.onStart(_preBuild);
-		build.onEnd(() => opts.onPostBuild?.(Ctx));
+		if(Watch) build.onEnd(() => opts.onPostBuild?.(Ctx));
 	}
 };
 
@@ -188,9 +197,9 @@ function setOpts(o?: Partial<Options>) {
 	opts = o ? {...defaults, ...o} : defaults;
 
 	const scChg = opts.srcCli !== oo[0], dcChg = opts.distCli !== oo[1];
+	if(scChg || dcChg) opts.distCli = dcChg ? path.join(opts.dist, opts.distCli || opts.srcCli)
+		: opts.distCli || opts.srcCli;
 	if(scChg) opts.srcCli = path.join(opts.src, opts.srcCli);
-	if(scChg || dcChg) opts.distCli = opts.distCli ? dcChg ?
-		path.join(opts.dist, opts.distCli) : opts.distCli : opts.srcCli;
 	if(opts.srcSrv !== oo[2]) opts.srcSrv = opts.srcSrv ? path.join(opts.src, opts.srcSrv) : '';
 	if(opts.app !== oo[3]) opts.app = opts.app ? path.join(opts.srcCli, opts.app) : '';
 
@@ -210,47 +219,75 @@ async function run() {
 	if(!Dev) {
 		log(C.bgYellow('Clean'));
 		await rm(opts.dist);
-
-		if(opts.srcSrv) {
-			log(C.bgYellow('Build Server'));
-			await exec(`npx tsc -p ${opts.srcSrv}`);
-		}
 	}
 
-	await mkdir(opts.srcCli);
+	await Promise.all([_buildSrv(), _buildCli()]);
 
-	log(C.bgYellow('Build'));
-	if(esbuild && opts.esbuild) {
-		Ctx = await esbuild.context(opts.esOpts);
-		if(Watch) {
-			await Ctx.watch();
-			return log('Watching for changes...');
-		} else {
-			const build = await Ctx.rebuild();
-			if(Meta) await fs.writeFile('meta.json', JSON.stringify(build.metafile));
-			await _minify();
-			await Ctx.dispose();
-			Ctx = undefined;
-		}
+	if(Watch) {
+		log('Watching for changes...');
+		if(opts.srcSrv) watch(opts.srcSrv, _buildSrv);
+		if(opts.srcCli && !(esbuild && opts.esbuild)) watch(opts.srcCli, _buildCli);
 	} else {
-		await _preBuild();
-		await exec('npx tsc' + (Dev ? ' --sourceMap' : ''));
 		await _minify();
 		await opts.onPostBuild?.();
+		await opts.onPostBuildSrv?.();
+		log(C.green('Done!'));
 	}
-	log(C.green('Done!'));
+};
+
+/** Watch dir at `fn` for changes */
+async function watch(fn: string, cb: (ev: fs.FileChangeInfo<string>) => Promise<void>) {
+	const fw = fs.watch(fn, {recursive: true});
+	let tmr: NodeJS.Timeout | undefined, lck = false;
+	for await (const ev of fw) {
+		if(!tmr) tmr = setInterval(async () => {
+			if(lck) return;
+			clearInterval(tmr);
+			tmr = undefined, lck = true;
+			await cb(ev);
+			await utils.delay(WatchDelay);
+			lck = false;
+		}, WatchPoll);
+	}
 };
 
 //==== Support ====
 
+const _buildSrv = async () => {
+	if(opts.srcSrv) {
+		log(C.bgYellow('Build Server'));
+		await opts.onPreBuildSrv?.();
+		await exec(opts.srvCmd || `npx tsc -p ${opts.srcSrv}` + (Dev ? ' --sourceMap' : ''));
+		if(Watch) await opts.onPostBuildSrv?.();
+	}
+};
+
+const _buildCli = async () => {
+	if(!opts.srcCli) return;
+	log(C.bgYellow('Build'));
+	if(esbuild && opts.esbuild) {
+		Ctx = await esbuild.context(opts.esOpts);
+		if(Watch) return await Ctx.watch();
+		const build = await Ctx.rebuild();
+		if(Meta) await fs.writeFile('meta.json', JSON.stringify(build.metafile));
+		await Ctx.dispose();
+		Ctx = undefined;
+	} else {
+		await _preBuild();
+		await exec('npx tsc' + (Dev ? ' --sourceMap' : ''));
+		if(Watch) await opts.onPostBuild?.();
+	}
+};
+
 const _preBuild = async () => {
 	await opts.onPreBuild?.(Ctx);
+	HFD.length = 0;
 	await recurse(addHTML, opts.srcCli);
 };
 
 const _minify = async () => {
-	await opts.onPreMin?.();
 	if(!Dev) {
+		await opts.onPreMin?.();
 		log(C.bgYellow('Minify'));
 		await recurse(minify, opts.dist);
 	}
@@ -305,6 +342,7 @@ export default {
 	recurse,
 	addHTML,
 	minify,
+	watch,
 	Watch,
 	Dev,
 	Meta

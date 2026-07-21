@@ -8,7 +8,7 @@ Also check out [C-Utils](https://github.com/Pecacheu/C-Utils) and [PyColorUtils]
 Install via `npm i raiutils`. You can also use raiutils in the browser without a package manager! Simply bundle the minified `dist/utils.min.js`. The package is built to work down to **es2018**, so any vaguely modern browser should work. *(Warning: BigInt won't work before `es2020`, but BigInt functions in this library fallback silently to Numbers.)*
 
 # Utils
-The base package contains a ton of useful features and language extensions, which work in both NodeJS and the browser, whether you use a package manager or not! It also bundles in some polyfills for newly available features
+The base package contains a ton of useful features and language extensions, which work in both NodeJS and the browser, whether you use a package manager or not! It also bundles in some polyfills for newly available features.
 
 ```js
 import utils from 'raiutils';
@@ -29,7 +29,7 @@ For a complete list of functions, please check `src/utils.ts` or use an IDE that
 - `utils.abs` / `utils.min` / `utils.max` Like their **Math** equivalents, but they work with **BigInt** too!
 
 # Build
-A lightweight, preconfigured build system for libraries and apps. It's also what builds RaiUtils itself!
+A lightweight, preconfigured build system for libraries, tools, and apps, optimized for both monorepo *(when the client and server both occupy the same shared parent repository)* and frontend/backend-only project structures. It's also how we build RaiUtils itself!
 
 Add this to your `package.json`:
 ```json
@@ -50,7 +50,7 @@ Add this to your `package.json`:
 And if you plan to use [esbuild](https://esbuild.github.io):
 ```json
 "dependencies": {
-	"@pecacheu/esbuild-plugin-html": "^0.10.0",
+	"@pecacheu/esbuild-plugin-html": "^0.10.2",
 	"esbuild": "^0.28.1"
 }
 ```
