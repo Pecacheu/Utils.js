@@ -52,21 +52,6 @@ export interface TextArea extends HTMLTextAreaElement {
 //-------------------------------------------- Extensions --------------------------------------------
 
 namespace ext {
-if(window.TouchList) U.proto(TouchList, 'get', function(this: any, id: number) {
-	for(const t of this) if(t.identifier === id) return t;
-});
-
-U.define(Element.prototype, 'index', function(this: HTMLElement) {
-	const p=this.parentElement; if(!p) return -1;
-	return Array.prototype.indexOf.call(p.children, this);
-});
-
-U.proto(Element, 'insertChildAt', function(this: HTMLElement, el: Element, i: number) {
-	const c = this.children;
-	if(i<0) i=0; if(i >= c.length) this.appendChild(el);
-	else this.insertBefore(el, c[i]!);
-});
-
 /** Get element bounding rect as UtilRect object */
 export const boundingRect = (e: Element) => new UtilRect(e.getBoundingClientRect());
 
@@ -79,8 +64,28 @@ export function innerRect(e: Element) {
 		r.right-parseFloat(s.paddingRight)-parseFloat(s.borderRightWidth));
 };
 
-U.define(Element.prototype, 'boundingRect', function(this: any) {return boundingRect(this)});
-U.define(Element.prototype, 'innerRect', function(this: any) {return innerRect(this)});
+/** Gate DOM context (aka not worker context) */
+const W = globalThis.window;
+
+if(W) {
+	U.define(Element.prototype, 'boundingRect', function(this: any) {return boundingRect(this)});
+	U.define(Element.prototype, 'innerRect', function(this: any) {return innerRect(this)});
+
+	if(W.TouchList) U.proto(TouchList, 'get', function(this: any, id: number) {
+		for(const t of this) if(t.identifier === id) return t;
+	});
+
+	U.define(Element.prototype, 'index', function(this: HTMLElement) {
+		const p=this.parentElement; if(!p) return -1;
+		return Array.prototype.indexOf.call(p.children, this);
+	});
+
+	U.proto(Element, 'insertChildAt', function(this: HTMLElement, el: Element, i: number) {
+		const c = this.children;
+		if(i<0) i=0; if(i >= c.length) this.appendChild(el);
+		else this.insertBefore(el, c[i]!);
+	});
+}
 
 export const device = U.deviceInfo(), mobile = device.mobile;
 
@@ -178,7 +183,7 @@ export function center(el: HTMLElement, only?: "x" | "y", mode?: "trans") {
 
 //==== Arrays ====
 
-[HTMLCollection, NodeList].forEach(p => {
+if(W) [HTMLCollection, NodeList].forEach(p => {
 	U.proto(p, 'each', Array.prototype.each);
 	U.proto(p, 'eachAsync', Array.prototype.eachAsync);
 });

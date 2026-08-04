@@ -12,7 +12,8 @@ const log = console.log,
 
 build.setOpts({
 	esbuild: false,
-	jsMin: {...build.defaults.jsMin, ecma: 2018},
+	stripPriv: true,
+	jsMin: {...build.defaults.jsMin, ecma: 2020},
 	onPreMin: async () => {
 		log(C.bgYellow('Codegen'));
 		await build.recurse(libGen, build.opts.dist);

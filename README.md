@@ -36,7 +36,7 @@ Add this to your `package.json`:
 {
 	"scripts": {
 		"build": "node build",
-		"dev": "node build dev"
+		"dev": "node build watch"
 	},
 	"dependencies": {
 		"@minify-html/node": "^0.18.1",
@@ -50,7 +50,7 @@ Add this to your `package.json`:
 And if you plan to use [esbuild](https://esbuild.github.io):
 ```json
 "dependencies": {
-	"@pecacheu/esbuild-plugin-html": "^0.10.2",
+	"@pecacheu/esbuild-plugin-html": "^0.11.1",
 	"esbuild": "^0.28.1"
 }
 ```
@@ -61,6 +61,7 @@ import build from 'raiutils/build';
 
 //Define custom options
 build.setOpts({
+	app: 'main.ts',
 	src: './myCustomPath',
 	jsMin: {...build.defaults.jsMin, ecma: 2018},
 	onPostBuild: async () => {
@@ -75,10 +76,10 @@ await build.run();
 Running build script:
 - `node build` Run build in production mode
 - `node build dev` Run build in dev mode
+- `node build watch` Run dev build & watch for changes
 
 If esbuild is installed:
 - `node build meta` Build & export metafile
-- `node build watch` Use file watch mode
 
 # Router
 A super-lightweight minimal web server engine for Node.js. Easy to use, but safe from naughty tricks like directory traversal, built-in support for common MIME types, client caching via the `etag` header, and even streaming media download via `content-range`.

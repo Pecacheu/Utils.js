@@ -7,7 +7,7 @@ import { type minify as htmlMin } from '@minify-html/node';
 import type { HtmlFileConfiguration } from '@pecacheu/esbuild-plugin-html';
 import C from 'chalk';
 import type { BuildContext, BuildOptions, Plugin } from 'esbuild';
-import { type MinifyOptions, minify as mJS } from 'terser';
+import { type MinifyOptions, type CompressOptions, minify as mJS } from 'terser';
 import utils from 'raiutils';
 
 let esbuild: typeof import('esbuild') | undefined,
@@ -32,9 +32,9 @@ const WatchPoll = 50,
 /** Default build options */
 const defaults = {
 	//Paths
-	/** Entrypoint of app for esbuild, relative to `srcCli`.
-	You can also set `opts.esOpts.entryPoints` manually */
-	app: 'app.ts',
+	/** Entrypoint(s) to use if using esbuild, relative to `srcCli`.
+	Sets `opts.esOpts.entryPoints` automatically */
+	app: 'app.ts' as string | string[],
 	/** Source directory */
 	src: 'src',
 	/** Build output directory */
@@ -77,6 +77,9 @@ const defaults = {
 	htmlLoadOpts: {
 		scriptLoading: 'module'
 	} as Omit<HtmlFileConfiguration, 'filename' | 'htmlFile' | 'htmlTemplate'>,
+	/** Override automatic detection and manually supply files to esbuild HTML plugin.
+	Unless you specify `htmlTemplate`, `htmlFile` defaults to `{srcCli}/{filename}` */
+	htmlFiles: undefined as HtmlFileConfiguration[] | undefined,
 	/** Esbuild options */
 	esOpts: {
 		bundle: true,
@@ -87,7 +90,9 @@ const defaults = {
 		metafile: Meta ? true : undefined,
 		loader: {
 			'.svg': 'file',
+			'.png': 'file',
 			'.jpg': 'file',
+			'.json': 'copy',
 			'.woff': 'copy',
 			'.woff2': 'copy'
 		},
@@ -95,12 +100,12 @@ const defaults = {
 	} as BuildOptions,
 
 	//Minify
-	/** Terser minify options */
+	/** Terser minify options. `jsMin.ecma` sets compress and format too */
 	jsMin: {
-		ecma: 2020,
+		ecma: 2025,
 		module: true,
 		format: {inline_script: false, comments: false},
-		mangle: {properties: {regex: /^[_#]/}},
+		mangle: {module: true, properties: {regex: /^[_#]/}},
 		compress: {
 			passes: 2,
 			arguments: true,
@@ -110,9 +115,13 @@ const defaults = {
 			unsafe: true,
 			unsafe_arrows: true,
 			unsafe_math: true,
-			unsafe_methods: true
+			unsafe_methods: true,
+			builtins_pure: true
 		}
 	} as MinifyOptions,
+	/** Strip private props (e.g. #x) from build for
+	smaller code size and greater compatibility */
+	stripPriv: false,
 	/** HTML minify options */
 	htmlMin: {
 		allow_optimal_entities: true,
@@ -124,6 +133,7 @@ const defaults = {
 
 export type Options = typeof defaults;
 let opts!: Options, Ctx: BuildContext | undefined;
+let jsMinInit: MinifyOptions;
 
 //==== Minify ====
 
@@ -138,7 +148,18 @@ async function minify(pin: string, _: any, fn: string) {
 			f = await fs.readFile(fin, UTF);
 			try {
 				await getSrc(map);
-				const out = await mJS(f, opts.jsMin);
+				let out;
+				//Run without compress to mangle priv names
+				if(opts.stripPriv) {
+					jsMinInit.sourceMap = opts.jsMin.sourceMap;
+					out = await mJS(f, jsMinInit);
+					f = out.code!;
+					if(out.map) opts.jsMin.sourceMap = {
+						content: out.map as string,
+						url: path.basename(map)
+					};
+				}
+				out = await mJS(f, opts.jsMin);
 				f = out.code!.replace(R_SC, '$1');
 				if(out.map) {
 					await fs.writeFile(map, out.map as string);
@@ -184,31 +205,49 @@ const buildPlugin: Plugin = {
 	setup(build) {
 		build.onStart(_preBuild);
 		if(Watch) build.onEnd(() => opts.onPostBuild?.(Ctx));
+
+		//Minified JSON loader
+		const loader = opts.esOpts.loader?.['.json'] || 'copy';
+		build.onResolve({filter: /\.json$/}, args => ({path: args.path, namespace: 'min-json'}));
+		build.onLoad({filter: /.*/, namespace: 'min-json'}, async args => ({
+			contents: JSON.stringify(JSON.parse(await fs.readFile(args.path, 'utf8'))),
+			loader
+		}));
 	}
 };
 
 /** Set overrides for build options */
 function setOpts(o?: Partial<Options>) {
-	const oo = opts ? [opts.srcCli,
-		opts.distCli,
-		opts.srcSrv,
-		opts.app,
-		opts.esOpts.plugins] : [];
-	opts = o ? {...defaults, ...o} : defaults;
+	opts = utils.copy(o ? {...defaults, ...o} : defaults);
 
-	const scChg = opts.srcCli !== oo[0], dcChg = opts.distCli !== oo[1];
-	if(scChg || dcChg) opts.distCli = dcChg ? path.join(opts.dist, opts.distCli || opts.srcCli)
-		: opts.distCli || opts.srcCli;
-	if(scChg) opts.srcCli = path.join(opts.src, opts.srcCli);
-	if(opts.srcSrv !== oo[2]) opts.srcSrv = opts.srcSrv ? path.join(opts.src, opts.srcSrv) : '';
-	if(opts.app !== oo[3]) opts.app = opts.app ? path.join(opts.srcCli, opts.app) : '';
+	opts.distCli = path.join(opts.dist, opts.distCli || opts.srcCli);
+	opts.srcCli = path.join(opts.src, opts.srcCli);
+	opts.srcSrv = opts.srcSrv ? path.join(opts.src, opts.srcSrv) : '';
 
-	if(opts.app) opts.esOpts.entryPoints = [opts.app];
-	opts.esOpts.target = `es${opts.jsMin.ecma}`;
+	const compress = (opts.jsMin.compress ||= {}) as CompressOptions;
+	compress.builtins_ecma = compress.ecma = (opts.jsMin.format ||= {}).ecma = opts.jsMin.ecma;
+	jsMinInit = {...opts.jsMin, compress: false};
+
+	if(!esbuild || !opts.esbuild) return;
+	const app = Array.isArray(opts.app) ? opts.app : [opts.app];
+	opts.esOpts.entryPoints = app.map(a => path.join(opts.srcCli, a));
+
+	if(opts.htmlFiles) {
+		let f, k: keyof typeof opts.htmlLoadOpts;
+		for(f of opts.htmlFiles) {
+			if(!f.htmlTemplate && !f.htmlFile) f.htmlFile = path.join(opts.srcCli, f.filename);
+			f.entryPoints = f.entryPoints?.map(p => path.join(opts.srcCli, p));
+			f.ignoreAssets = Array.isArray(f.ignoreAssets)
+				? f.ignoreAssets.map(p => path.join(opts.srcCli, p))
+				: undefined;
+			for(k in opts.htmlLoadOpts) (f[k] as unknown) ||= opts.htmlLoadOpts[k];
+		}
+		HFD.length = 0;
+		HFD.push(...opts.htmlFiles);
+	}
+
 	opts.esOpts.outdir = opts.distCli;
-
-	if(esbuild && opts.esOpts.plugins !== oo[4])
-		(opts.esOpts.plugins ?? (opts.esOpts.plugins = [])).push(buildPlugin, pHTML!.htmlPlugin({files: HFD}));
+	(opts.esOpts.plugins ||= []).push(buildPlugin, pHTML!.htmlPlugin({files: HFD}));
 };
 
 /** Default build pipeline */
@@ -221,6 +260,7 @@ async function run() {
 		await rm(opts.dist);
 	}
 
+	await terserPrivFix();
 	await Promise.all([_buildSrv(), _buildCli()]);
 
 	if(Watch) {
@@ -281,8 +321,10 @@ const _buildCli = async () => {
 
 const _preBuild = async () => {
 	await opts.onPreBuild?.(Ctx);
-	HFD.length = 0;
-	await recurse(addHTML, opts.srcCli);
+	if(!opts.htmlFiles) {
+		HFD.length = 0;
+		await recurse(addHTML, opts.srcCli);
+	}
 };
 
 const _minify = async () => {
@@ -292,6 +334,39 @@ const _minify = async () => {
 		await recurse(minify, opts.dist);
 	}
 };
+
+const TDir = 'node_modules/terser/',
+	TPR = TDir + 'lib/output.js',
+	TPE = TDir + 'lib/output.edit',
+	CPR = '(DEFPRINT\\(AST_ClassProperty.+?{)',
+	CPF = 'if(!self.value)return;',
+	R_CPR = new RegExp(CPR),
+	R_CPO = new RegExp(CPR + RegExp.escape(CPF)),
+	R_TPR = /"(\.?)#"/g,
+	R_TPO = /__PRIV_/g;
+
+let tvChk: number;
+async function terserPrivFix() {
+	let edit = true;
+	try {
+		await fs.access(TPE);
+	} catch(e) {edit = false}
+	if(opts.stripPriv === edit) return;
+
+	if(!tvChk) {
+		const v = JSON.parse(await fs.readFile(TDir + 'package.json', UTF)).version;
+		if(Number(v.slice(0, v.indexOf('.'))) !== 5) throw `Incompatible Terser v${v} for stripPriv option.`;
+	}
+	tvChk = 1;
+
+	//Yes, we are altering Terser's source code
+	let f = await fs.readFile(TPR, UTF);
+	f = edit ? f.replace(R_TPO, '#').replace(R_CPO, '$1')
+		: f.replace(R_TPR, '"$1__PRIV_"').replace(R_CPR, '$1' + CPF);
+	await fs.writeFile(TPR, f);
+	if(edit) await fs.rm(TPE);
+	else await fs.writeFile(TPE, '');
+}
 
 /** Recursively create the directory, if it doesn't exist */
 async function mkdir(path: string) {

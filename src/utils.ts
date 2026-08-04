@@ -1,5 +1,8 @@
 //https://github.com/Pecacheu/Utils.js; GNU GPL v3
 
+/** Current library version */
+export const VER = "v9.2.3";
+
 //Node.js compat
 type P = [typeof document, typeof HTMLCollection];
 //@ts-expect-error DOM check
@@ -103,9 +106,6 @@ export interface DateFormatOpts {
 export namespace utils {
 const [document, HTMLCollection] = P;
 
-/** Current library version */
-export const VER = "v9.2.2";
-
 /** Whether the environment is Node.js or Browser */
 export const isNode = IsNode;
 
@@ -132,17 +132,19 @@ export function proto(obj: object, name: string, val: any, isStat?: boolean, isW
 /** Deep (recursive) Object.create
 @param sub Copy down to given sub-levels, defaults to all */
 export function copy<T>(obj: T, sub?: number) {
-	if(sub === 0 || typeof obj !== 'object') return obj;
+	if(sub === 0 || !obj || typeof obj !== 'object') return obj;
 	sub = sub!>0?sub!-1:undefined;
 	let o2: AnyMap;
 	if(Array.isArray(obj)) {
 		o2 = new Array(obj.length);
 		obj.forEach((v,i) => o2[i] = copy(v,sub));
-	} else {
+		return o2 as T;
+	} else if(obj.constructor.name === 'Object') {
 		o2 = {};
 		for(const k in obj) o2[k] = copy(obj[k],sub);
+		return o2 as T;
 	}
-	return o2 as T;
+	return obj;
 }
 
 /** Recursively merges two (or more) objects, giving the last precedence

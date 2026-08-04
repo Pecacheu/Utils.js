@@ -8,8 +8,8 @@
 		"declarationMap": true,
 		//Module
 		"module": "nodenext",
-		"target": "es2018",
-		"lib": ["es2018", "DOM", "DOM.Iterable"],
+		"target": "esnext",
+		"lib": ["es2020", "DOM", "DOM.Iterable"],
 		"types": ["node"],
 		"isolatedModules": true,
 		"allowSyntheticDefaultImports": true,
@@ -23,6 +23,7 @@
 		"noImplicitOverride": true,
 		"noUnusedLocals": true,
 		"noUnusedParameters": true,
-		"noPropertyAccessFromIndexSignature": true
+		"noPropertyAccessFromIndexSignature": true,
+		"useDefineForClassFields": false
 	}
 }
