@@ -1,14 +1,18 @@
 # RaiUtils
 ###### If you prefer native JS to jQuery or using bloated web frameworks, but can't live without those one or two essential features, then you need RaiUtils!
 
+![npm](https://img.shields.io/npm/v/raiutils.svg)
+
 Also check out [C-Utils](https://github.com/Pecacheu/C-Utils) and [PyColorUtils](https://github.com/Pecacheu/PyColor).
 
 ### Now includes TypeScript & Node.js support!
 
-Install via `npm i raiutils`. You can also use raiutils in the browser without a package manager! Simply bundle the minified `dist/utils.min.js`. The package is built to work down to **es2018**, so any vaguely modern browser should work. *(Warning: BigInt won't work before `es2020`, but BigInt functions in this library fallback silently to Numbers.)*
+Install via `npm i raiutils`. To use raiutils on the web, you'll need a package bundler and build system. We recommend `esbuild` via the included [Build](#build) module, but webpack or other bundlers work fine too!
+
+If you'd like to forego a bundler entirely, you take advantage of ES module support in modern browsers and include the built JS directly. You can find it under `dist/` [here](https://www.npmjs.com/package/raiutils?activeTab=code). The package is built to work down to **es2018**, so any vaguely modern browser should work. *(Warning: BigInt won't work before `es2020`, but BigInt functions in this library fallback silently to Numbers.)*
 
 # Utils
-The base package contains a ton of useful features and language extensions, which work in both NodeJS and the browser, whether you use a package manager or not! It also bundles in some polyfills for newly available features.
+The base package contains a ton of useful features and language extensions, which work in both NodeJS and the browser, whether you use a package manager or not! It also bundles in a few automatic polyfills for useful Newly Available native features.
 
 ```js
 import utils from 'raiutils';
@@ -19,14 +23,23 @@ console.log("Hello utils", utils.VER, await utils.getIPs());
 For a complete list of functions, please check `src/utils.ts` or use an IDE that supports JSDoc.
 
 ## Most popular features
-- `UserAgentInfo utils.device` Parsed info about the user's device from the UserAgent.
-- `Boolean utils.mobile` True if running on a mobile device, based on the UserAgent.
+- `utils.mobile` True if running on a mobile device, based on the UserAgent.
+- `utils.device` Parsed info about the user's device from the UserAgent.
 - `utils.mkEl` / `utils.mkDiv` Generate DOM elements with ease! Just remember PCSI: *Parent, class, style, and innerHTML.* Set any option to *null* to skip it.
-- `[Array].each` / `[Array].eachAsync` Works similar to *[Array].forEach*, but allows a custom start and end index (including negative for relative-to-end), enables deleting elements during iteration by returning `!`, and if any other value besides *null* is returned, *each()* breaks the loop and returns the value in question, enabling slick one-liners that search an array for a specific condition.
-- `UtilRect` Getting the bounds/position of an element used to be a complete mess with incompatibilities across every browser. **Not anymore!** Use UtilRects to keep track of your object positions! Simply access the *boundingRect* property of any Element and you can access it's *top*, *bottom*, *left*, *right*, *width*, and *height* on the client's screen! If you need this relative to the top of the page, it's as simple as `Element.boundingRect.top + window.scrollY`.
-- `utils.center` Does what it says on the tin! Input an Element, choose whether you want X, Y, or by default, both, and change the centering type.
+- `utils.onNav` & `utils.go` Helpers that make it easy to develop SPAs (Single-Page Applications) without a heavy, bloated framework like React or Angular.
+- `utils.delay` SetTimeout but async. *Seriously, how is this not built-in?*
+- `UtilRect` Getting the bounds/position of an element used to be a complete mess with incompatibilities across every browser. **Not anymore!** UtilRects store position and size like DOMRects, but they also offer computed (and cached for performance) width and height, centerX and centerY, and useful methods like `contains`, `overlaps`, `dist`, and `expand`. You can easily get the UtilRect of any element using `[Element].boundingRect` or `[Element].innerRect`.
+- `[Element].index` and `[Element].insertChildAt` prototype extensions make it easier to work with lists or tables via relative index position in their parent.
 - `utils.rand` Generate random numbers from min to max, with optional decimal resolution and bias curve.
 - `utils.abs` / `utils.min` / `utils.max` Like their **Math** equivalents, but they work with **BigInt** too!
+- `[Array].each` / `[Array].eachAsync` Works similar to *[Array].forEach*, but allows a custom start and end index (including negative for relative-to-end), enables deleting elements during iteration by returning `!`, and if any other value besides *null* is returned, *each()* breaks the loop and returns the value in question, enabling slick one-liners that search an array for a specific condition.
+- `utils.center` Does what it says on the tin! Input an Element, choose whether you want X, Y, or by default, both, and change the centering type.
+
+## Polyfills
+- [RegExp.escape](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/escape)
+- [Uint8Array.fromBase64](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array/fromBase64)
+- [Uint8Array.toBase64](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Uint8Array/toBase64)
+- [Array.at](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/at)
 
 # Build
 A lightweight, preconfigured build system for libraries, tools, and apps, optimized for both monorepo *(when the client and server both occupy the same shared parent repository)* and frontend/backend-only project structures. It's also how we build RaiUtils itself!
@@ -82,7 +95,7 @@ If esbuild is installed:
 - `node build meta` Build & export metafile
 
 # Router
-A super-lightweight minimal web server engine for Node.js. Easy to use, but safe from naughty tricks like directory traversal, built-in support for common MIME types, client caching via the `etag` header, and even streaming media download via `content-range`.
+A super-lightweight minimal web server engine for Node.js. Easy to use, but safe from naughty tricks like directory traversal. Built-in support for common MIME types, client caching via the `etag` header, and even streaming media download via `content-range`.
 
 ```js
 import http from 'http';
@@ -120,11 +133,23 @@ http.createServer((req, res) => {
 - `types` Map of common MIME types
 
 # UUID
-This module provides **ChuID**, a 64-bit UUID format that outputs as a compact, 11 character Base64 string. ChuID is made for situations where a longer 128-bit format like UUIDv4 is overkill.
+This module provides **ChuID**, a 64-bit UUID format that outputs as a compact, 11 character Base64 string. ChuID is made for situations where a longer 128-bit format like UUIDv4 or ULID is overkill, taking up less than half the space for lower-traffic situations that still require guaranteed uniqueness and some cryptographic randomness.
 
 Format: `<U8 Uptime><U8 Magic><U8 CryptoRand><U8 Counter><U32 Date>`
 
-*Note: For browser use, UUID requires `npm i buffer`.*
+And yes, we did the math for you:
+- Internally stored as an 8-byte Buffer.
+- Canonically encoded as an 11-character base64url string.
+- Case-sensitive, but URL-safe.
+- Magic value can hold 1 byte of custom type information (0-255).
+- Datestamp counted to 10s accuracy, will not overflow until the year 3331.
+- Uptime counted to 100ms accuracy and resets every 25.6s.
+- Global persistent counter resets every 256 IDs.
+- This means we can guarantee 2560 unique ChuIDs per second, or ~2.5/ms.
+
+In reality, this number is far higher due to crypto randomness, which can supply an additional 8-16 bits of entropy. In the event that IDs are generated in rapid succession (<100ms apart), ChuID internally begins to track each ID, and will only block if an actual duplicate is found. This data is cleared upon the next time window. On my dev laptop with a Core Ultra 7, it takes ~2.6 microseconds to generate an ID asynchronously. Real-world tests show max throughput of ~385K IDs/s, the expected timer reset period of ~100ms, and an average of **299,385 unique IDs/s** before a collision (w/ anti-collision mechanism disabled), or **77,217** with a magic value set.
+
+*Note: For browser use, UUID requires polyfill via `npm i buffer`.*
 
 ```js
 import UUID from 'raiutils/uuid';
@@ -147,24 +172,25 @@ console.log(id, `String: ${id}\n`,
 import CS from 'raiutils/schema';
 
 const schema = {
-	name: {t:'str', f:/^[a-z]+$/},
-	signals: {t:'list', c:'bool'},
-	vals: {t:'list', f:{
-		count: {t:'int', min:0, req:false},
-		hey: {t:'bool', rej:par => par.count===0}
-	}}
-}
+	name: {t: 'str', f: /^[a-z]+$/},
+	signals: {t: 'list', c: 'bool'},
+	vals: {t: 'list',
+		f: {
+			count: {t: 'int', min: 0, req: false},
+			hey: {t: 'bool', rej: par => par.count === 0}
+		}}
+};
 
 try {
 	CS.checkSchema({
-		name: "abc",
+		name: 'abc',
 		signals: [true, false],
 		vals: [
 			{count: 15, hey: true}
 		]
 	}, schema);
 } catch(e) {
-	console.log("Schema check failed @", e);
+	console.log('Schema check failed @', e);
 }
 ```
 
