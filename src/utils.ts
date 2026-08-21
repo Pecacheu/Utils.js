@@ -1,7 +1,6 @@
 //https://github.com/Pecacheu/Utils.js; GNU GPL v3
 
-/** Current library version */
-export const VER = "v9.2.3";
+const Ver = "v9.3.0";
 
 //Node.js compat
 type P = [typeof document, typeof HTMLCollection];
@@ -106,15 +105,27 @@ export interface DateFormatOpts {
 export namespace utils {
 const [document, HTMLCollection] = P;
 
+/** Current library version */
+export const VER = Ver;
+
 /** Whether the environment is Node.js or Browser */
 export const isNode = IsNode;
 
+/** Debug flag for dev-only code (optimized out by raiutils/build) */
+// eslint-disable-next-line prefer-const
+export let $DEBUG = false;
+
 //==== Objects ====
 
-/** Add getter and/or setter for `name` to `obj` */
-export function define(obj: object, name: string | string[],
-get?: () => any | null, set?: (v: any) => void | null) {
-	const t = {get: get||undefined, set: set||undefined};
+/** Add getter and/or setter for `name` to `obj`
+
+Note: If get/set is `null`, any existing getter/setter will be cleared,
+but if `undefined`, existing getter/setter will not be overwritten.
+*/
+export function define(obj: object, name: string | string[], get?: () => any | null, set?: (v: any) => void | null) {
+	const t: PropertyDescriptor = {};
+	if(get !== undefined) t.get = get;
+	if(set !== undefined) t.set = set;
 	if(Array.isArray(name)) for(const n of name) Object.defineProperty(obj,n,t);
 	else Object.defineProperty(obj,name,t);
 }
@@ -122,7 +133,7 @@ get?: () => any | null, set?: (v: any) => void | null) {
 /** Define immutable, non-enumerable property or method in object prototype
 @param isStat Define static property directly on object
 @param isWrite Make property writable */
-export function proto(obj: object, name: string, val: any, isStat?: boolean, isWrite?: boolean) {
+export function proto(obj: object, name: string | string[], val: any, isStat?: boolean, isWrite?: boolean) {
 	const t = {value: val, writable: !!isWrite};
 	if(!isStat) obj = (obj as any).prototype;
 	if(Array.isArray(name)) for(const n of name) Object.defineProperty(obj,n,t);
@@ -222,14 +233,16 @@ proto(Array, 'firstEmpty', function(this: any[]) {
 });
 
 function each(this: any[], fn: (itm: any, idx: number, len: number) => any, st?: number, en?: number) {
+	const hc = this instanceof HTMLCollection;
 	let l=this.length, i=Math.max(st!<0?l+st!:(st||0),0), r: any;
 	if(en!=null) l=Math.min(en<0?l+en:en,l);
 	for(; i<l; ++i) if((r=fn(this[i],i,l))==='!') {
-		this instanceof HTMLCollection?this[i].remove():this.splice(i,1);
+		hc?this[i].remove():this.splice(i,1);
 		--i,--l;
 	} else if(r!=null) return r;
 }
 async function eachAsync(this: any[], fn: (itm: any, idx: number, len: number) => any, st?: number, en?: number, pe=true) {
+	const hc = this instanceof HTMLCollection;
 	let l=this.length,i=st=Math.max(st!<0?l+st!:(st||0),0), n: any, r=[];
 	if(en!=null) l=Math.min(en<0?l+en:en,l);
 	for(; i<l; ++i) {
@@ -239,7 +252,7 @@ async function eachAsync(this: any[], fn: (itm: any, idx: number, len: number) =
 	}
 	if(pe) r=await Promise.all(r);
 	for(i=st,n=0; i<l; ++i,++n) if(r[n]==='!') {
-		this instanceof HTMLCollection?this[i].remove():this.splice(i,1); --i,--l;
+		hc?this[i].remove():this.splice(i,1); --i,--l;
 	} else if(r[n]!=null) return r[n];
 }
 
@@ -607,5 +620,128 @@ export function suffix(n: number) {
 	if(j==2 && k!=12) return n+"nd";
 	if(j==3 && k!=13) return n+"rd";
 	return n+"th";
+}
+
+//-------------------------------------------- Locking --------------------------------------------
+
+type LockData = {o: object, p: Promise<void>, r: () => void};
+
+/** Enables asynchronous lockout based on any Object */
+export class AsyncLock {
+	#onWait?: () => void;
+	#l?: LockData;
+
+	constructor(onWait?: () => void) {
+		this.#onWait = onWait;
+	}
+
+	/** Lock on `obj`, waiting if already locked on another Object */
+	async lock(obj: object) {
+		if(!obj || this.#l?.o === obj) return;
+		while(this.#l && this.#l?.o !== obj) await this.#l.p;
+		const nl = {o: obj, p: new Promise(r => nl.r = r)} as LockData;
+		this.#l = nl;
+	}
+
+	/** Unlock only if currently locked on `obj` */
+	unlock(obj: object) {
+		if(this.#l && this.#l.o === obj) this.#l.r(), this.#l = undefined;
+	}
+
+	/** Current lock object, if any */
+	get obj() {return this.#l?.o}
+
+	/** Wait until unlocked */
+	async wait() {
+		if(this.#l) {
+			this.#onWait?.();
+			while(this.#l) await this.#l.p, await utils.delay(1);
+		}
+	}
+}
+
+/** Current state of `SyncLock` */
+export const enum LockState {
+	/** Inactive */
+	OFF,
+	/** Running async trigger */
+	RUN,
+	/** Waiting in cooldown */
+	WAIT
+}
+
+const syncLockDefault = {
+	/** Minimum cooldown between triggers */
+	delay: 100,
+
+	/** Run trigger immediately upon first `trigger()` call. It will be called
+	up to twice in a row if trigger is called more before `delay` is up */
+	fast: true,
+
+	/** Forces func to run at least every `delay` ms, even if
+	continuous `trigger()` calls are blocking. */
+	noBlock: true
+};
+export type SyncLockOpts = Partial<typeof syncLockDefault>;
+
+/** Similar to `AsyncLock`, but locks out only a single method, preventing calls from
+overlapping, but ensuring that the last repeat call before `delay` is up always fires */
+export class SyncLock<T = unknown> {
+	readonly opts;
+
+	/** Custom data available to your callback; deleted after call */
+	data?: T;
+
+	#fn;
+	#r = 0;
+	#t?: NodeJS.Timeout;
+	#p?: () => void;
+
+	constructor(func: (lock: SyncLock) => Promise<void>, opts?: SyncLockOpts) {
+		this.#fn = func, this.opts = {...syncLockDefault, ...opts};
+	}
+
+	/** Current trigger state */
+	get state() {
+		return this.#r ? this.#t ? LockState.WAIT : LockState.RUN : LockState.OFF;
+	}
+
+	/** Trigger func, either now or eventually
+	@returns true if trigger ran, false if deferred to another caller */
+	async trigger() {
+		if(this.#r) {
+			//Reset timeout
+			if(!this.opts.noBlock && this.#t) {
+				clearTimeout(this.#t);
+				this.#t = setTimeout(this.#p!, this.opts.delay);
+			}
+			this.#r = 2;
+			return false;
+		}
+		this.#r = 2;
+		try {
+			while(this.#r === 2) {
+				//Run phase (fast)
+				if(this.opts.fast) this.#run();
+				//Timeout phase
+				const p = new Promise<void>(r => this.#p = r);
+				this.#t = setTimeout(this.#p!, this.opts.delay);
+				await p;
+				this.#t = this.#p = undefined;
+				//Run phase (lazy)
+				if(!this.opts.fast) this.#run();
+			}
+		} finally {
+			this.#r = 0;
+		}
+		return true;
+	}
+
+	async #run() {
+		this.#r = 1;
+		try {
+			await this.#fn(this);
+		} finally {delete this.data}
+	}
 }
 }

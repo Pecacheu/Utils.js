@@ -93,59 +93,81 @@ export const device = U.deviceInfo(), mobile = device.mobile;
 
 //==== General ====
 
+const F = Number.isFinite;
+
 /** Better class for bounding boxes */
 export class UtilRect {
-	x!: number; left!: number;
-	y!: number; top!: number;
-	x2!: number; right!: number;
-	y2!: number; bottom!: number;
-	w!: number; width!: number;
-	h!: number; height!: number;
-	centerX!: number; centerY!: number;
+	/** Shorthand for width */
+	w!: number;
+	/** Shorthand for height */
+	h!: number;
+	/** Shorthand for right */
+	x2!: number;
+	/** Shorthand for bottom */
+	y2!: number;
+	/** Shorthand for centerX */
+	readonly cx!: number;
+	/** Shorthand for centerY */
+	readonly cy!: number;
+
+	#t: number; #b: number; #l: number; #r: number;
+	#w?: number | null; #h?: number | null; #cx?: number | null; #cy?: number | null;
 
 	constructor(t: number | DOMRect | UtilRect, b?: number, l?: number, r?: number) {
-		const f=Number.isFinite; let tt=0,bb=0,ll=0,rr=0;
-		U.define(this,'x',			()=>ll,		v=>{f(v)?(rr+=v-ll,ll=v):0});
-		U.define(this,'y',			()=>tt,		v=>{f(v)?(bb+=v-tt,tt=v):0});
-		U.define(this,'top',			()=>tt,		v=>{tt=f(v)?v:0});
-		U.define(this,['bottom','y2'],()=>bb,		v=>{bb=f(v)?v:0});
-		U.define(this,'left',			()=>ll,		v=>{ll=f(v)?v:0});
-		U.define(this,['right','x2'],	()=>rr,		v=>{rr=f(v)?v:0});
-		U.define(this,['width','w'],	()=>rr-ll,	v=>{rr=v>=0?ll+v:0});
-		U.define(this,['height','h'],	()=>bb-tt,	v=>{bb=v>=0?tt+v:0});
-		U.define(this,'centerX',		()=>ll/2+rr/2);
-		U.define(this,'centerY',		()=>tt/2+bb/2);
-		if(t instanceof DOMRect || t instanceof UtilRect)
-			tt=t.top, bb=t.bottom, ll=t.left, rr=t.right;
-		else tt=t, bb=b!, ll=l!, rr=r!;
+		if(t.constructor === Number) this.#t=t, this.#b=b!, this.#l=l!, this.#r=r!;
+		else this.#t=(t as UtilRect).top, this.#b=(t as UtilRect).bottom,
+			this.#l=(t as UtilRect).left, this.#r=(t as UtilRect).right;
 	}
+
+	//(Getters defined below)
+	set x(v: number) {F(v)?(this.#r+=v-this.#l,this.#l=v):0, this.#cx=null}
+	set y(v: number) {F(v)?(this.#b+=v-this.#t,this.#t=v):0, this.#cy=null}
+
+	get top() {return this.#t}
+	set top(v) {this.#t=F(v)?v:0, this.#h=this.#cy=null}
+	get bottom() {return this.#b}
+	set bottom(v) {this.#b=F(v)?v:0, this.#h=this.#cy=null}
+	get left() {return this.#l}
+	set left(v) {this.#l=F(v)?v:0, this.#w=this.#cx=null}
+	get right() {return this.#r}
+	set right(v) {this.#r=F(v)?v:0, this.#w=this.#cx=null}
+
+	get width() {return this.#w ??= this.#r-this.#l}
+	set width(v) {this.#r=v>=0?this.#l+v:0, this.#w=this.#cx=null}
+	get height() {return this.#h ??= this.#b-this.#t}
+	set height(v) {this.#b=v>=0?this.#t+v:0, this.#h=this.#cy=null}
+
+	get centerX() {return this.#cx ??= this.#l/2+this.#r/2}
+	get centerY() {return this.#cy ??= this.#t/2+this.#b/2}
 
 	/** Check if rect contains point, other rect, or Element */
 	contains(x: number | UtilRect | Element, y?: number): boolean {
-		if(x instanceof Element) return this.contains(x.boundingRect);
-		if(x instanceof UtilRect) return x.x >= this.x && x.x2 <= this.x2 && x.y >= this.y && x.y2 <= this.y2;
-		return x >= this.x && x <= this.x2 && y! >= this.y && y! <= this.y2;
+		if(x.constructor === Number) return x >= this.x && x <= this.x2 && y! >= this.y && y! <= this.y2;
+		if(x.constructor === UtilRect) return x.x >= this.x && x.x2 <= this.x2 && x.y >= this.y && x.y2 <= this.y2;
+		return this.contains((x as Element).boundingRect);
 	}
 
 	/** Check if rect overlaps rect or Element */
 	overlaps(r: UtilRect | Element): boolean {
-		if(r instanceof Element) return this.overlaps(r.boundingRect);
-		if(!(r instanceof UtilRect)) return false;
-		let x: any, y: any;
-		if(r.x2-r.x >= this.x2-this.x) x = this.x >= r.x && this.x <= r.x2 || this.x2 >= r.x && this.x2 <= r.x2;
-		else x = r.x >= this.x && r.x <= this.x2 || r.x2 >= this.x && r.x2 <= this.x2;
-		if(r.y2-r.y >= this.y2-this.y) y = this.y >= r.y && this.y <= r.y2 || this.y2 >= r.y && this.y2 <= r.y2;
-		else y = r.y >= this.y && r.y <= this.y2 || r.y2 >= this.y && r.y2 <= this.y2;
-		return x&&y;
+		if(r.constructor !== UtilRect) return this.overlaps((r as Element).boundingRect);
+		const x = r.w >= this.w
+			? this.x >= r.x && this.x <= r.x2 || this.x2 >= r.x && this.x2 <= r.x2
+			: r.x >= this.x && r.x <= this.x2 || r.x2 >= this.x && r.x2 <= this.x2,
+		y = r.h >= this.h
+			? this.y >= r.y && this.y <= r.y2 || this.y2 >= r.y && this.y2 <= r.y2
+			: r.y >= this.y && r.y <= this.y2 || r.y2 >= this.y && r.y2 <= this.y2;
+		return x && y;
 	}
 
 	/** Get distance from this rect to point, other rect, or Element */
 	dist(x: number | UtilRect | Element, y?: number): number {
-		if(x instanceof Element) return this.dist(x.boundingRect);
-		const n = x instanceof UtilRect;
-		y = Math.abs((n?(x as UtilRect).centerY:y as number)-this.centerY),
-		x = Math.abs((n?(x as UtilRect).centerX:x as number)-this.centerX);
-		return Math.sqrt(x*x+y*y);
+		const n = x.constructor === Number;
+		if(n || x.constructor === UtilRect) {
+			y = (n ? y : (x as UtilRect).cy) as number - this.cy;
+			x = (n ? x : (x as UtilRect).cx) as number - this.cx;
+			return Math.sqrt(x*x + y*y);
+		}
+		return this.dist((x as Element).boundingRect);
 	}
 
 	/** Expand (or contract if negative) a UtilRect by num of pixels. Useful for using UtilRect objects as element hitboxes
@@ -153,6 +175,44 @@ export class UtilRect {
 	expand(by: number) {
 		this.top -= by, this.left -= by, this.bottom += by, this.right += by;
 		return this;
+	}
+}
+
+//Define shorthands
+const RP = UtilRect.prototype,
+propRP = (n: keyof UtilRect) => Object.getOwnPropertyDescriptor(RP, n)!,
+getRP = (n: keyof UtilRect) => propRP(n).get;
+Object.defineProperty(RP, 'x', {get: getRP('left')});
+Object.defineProperty(RP, 'y', {get: getRP('top')});
+Object.defineProperty(RP, 'x2', propRP('right'));
+Object.defineProperty(RP, 'y2', propRP('bottom'));
+Object.defineProperty(RP, 'w', propRP('width'));
+Object.defineProperty(RP, 'h', propRP('height'));
+Object.defineProperty(RP, 'cx', propRP('centerX'));
+Object.defineProperty(RP, 'cy', propRP('centerY'));
+
+const TestRects = new Map<UtilRect, HTMLElement>();
+
+/** For debugging UtilRect colliders. If testRect for `r` already exists, updates position */
+export function mkTestRect(r: UtilRect, color = '#000') {
+	if(U.$DEBUG) {
+		let el = TestRects.get(r);
+		if(!el) {
+			el = utils.mkDiv(document.body, null, {position: 'fixed', zIndex: 9999, boxSizing: 'border-box', border: `2px dashed ${color}`, opacity: .3});
+			utils.mkDiv(el, null, {width: '4px', height: '4px', position: 'fixed', background: color, opacity: .5});
+			TestRects.set(r, el);
+		}
+		const es = el.style, ds = (el.firstChild as HTMLElement).style;
+		es.left = r.x + 'px', es.top = r.y + 'px', es.width = r.w + 'px', es.height = r.h + 'px';
+		ds.left = r.cx - 2 + 'px', ds.top = r.cy - 2 + 'px';
+	}
+}
+
+/** Remove all testRects from DOM */
+export function resetTestRects() {
+	if(U.$DEBUG) {
+		for(const r of TestRects.values()) r.remove();
+		TestRects.clear();
 	}
 }
 
@@ -190,19 +250,19 @@ if(W) [HTMLCollection, NodeList].forEach(p => {
 
 //==== Navigation ====
 
-/** Called when a virtual navigation event occurs, including on page load */
+/** Called when a virtual navigation event occurs, including on page load
+@param state Optional data passed to `utils.go()` */
 // eslint-disable-next-line no-unassigned-vars
 export let onNav: (state: any) => void;
 
 /** Generate a virtual navigation event, updating the URL bar
 @param state Optional data given to `onNav` whenever the user returns to this history entry */
 export function go(url: string | URL, state?: any) {
-	history.pushState(state, '', url), doNav(state);
+	history.pushState(state, '', url), onNav?.(state);
 }
 
-addEventListener('popstate', e => doNav(e.state));
-addEventListener('load', () => setTimeout(() => doNav(history.state),1));
-function doNav(s: any) {if(onNav) onNav.call(null,s)}
+addEventListener('popstate', e => onNav?.(e.state));
+addEventListener('load', () => setTimeout(() => onNav?.(history.state)));
 
 //==== DOM Creation ====
 

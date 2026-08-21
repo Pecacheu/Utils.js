@@ -1,4 +1,4 @@
-//ChuSchema v2.0, Pecacheu 2025. GNU GPL v3
+//ChuSchema v2, Pecacheu 2025. GNU GPL v3
 
 import { type AnyMap } from 'raiutils';
 

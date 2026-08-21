@@ -1,4 +1,4 @@
-//Chu ID v1.5.3, Pecacheu 2026. GNU GPL v3
+//Chu ID v1.6, Pecacheu 2026. GNU GPL v3
 
 import { Buffer } from 'buffer';
 import utils from 'raiutils';
@@ -7,15 +7,13 @@ declare type os = typeof import('os');
 declare type fs = typeof import('fs/promises');
 interface Long {unsigned: boolean; toString(r: number): string}
 
-const [os, fs, U, C] = await utils.importNode('os', 'fs/promises', 'util', 'crypto');
-const cRand = utils.isNode ? U.promisify(C.randomBytes) : null;
+const [os, fs] = await utils.importNode('os', 'fs/promises');
 
 let Long: any;
 try {Long = (await utils.importNode('mongodb'))[0].Long} catch(e) {}
 
 const ID_FN = import.meta.dirname + '/uuid';
-let Cnt: number, CLT: number, LT: number,
-	LD: number, UT: NodeJS.Timeout | boolean;
+let Cnt: number, LD: number, LT: number, UT: NodeJS.Timeout | number;
 
 //64-bit UUID Format
 //<U8 Uptime><U8 Magic><U8 CryptoRand><U8 Counter><U32 Date>
@@ -25,18 +23,19 @@ const swapHex = (h: string) => h.match(/.{2}/g)!.reverse().join('');
 async function loadId() {
 	if(!fs) return Cnt = utils.rand(0, 255);
 	//Prevent race condition
-	if(UT === true) {
-		while(UT === true) await utils.delay(10);
+	if(UT === -1) {
+		while(UT === -1) await utils.delay(10);
 		return;
 	}
-	UT = true;
+	UT = -1;
 	try {Cnt = Number(await fs.readFile(ID_FN, {encoding: 'utf8'}))} catch(e) {}
-	if(!(Cnt >= 0 && Cnt <= 255)) console.error('[ChuID] IDCount error, resetting'), Cnt = 0;
-	UT = false;
+	if(!(Cnt >= 0 && Cnt < 256)) console.debug('[ChuID] IDCount error, resetting'), Cnt = 0;
+	UT = 0;
 }
 
 const B0 = BigInt(0),
-	B64 = BigInt('18446744073709551615');
+	B64 = BigInt('18446744073709551615'),
+	DupIDs = new Set<string>();
 
 export default class UUID {
 	static readonly LEN = 11;
@@ -75,44 +74,50 @@ export default class UUID {
 		return new Date(d < 1621543800000 ? 0 : d);
 	}
 
-	/** Async `crypto.randomBytes` with browser fallback */
-	static randBytes = async (size: number) => (cRand ? cRand(size)
-		: crypto.getRandomValues(Buffer.allocUnsafe(size))) as Promise<Buffer>;
-
 	/** Generate new random UUID
 	@param date Optional Date or Unix ms timestamp; default is current time
 	@param magic User-defined 8-bit value that can be retrieved later; default is random
 	*/
-	static genUUID = async (date?: Date | number, magic?: number) => {
-		let ts = (os ? os.uptime() * 10 : performance.now() / 100) & 255;
-		const ds = (date instanceof Date ?
-				date.getTime() : date || Date.now()) / 10000,
-			rb = await UUID.randBytes(magic != null ? 1 : 2),
-			u = Buffer.allocUnsafe(8);
-
+	static genUUID = async (date?: Date | number, magic?: number): Promise<UUID> => {
 		if(Cnt == null) await loadId();
-		const ct = Cnt;
+		const ct = Cnt, u = Buffer.allocUnsafe(8);
+		u.writeUInt8(ct, 3);
 		if(++Cnt > 255) Cnt = 0;
 
-		//Prevent collision
-		if(LT === ts && LD === ds) {
-			if(CLT === ct) {
-				await utils.delay(50);
-				LT = ts = ts + 1 & 255;
+		let id, loop;
+		while(true) {
+			const ts = (os ? os.uptime() * 10 : performance.now() / 100) & 255,
+				ds = Math.floor((date?.constructor === Date ? date.getTime() : date as number || Date.now()) / 10000),
+				rb = crypto.getRandomValues(Buffer.allocUnsafe(magic != null ? 1 : 2));
+
+			u.writeUInt8(ts);
+			if(magic != null) {
+				u.writeUInt8(magic & 255, 1);
+				u.writeUInt8(rb.readUInt8(), 2);
+			} else u.writeUInt16LE(rb.readUInt16LE(), 1);
+			u.writeUInt32LE(ds, 4);
+			id = new UUID(u);
+
+			//Collision check
+			if(ds === LD && ts === LT) {
+				const s = id.toString();
+				if(DupIDs.has(s)) loop ? await utils.delay(0) : loop = 1;
+				else { DupIDs.add(s); break }
+			} else {
+				LD = ds, LT = ts;
+				if(DupIDs.size) DupIDs.clear();
+				break;
 			}
-		} else LT = ts, LD = ds, CLT = ct;
+		}
 
-		u.writeUInt8(ts);
-		if(magic != null) {
-			u.writeUInt8(magic & 255, 1);
-			u.writeUInt8(rb.readUInt8(), 2);
-		} else u.writeUInt16LE(rb.readUInt16LE(), 1);
-		u.writeUInt8(ct, 3);
-		u.writeUInt32LE(ds, 4);
-
-		if(fs && !UT) UT = setTimeout(() => {
-			UT = false, fs.writeFile(ID_FN, Cnt.toString());
-		}, UUID.ID_Delay);
-		return new UUID(u);
+		if(fs) {
+			if(UT) clearTimeout(UT);
+			UT = setTimeout(() => {
+				UT = 0;
+				if(DupIDs.size) DupIDs.clear();
+				fs.writeFile(ID_FN, Cnt.toString());
+			}, UUID.ID_Delay);
+		}
+		return id;
 	};
 }

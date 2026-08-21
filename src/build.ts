@@ -5,8 +5,13 @@ import fs from 'fs/promises';
 import path from 'path';
 import { type minify as htmlMin } from '@minify-html/node';
 import type { HtmlFileConfiguration } from '@pecacheu/esbuild-plugin-html';
+import { builders as b, type Visitor } from 'ast-types';
+import type { NodePath } from 'ast-types/node-path';
+import type { Context as VisCtx } from 'ast-types/path-visitor';
 import C from 'chalk';
 import type { BuildContext, BuildOptions, Plugin } from 'esbuild';
+import { parse, print, visit, type Options as RecOpts } from 'recast';
+import recastParser from 'recast/parsers/babel.js';
 import { type MinifyOptions, type CompressOptions, minify as mJS } from 'terser';
 import utils from 'raiutils';
 
@@ -26,8 +31,10 @@ const WatchPoll = 50,
 	Meta = Mode === 'meta',
 	log = console.log,
 	UTF = {encoding: 'utf8' as BufferEncoding},
-	R_SC = /;\n?(\/\/#.+)?$/,
-	HFD: HtmlFileConfiguration[] = [];
+	HFD: HtmlFileConfiguration[] = [],
+	R_SC = /;?\n+(\/\/#.+)?$/,
+	DebugMark = '$DEBUG',
+	PrivMark = '__PRIV';
 
 /** Default build options */
 const defaults = {
@@ -119,6 +126,8 @@ const defaults = {
 			builtins_pure: true
 		}
 	} as MinifyOptions,
+	/** Strip `utils.$DEBUG` guarded statements */
+	stripDebug: true,
 	/** Strip private props (e.g. #x) from build for
 	smaller code size and greater compatibility */
 	stripPriv: false,
@@ -132,10 +141,30 @@ const defaults = {
 };
 
 export type Options = typeof defaults;
-let opts!: Options, Ctx: BuildContext | undefined;
-let jsMinInit: MinifyOptions;
+let opts!: Options, Ctx: BuildContext | undefined, Vis: Visitor;
 
 //==== Minify ====
+
+const RecOpts: RecOpts = {
+	parser: recastParser, lineTerminator: '\n'
+};
+
+function visitor(this: VisCtx, p: NodePath) {
+	//Strip debug
+	if(opts.stripDebug && p.value.type === 'MemberExpression') {
+		if(p.value.property.type === 'Identifier' && p.value.property.name === DebugMark) {
+			let top = p;
+			while(top.parent.value.type === 'MemberExpression') top = top.parent;
+			if(top.parent.value.type !== 'AssignmentExpression') top.replace(b.identifier('false'));
+		}
+	}
+	//Strip private
+	if(opts.stripPriv) {
+		if(p.value.type === 'ClassPrivateProperty' || p.value.type === 'ClassProperty') p.value.value || p.prune();
+		else if(p.value.type === 'PrivateName') p.replace(b.identifier(PrivMark + p.value.id.name));
+	}
+	this.traverse(p);
+}
 
 async function minify(pin: string, _: any, fn: string) {
 	const fin = `${pin}/${fn}`;
@@ -147,17 +176,20 @@ async function minify(pin: string, _: any, fn: string) {
 			const map = `${fin}.map`;
 			f = await fs.readFile(fin, UTF);
 			try {
-				await getSrc(map);
 				let out;
-				//Run without compress to mangle priv names
-				if(opts.stripPriv) {
-					jsMinInit.sourceMap = opts.jsMin.sourceMap;
-					out = await mJS(f, jsMinInit);
-					f = out.code!;
-					if(out.map) opts.jsMin.sourceMap = {
-						content: out.map as string,
-						url: path.basename(map)
-					};
+				await getSrc(map);
+				//Parse with recast
+				if(opts.stripDebug || opts.stripPriv) {
+					if(opts.jsMin.sourceMap) {
+						RecOpts.inputSourceMap = (opts.jsMin.sourceMap as any).content;
+						RecOpts.sourceFileName = RecOpts.sourceMapName = fn;
+					}
+					out = parse(f, RecOpts), f = null;
+					visit(out, Vis);
+					//TODO enable custom callback with JS ast for custom middleware?
+					out = print(out, RecOpts);
+					if(out.map) (opts.jsMin.sourceMap as any).content = out.map;
+					f = out.code;
 				}
 				out = await mJS(f, opts.jsMin);
 				f = out.code!.replace(R_SC, '$1');
@@ -165,7 +197,10 @@ async function minify(pin: string, _: any, fn: string) {
 					await fs.writeFile(map, out.map as string);
 					log(C.cyan(`- ${fls}.map`));
 				}
-			} finally {delete opts.jsMin.sourceMap}
+			} finally {
+				delete opts.jsMin.sourceMap, delete RecOpts.inputSourceMap,
+				delete RecOpts.sourceFileName, delete RecOpts.sourceMapName;
+			}
 			await fs.writeFile(fin, f);
 			log(C.cyan(`- ${fls}`));
 		} else if(mHTML && opts.htmlMinExt.includes(ext)) { //Minify HTML
@@ -226,7 +261,11 @@ function setOpts(o?: Partial<Options>) {
 
 	const compress = (opts.jsMin.compress ||= {}) as CompressOptions;
 	compress.builtins_ecma = compress.ecma = (opts.jsMin.format ||= {}).ecma = opts.jsMin.ecma;
-	jsMinInit = {...opts.jsMin, compress: false};
+
+	Vis = opts.stripPriv ? {visitPrivateName: visitor,
+		visitClassProperty: visitor,
+		visitClassPrivateProperty: visitor} : {};
+	if(opts.stripDebug) Vis.visitMemberExpression = visitor;
 
 	if(!esbuild || !opts.esbuild) return;
 	const app = Array.isArray(opts.app) ? opts.app : [opts.app];
@@ -260,7 +299,6 @@ async function run() {
 		await rm(opts.dist);
 	}
 
-	await terserPrivFix();
 	await Promise.all([_buildSrv(), _buildCli()]);
 
 	if(Watch) {
@@ -334,39 +372,6 @@ const _minify = async () => {
 		await recurse(minify, opts.dist);
 	}
 };
-
-const TDir = 'node_modules/terser/',
-	TPR = TDir + 'lib/output.js',
-	TPE = TDir + 'lib/output.edit',
-	CPR = '(DEFPRINT\\(AST_ClassProperty.+?{)',
-	CPF = 'if(!self.value)return;',
-	R_CPR = new RegExp(CPR),
-	R_CPO = new RegExp(CPR + RegExp.escape(CPF)),
-	R_TPR = /"(\.?)#"/g,
-	R_TPO = /__PRIV_/g;
-
-let tvChk: number;
-async function terserPrivFix() {
-	let edit = true;
-	try {
-		await fs.access(TPE);
-	} catch(e) {edit = false}
-	if(opts.stripPriv === edit) return;
-
-	if(!tvChk) {
-		const v = JSON.parse(await fs.readFile(TDir + 'package.json', UTF)).version;
-		if(Number(v.slice(0, v.indexOf('.'))) !== 5) throw `Incompatible Terser v${v} for stripPriv option.`;
-	}
-	tvChk = 1;
-
-	//Yes, we are altering Terser's source code
-	let f = await fs.readFile(TPR, UTF);
-	f = edit ? f.replace(R_TPO, '#').replace(R_CPO, '$1')
-		: f.replace(R_TPR, '"$1__PRIV_"').replace(R_CPR, '$1' + CPF);
-	await fs.writeFile(TPR, f);
-	if(edit) await fs.rm(TPE);
-	else await fs.writeFile(TPE, '');
-}
 
 /** Recursively create the directory, if it doesn't exist */
 async function mkdir(path: string) {

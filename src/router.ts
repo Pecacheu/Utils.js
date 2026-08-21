@@ -1,4 +1,4 @@
-//Node Webserver v3.5.1, Pecacheu 2025. GNU GPL v3
+//Node Webserver, Pecacheu 2025. GNU GPL v3
 
 import crypto from 'crypto';
 import { type ReadStream } from 'fs';

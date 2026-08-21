@@ -26,14 +26,13 @@ For a complete list of functions, please check `src/utils.ts` or use an IDE that
 - `utils.mobile` True if running on a mobile device, based on the UserAgent.
 - `utils.device` Parsed info about the user's device from the UserAgent.
 - `utils.mkEl` / `utils.mkDiv` Generate DOM elements with ease! Just remember PCSI: *Parent, class, style, and innerHTML.* Set any option to *null* to skip it.
-- `utils.onNav` & `utils.go` Helpers that make it easy to develop SPAs (Single-Page Applications) without a heavy, bloated framework like React or Angular.
+- `utils.onNav` & `utils.go` Navigation helpers that make it easy to develop SPAs (Single-Page Applications) without a heavy, bloated framework like React or Angular.
 - `utils.delay` SetTimeout but async. *Seriously, how is this not built-in?*
 - `UtilRect` Getting the bounds/position of an element used to be a complete mess with incompatibilities across every browser. **Not anymore!** UtilRects store position and size like DOMRects, but they also offer computed (and cached for performance) width and height, centerX and centerY, and useful methods like `contains`, `overlaps`, `dist`, and `expand`. You can easily get the UtilRect of any element using `[Element].boundingRect` or `[Element].innerRect`.
 - `[Element].index` and `[Element].insertChildAt` prototype extensions make it easier to work with lists or tables via relative index position in their parent.
 - `utils.rand` Generate random numbers from min to max, with optional decimal resolution and bias curve.
 - `utils.abs` / `utils.min` / `utils.max` Like their **Math** equivalents, but they work with **BigInt** too!
 - `[Array].each` / `[Array].eachAsync` Works similar to *[Array].forEach*, but allows a custom start and end index (including negative for relative-to-end), enables deleting elements during iteration by returning `!`, and if any other value besides *null* is returned, *each()* breaks the loop and returns the value in question, enabling slick one-liners that search an array for a specific condition.
-- `utils.center` Does what it says on the tin! Input an Element, choose whether you want X, Y, or by default, both, and change the centering type.
 
 ## Polyfills
 - [RegExp.escape](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/RegExp/escape)
@@ -52,8 +51,10 @@ Add this to your `package.json`:
 		"dev": "node build watch"
 	},
 	"dependencies": {
+		"@babel/parser": "^7.29.8",
 		"@minify-html/node": "^0.18.1",
 		"@types/node": "^26.1.1",
+		"recast": "^0.24.0",
 		"terser": "^5.46.0",
 		"typescript": "^6.0.3"
 	}
@@ -199,3 +200,32 @@ try {
 - `checkType(val, ent[, opt])` Check value against a single schema entry
 - `prettyJSON(val)` Custom JSON stringify implementation w/ better line-breaks
 - `errAt(key, err[, isList])` Create pretty nested errors
+
+# Grabable
+A lightweight, performant, touch-friendly library for handling drag-and-drop for lists, grids, and fixed-position targets with a flexible API.
+
+> example.css
+```css
+.grabItm, .grabItm * { user-select:none; touch-action:none; }
+.grabbing { box-sizing:border-box; opacity:.8; z-index:99; }
+.grabBox { box-sizing:border-box; border:2px dashed #bbb; }
+.grabOver { outline:5px solid #bbb; }
+```
+
+> example.js
+```js
+import utils from 'raiutils';
+import { Grabable } from 'raiutils/grab';
+
+const parent = utils.mkDiv(document.body);
+for(let i = 0; i < 10; ++i) {
+	utils.mkDiv(parent, null, null, 'Child ' + i);
+}
+
+const grab = new Grabable(parent, {maxDist: 20});
+
+grab.onDrop = (grab, target, e) => {
+	if(e) console.log('Child', target, 'of', grab, 'dropped at index', target.index, e);
+	else console.log('Child', target, 'of', grab, 'drop cancelled');
+};
+```

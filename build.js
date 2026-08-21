@@ -12,6 +12,7 @@ const log = console.log,
 
 build.setOpts({
 	esbuild: false,
+	stripDebug: false,
 	stripPriv: true,
 	jsMin: {...build.defaults.jsMin, ecma: 2020},
 	onPreMin: async () => {
