@@ -21,7 +21,7 @@ export type Schema = {[key: string]: Entry | Entry[]};
 
 export interface Options {
 	/** Ignore schema 'req' flag */
-	iReq?: boolean;
+	noReq?: boolean;
 
 	_r?: any; //Root
 	_p?: any; //Parent
@@ -163,8 +163,9 @@ function checkType(val: any, ent: Entry | Entry[], opt?: Options) {
 					if(s.f && !s.f.test(val)) throw `Str '${val}' does not match format ${s.f}`;
 					break;
 				case 'int': case 'float':
-					if(typeof val !== 'number' || !(s.t === 'int' ?
-						Number.isSafeInteger(val) : Number.isFinite(val))) throw -1;
+					if(typeof val !== 'number' || !(s.t === 'int'
+						? Number.isSafeInteger(val)
+						: Number.isFinite(val))) throw -1;
 					if(s.val != null && val !== s.val) throw 'Num != ' + s.val;
 					if(val < s.min! || val > s.max!) throw 'Num ' + val + oobStr(s);
 					break;
@@ -180,9 +181,9 @@ function checkType(val: any, ent: Entry | Entry[], opt?: Options) {
 					if(l < s.min! || l > s.max!) throw 'Array size ' + l + oobStr(s);
 					n = 0, dt = dictFmt(s), d = {...opt, _p: val};
 					for(; n < l; ++n) try {
-						d._k = n;
-						dt ? checkSchema(val[n], (s as ParEntrySchema).f!, d) :
-							checkType(val[n], (s as ParEntryType).c as Entry, d);
+						d._k = n, dt
+							? checkSchema(val[n], (s as ParEntrySchema).f!, d)
+							: checkType(val[n], (s as ParEntryType).c as Entry, d);
 					} catch(e) {throw errAt(n, e, true)}
 					break;
 				case 'dict':
@@ -194,9 +195,9 @@ function checkType(val: any, ent: Entry | Entry[], opt?: Options) {
 					for(n of k) try {
 						if(n.startsWith('$')) throw 'Key cannot start with $';
 						if(s.k && !s.k.test(n)) throw `Key '${n}' does not match format ${s.k}`;
-						d._k = n;
-						dt ? checkSchema(val[n], (s as ParEntrySchema).f!, d) :
-							checkType(val[n], (s as ParEntryType).c as Entry, d);
+						d._k = n, dt
+							? checkSchema(val[n], (s as ParEntrySchema).f!, d)
+							: checkType(val[n], (s as ParEntryType).c as Entry, d);
 					} catch(e) {throw errAt(n, e, true)}
 					break;
 				case 'obj':
@@ -221,6 +222,9 @@ function checkSchema(data: AnyMap, schema: Schema | Schema[], opt?: Options) {
 	if(!isDict(data)) throw 'Data must be dict';
 	if(!isDictOrArr(schema)) throw 'Schema must be dict|list[dict]';
 
+	//Support legacy flag
+	if((opt as any)?.iReq) opt!.noReq = (opt as any).iReq;
+
 	//Cache root & parent
 	let k, s, sr;
 	if(!opt) opt = {};
@@ -236,7 +240,7 @@ function checkSchema(data: AnyMap, schema: Schema | Schema[], opt?: Options) {
 				opt._k = k;
 				checkType(data[k], s, opt);
 			} catch(e) {throw errAt(k, e)}
-			if(opt.iReq) return;
+			if(opt.noReq) return;
 			//Check missing
 			for(k in sch) if(!(k in data)) {
 				s = sch[k]!;

@@ -25,7 +25,9 @@ async function libGen(pin, _, fn) {
 	try {
 		const ext = path.extname(fn);
 		if(ext !== '.js') return;
-		let fin = pin + '/' + fn, f = await fs.readFile(fin, UTF), li = f.indexOf(LibDel);
+		const fin = pin + '/' + fn;
+		let f = await fs.readFile(fin, UTF);
+		const li = f.indexOf(LibDel);
 		if(li !== -1) {
 			f = f.slice(0, li) + LibRep + f.slice(li + LibDel.length);
 			await fs.writeFile(fin, f);

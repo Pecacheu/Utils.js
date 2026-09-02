@@ -300,14 +300,14 @@ maxIn: number, minOut: number, maxOut: number, ease?: Ease) {
 }
 
 /** Convert HEX color to 24-bit RGB */
-export function hexToRgb(hex: string) {
+export function hexToRgb(hex: string): [r: number, g: number, b: number] {
 	const c = parseInt(hex.slice(1), 16);
 	return [(c >> 16) & 255, (c >> 8) & 255, c & 255];
 }
 
 //By mjackson @ GitHub
 /** Convert R,G,B to H,S,L values */
-export function rgbToHsl(r: number, g: number, b: number) {
+export function rgbToHsl(r: number, g: number, b: number): [h: number, s: number, l: number] {
 	r /= 255, g /= 255, b /= 255;
 	const max=Math.max(r,g,b), min=Math.min(r,g,b), l=(max+min)/2;
 	let h,s;
@@ -639,7 +639,8 @@ export class AsyncLock {
 	async lock(obj: object) {
 		if(!obj || this.#l?.o === obj) return;
 		while(this.#l && this.#l?.o !== obj) await this.#l.p;
-		const nl = {o: obj, p: new Promise(r => nl.r = r)} as LockData;
+		const nl = {o: obj} as LockData;
+		nl.p = new Promise(r => nl.r = r);
 		this.#l = nl;
 	}
 

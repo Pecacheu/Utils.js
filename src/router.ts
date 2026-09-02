@@ -31,7 +31,7 @@ let etagMode: boolean | number = true;
 @param vDir Virtual override paths in the form `{webPath: pathOnDisk}`
 @param headers Custom headers to add */
 async function handle(root: string, req: http.IncomingMessage, res: http.ServerResponse,
-	vDir?: StringMap, headers?: http.OutgoingHttpHeaders) {
+		vDir?: StringMap, headers?: http.OutgoingHttpHeaders) {
 	let f: fs.FileHandle;
 	try {
 		const fn = await resolve(root, new URL(req.url!, 'http://a').pathname, vDir),
@@ -82,7 +82,7 @@ async function handle(root: string, req: http.IncomingMessage, res: http.ServerR
 
 /** Serve a single file from `path` to the client */
 async function serve(path: string, req: http.IncomingMessage,
-	res: http.ServerResponse, headers?: http.OutgoingHttpHeaders) {
+		res: http.ServerResponse, headers?: http.OutgoingHttpHeaders) {
 	const u = req.url;
 	req.url = '/';
 	return handle(path, req, res, undefined, headers).finally(() => req.url = u);

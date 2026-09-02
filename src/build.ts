@@ -262,9 +262,11 @@ function setOpts(o?: Partial<Options>) {
 	const compress = (opts.jsMin.compress ||= {}) as CompressOptions;
 	compress.builtins_ecma = compress.ecma = (opts.jsMin.format ||= {}).ecma = opts.jsMin.ecma;
 
-	Vis = opts.stripPriv ? {visitPrivateName: visitor,
-		visitClassProperty: visitor,
-		visitClassPrivateProperty: visitor} : {};
+	Vis = opts.stripPriv
+		? {visitPrivateName: visitor,
+			visitClassProperty: visitor,
+			visitClassPrivateProperty: visitor}
+		: {};
 	if(opts.stripDebug) Vis.visitMemberExpression = visitor;
 
 	if(!esbuild || !opts.esbuild) return;

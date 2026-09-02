@@ -238,7 +238,8 @@ export class Grabable<T extends HTMLElement> {
 			if(utils.$DEBUG) utils.mkTestRect(r, '#090');
 			//Detect element
 			for(const o of this.#o) if(o._gc!.r.overlaps(o.$fixed ? rf! : r)) {
-				dist = o._gc!.p ? o._gc!.r.dist(o.$fixed ? rf! : r)
+				dist = o._gc!.p
+					? o._gc!.r.dist(o.$fixed ? rf! : r)
 					: o.$fixed ? o._gc!.r.dist(fx!, fy) : o._gc!.r.dist(x, y);
 				if(!a || dist < min) a = o, min = dist;
 			}

@@ -253,7 +253,7 @@ if(W) [HTMLCollection, NodeList].forEach(p => {
 /** Called when a virtual navigation event occurs, including on page load
 @param state Optional data passed to `utils.go()` */
 // eslint-disable-next-line no-unassigned-vars
-export let onNav: (state: any) => void;
+export let onNav: ((state: any) => void) | null;
 
 /** Generate a virtual navigation event, updating the URL bar
 @param state Optional data given to `onNav` whenever the user returns to this history entry */

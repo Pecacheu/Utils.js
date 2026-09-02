@@ -1,6 +1,6 @@
 {
 	"name": "raiutils",
-	"version": "9.3.0",
+	"version": "9.3.1",
 	"type": "module",
 	"description": "The ultimate JavaScript & TypeScript companion library. You'll never need jQuery again!",
 	"repository": {

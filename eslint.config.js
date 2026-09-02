@@ -25,6 +25,9 @@ const config = {
 
 const rulesBase = {
 	'no-empty': ['warn', {allowEmptyCatch: true}],
+	'prefer-const': ['warn', {destructuring: 'all'}],
+	'no-useless-assignment': 'warn',
+
 	'import-x/no-named-as-default': 'off',
 	'import-x/no-unresolved': 'off',
 	'import-x/order': ['warn', {
@@ -50,7 +53,10 @@ const rulesSty = {
 	}],
 	'sty/semi': ['warn', 'always', {omitLastInOneLineBlock: true}],
 	'sty/semi-spacing': 'warn',
-	'sty/indent': ['warn', 'tab', {SwitchCase: 0}],
+	'sty/indent': ['warn', 'tab', {
+		SwitchCase: 0,
+		FunctionDeclaration: {parameters: 2}
+	}],
 	'sty/no-mixed-spaces-and-tabs': 'warn',
 	'sty/dot-location': ['warn', 'property'],
 	'sty/keyword-spacing': ['warn', {
@@ -83,6 +89,8 @@ const rulesSty = {
 	'sty/type-generic-spacing': 'warn',
 	'sty/type-named-tuple-spacing': 'warn',
 	'sty/key-spacing': 'warn',
+	'sty/multiline-ternary': ['warn', 'always-multiline'],
+	'sty/operator-linebreak': ['warn', 'before'],
 	'sty/array-bracket-spacing': ['warn', 'never'],
 	'sty/array-bracket-newline': ['warn', 'consistent'],
 	'sty/array-element-newline': ['warn', 'consistent'],
