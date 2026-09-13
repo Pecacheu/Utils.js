@@ -82,7 +82,7 @@ const defaults = {
 	esbuild: true,
 	/** Esbuild HTML plugin options */
 	htmlLoadOpts: {
-		scriptLoading: 'module'
+		bundle: 'module'
 	} as Omit<HtmlFileConfiguration, 'filename' | 'htmlFile' | 'htmlTemplate'>,
 	/** Override automatic detection and manually supply files to esbuild HTML plugin.
 	Unless you specify `htmlTemplate`, `htmlFile` defaults to `{srcCli}/{filename}` */
@@ -311,7 +311,7 @@ async function run() {
 		await _minify();
 		await opts.onPostBuild?.();
 		await opts.onPostBuildSrv?.();
-		log(C.green('Done!'));
+		log(C.green(Meta ? 'Analyze your build at https://esbuild.github.io/analyze' : 'Done!'));
 	}
 };
 
@@ -324,7 +324,7 @@ async function watch(fn: string, cb: (ev: fs.FileChangeInfo<string>) => Promise<
 			if(lck) return;
 			clearInterval(tmr);
 			tmr = undefined, lck = true;
-			await cb(ev);
+			await cb(ev).catch(console.error);
 			await utils.delay(WatchDelay);
 			lck = false;
 		}, WatchPoll);

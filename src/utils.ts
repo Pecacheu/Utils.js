@@ -636,7 +636,7 @@ export class AsyncLock {
 	}
 
 	/** Lock on `obj`, waiting if already locked on another Object */
-	async lock(obj: object) {
+	async lock(obj?: object) {
 		if(!obj || this.#l?.o === obj) return;
 		while(this.#l && this.#l?.o !== obj) await this.#l.p;
 		const nl = {o: obj} as LockData;
@@ -645,7 +645,7 @@ export class AsyncLock {
 	}
 
 	/** Unlock only if currently locked on `obj` */
-	unlock(obj: object) {
+	unlock(obj?: object) {
 		if(this.#l && this.#l.o === obj) this.#l.r(), this.#l = undefined;
 	}
 

@@ -7,12 +7,11 @@ export class SubError extends Error {}
 
 /** Create pretty nested errors by calling this at multiple try/catch layers
 @param isList Contain this segment in *[brackets]* */
-function errAt(key: string | number, err: any, isList?: boolean) {
-	const s = err instanceof SubError, es: string = (err as Error).message || err.toString();
+function errAt(key: string | number, err: unknown, isList?: boolean) {
+	const s = err?.constructor === SubError, es = (err as Error).message ?? err?.toString();
 	key = (isList ? `[${key}]` : key) + (s ? es.startsWith('[') ? '' : '.' : ': ');
 	if(s) (err as Error).message = key + es;
-	//@ts-expect-error Add cause
-	else err = new SubError(key + es, err instanceof Error ? {cause: err} : null);
+	else err = new SubError(key + es, (err as Error).name ? {cause: err} : {});
 	return err as SubError;
 }
 
@@ -222,14 +221,14 @@ function checkSchema(data: AnyMap, schema: Schema | Schema[], opt?: Options) {
 	if(!isDict(data)) throw 'Data must be dict';
 	if(!isDictOrArr(schema)) throw 'Schema must be dict|list[dict]';
 
-	//Support legacy flag
-	if((opt as any)?.iReq) opt!.noReq = (opt as any).iReq;
-
 	//Cache root & parent
 	let k, s, sr;
 	if(!opt) opt = {};
 	if(!('_r' in opt)) opt._r = data, sr = 1;
 	opt._p = data;
+
+	//Support legacy flag
+	if((opt as any).iReq) opt!.noReq = (opt as any).iReq;
 
 	try {
 		tryAny(schema, sch => {

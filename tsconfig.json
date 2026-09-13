@@ -9,7 +9,7 @@
 		//Module
 		"module": "nodenext",
 		"target": "esnext",
-		"lib": ["es2020", "DOM", "DOM.Iterable"],
+		"lib": ["es2020", "es2022.error", "DOM", "DOM.Iterable"],
 		"types": ["node"],
 		"allowSyntheticDefaultImports": true,
 		"noUncheckedSideEffectImports": true,

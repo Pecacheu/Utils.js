@@ -64,7 +64,7 @@ Add this to your `package.json`:
 And if you plan to use [esbuild](https://esbuild.github.io):
 ```json
 "dependencies": {
-	"@pecacheu/esbuild-plugin-html": "^0.11.1",
+	"@pecacheu/esbuild-plugin-html": "^1.12.0",
 	"esbuild": "^0.28.1"
 }
 ```
