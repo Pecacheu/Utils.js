@@ -82,7 +82,7 @@ const defaults = {
 	esbuild: true,
 	/** Esbuild HTML plugin options */
 	htmlLoadOpts: {
-		bundle: 'module'
+		bundle: {'**/*.css': 'block', '*': 'module'}
 	} as Omit<HtmlFileConfiguration, 'filename' | 'htmlFile' | 'htmlTemplate'>,
 	/** Override automatic detection and manually supply files to esbuild HTML plugin.
 	Unless you specify `htmlTemplate`, `htmlFile` defaults to `{srcCli}/{filename}` */

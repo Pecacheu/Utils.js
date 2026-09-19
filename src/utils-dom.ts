@@ -30,10 +30,12 @@ export interface Element {
 	index: number;
 	/** Insert child at index */
 	insertChildAt(el: Element, i: number): void;
-	/** Get element bounding rect as UtilRect object */
+	/** Get element bounding rect as UtilRect */
 	boundingRect: ext.UtilRect;
-	/** Get element inner rect (excluding border and padding) as UtilRect object */
+	/** Get element inner rect (excluding border and padding) as UtilRect */
 	innerRect: ext.UtilRect;
+	/** Get element outer rect (including margin) as UtilRect */
+	outerRect: ext.UtilRect;
 }
 }
 
@@ -52,24 +54,25 @@ export interface TextArea extends HTMLTextAreaElement {
 //-------------------------------------------- Extensions --------------------------------------------
 
 namespace ext {
-/** Get element bounding rect as UtilRect object */
-export const boundingRect = (e: Element) => new UtilRect(e.getBoundingClientRect());
-
-/** Get element inner rect (excluding border and padding) as UtilRect object */
-export function innerRect(e: Element) {
-	const r=e.getBoundingClientRect(), s=getComputedStyle(e);
-	return new UtilRect(r.top+parseFloat(s.paddingTop)+parseFloat(s.borderTopWidth),
-		r.bottom-parseFloat(s.paddingBottom)-parseFloat(s.borderBottomWidth),
-		r.left+parseFloat(s.paddingLeft)+parseFloat(s.borderLeftWidth),
-		r.right-parseFloat(s.paddingRight)-parseFloat(s.borderRightWidth));
-};
-
 /** Gate DOM context (aka not worker context) */
 const W = globalThis.window;
 
 if(W) {
-	U.define(Element.prototype, 'boundingRect', function(this: any) {return boundingRect(this)});
-	U.define(Element.prototype, 'innerRect', function(this: any) {return innerRect(this)});
+	U.define(Element.prototype, 'boundingRect', function(this: Element) {
+		return new UtilRect(this.getBoundingClientRect());
+	});
+	U.define(Element.prototype, 'innerRect', function(this: Element) {
+		const r=this.getBoundingClientRect(), s=getComputedStyle(this);
+		return new UtilRect(r.top+parseFloat(s.paddingTop)+parseFloat(s.borderTopWidth),
+			r.bottom-parseFloat(s.paddingBottom)-parseFloat(s.borderBottomWidth),
+			r.left+parseFloat(s.paddingLeft)+parseFloat(s.borderLeftWidth),
+			r.right-parseFloat(s.paddingRight)-parseFloat(s.borderRightWidth));
+	});
+	U.define(Element.prototype, 'outerRect', function(this: Element) {
+		const r = this.getBoundingClientRect(), s = getComputedStyle(this);
+		return new UtilRect(r.top - parseFloat(s.marginTop), r.bottom + parseFloat(s.marginBottom),
+			r.left - parseFloat(s.marginLeft), r.right + parseFloat(s.marginRight));
+	});
 
 	if(W.TouchList) U.proto(TouchList, 'get', function(this: any, id: number) {
 		for(const t of this) if(t.identifier === id) return t;
@@ -170,7 +173,7 @@ export class UtilRect {
 		return this.dist((x as Element).boundingRect);
 	}
 
-	/** Expand (or contract if negative) a UtilRect by num of pixels. Useful for using UtilRect objects as element hitboxes
+	/** Expand (or contract if negative) a UtilRect by num of pixels. Useful for using UtilRects as element hitboxes
 	@returns self for chaining */
 	expand(by: number) {
 		this.top -= by, this.left -= by, this.bottom += by, this.right += by;
@@ -198,7 +201,7 @@ export function mkTestRect(r: UtilRect, color = '#000') {
 	if(U.$DEBUG) {
 		let el = TestRects.get(r);
 		if(!el) {
-			el = utils.mkDiv(document.body, null, {position: 'fixed', zIndex: 9999, boxSizing: 'border-box', border: `2px dashed ${color}`, opacity: .3});
+			el = utils.mkDiv(document.body, null, {position: 'fixed', zIndex: 9999, boxSizing: 'border-box', border: `2px dashed ${color}`, opacity: .3, pointerEvents: 'none'});
 			utils.mkDiv(el, null, {width: '4px', height: '4px', position: 'fixed', background: color, opacity: .5});
 			TestRects.set(r, el);
 		}
@@ -255,6 +258,11 @@ if(W) [HTMLCollection, NodeList].forEach(p => {
 // eslint-disable-next-line no-unassigned-vars
 export let onNav: ((state: any) => void) | null;
 
+/** Make onNav ignore initial page load.
+Good idea if your `onload` is async */
+// eslint-disable-next-line prefer-const
+export let noFirstNav = false;
+
 /** Generate a virtual navigation event, updating the URL bar
 @param state Optional data given to `onNav` whenever the user returns to this history entry */
 export function go(url: string | URL, state?: any) {
@@ -262,7 +270,7 @@ export function go(url: string | URL, state?: any) {
 }
 
 addEventListener('popstate', e => onNav?.(e.state));
-addEventListener('load', () => setTimeout(() => onNav?.(history.state)));
+addEventListener('load', () => setTimeout(() => noFirstNav || onNav?.(history.state)));
 
 //==== DOM Creation ====
 

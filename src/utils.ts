@@ -1,6 +1,6 @@
 //https://github.com/Pecacheu/Utils.js; GNU GPL v3
 
-const Ver = "v9.3.0";
+const Ver = "v9.3.3";
 
 //Node.js compat
 type P = [typeof document, typeof HTMLCollection];
@@ -10,6 +10,12 @@ const IsNode=typeof window==='undefined', P:P=IsNode?[{}, class{}]:[document, HT
 //-------------------------------------------- Types --------------------------------------------
 
 declare global {
+/** Any key of any branch of the union */
+export type UnionKey<T> = T extends any ? keyof T : never;
+
+/** Omit but works properly with unions */
+export type UnionOmit<T, K extends keyof any> = T extends any ? Omit<T, K> : never;
+
 export interface Array<T> {
 	/** Remove 'empty' elements like 0, false, ' ', undefined, and NaN from array.
 	Often useful in combination with Array.split
