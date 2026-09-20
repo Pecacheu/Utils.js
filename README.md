@@ -103,26 +103,26 @@ import http from 'http';
 import router from 'raiutils/router';
 
 const debug = 1,
-dir = import.meta.dirname,
-root = dir+"/web",
-vDir = {
-	'coffee.js': dir+"/scripts/coffee.js"
-};
+	dir = import.meta.dirname,
+	root = dir + '/web',
+	vDir = {
+		'coffee.js': dir + '/scripts/coffee.js'
+	};
 
 router.debug = debug;
 
 http.createServer((req, res) => {
-	if(debug) console.log("[REQ]", req.url);
+	if(debug) console.log('[REQ]', req.url);
 	//Special overrides
 	if(req.url === '/game/theory') {
-		res.write("Hello internet!");
+		res.write('Hello internet!');
 		res.end();
 	} else {
 		//Standard pages
 		router.handle(root, req, res, vDir);
 	}
 }).listen(8080, () => {
-	console.log("Server up at http://localhost:8080");
+	console.log('Server up at http://localhost:8080');
 });
 ```
 
@@ -202,11 +202,11 @@ try {
 - `errAt(key, err[, isList])` Create pretty nested errors
 
 # Grabable
-A lightweight, performant, touch-friendly library for handling drag-and-drop for lists, grids, and fixed-position targets with a flexible API.
+A lightweight, performant, touch-friendly library for handling drag-and-drop for lists, grids, and fixed-position targets with a flexible API. *(See `grab.ts` for more details on recommended CSS.)*
 
 > example.css
 ```css
-.grabItm, .grabItm * { user-select:none; touch-action:none; }
+.grabItm, .grabItm * { user-select:none; }
 .grabbing { box-sizing:border-box; opacity:.8; z-index:99; }
 .grabBox { box-sizing:border-box; border:2px dashed #bbb; }
 .grabOver { outline:5px solid #bbb; }
